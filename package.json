@@ -1,110 +1,137 @@
 {
-	"name": "prophet",
-	"displayName": "Prophet Debugger",
-	"version": "0.18.2",
-	"publisher": "SqrTT",
-	"description": "Debugger for Demandware/Salesforce sandboxes",
-	"author": {
-		"name": "Antolii Obitskyi",
-		"email": "tolik@sqrtt.pro"
-	},
-	"engines": {
-		"vscode": "^1.11.0",
-		"node": "^6.5.0"
-	},
-	"icon": "images/mock-debug-icon.svg",
-	"categories": [
-		"Debuggers"
-	],
-	"private": true,
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/Microsoft/vscode-mock-debug.git"
-	},
-	"bugs": {
-		"url": "https://github.com/Microsoft/vscode-mock-debug/issues"
-	},
-	"dependencies": {
-		"vscode-debugprotocol": "^1.18.0-pre.2",
-		"vscode-debugadapter": "^1.18.0-pre.4"
-	},
-	"devDependencies": {
-		"@types/es6-collections": "^0.5.29",
-		"@types/es6-promise": "^0.0.32",
-		"@types/mocha": "^2.2.33",
-		"@types/node": "^6.0.50",
-		"typescript": "^2.0.10",
-		"mocha": "^3.1.2",
-		"vscode": "^1.0.3",
-		"vscode-debugadapter-testsupport": "^1.17.0"
-	},
-	"scripts": {
-		"prepublish": "node ./node_modules/typescript/bin/tsc -p ./src",
-		"compile": "node ./node_modules/typescript/bin/tsc -p ./src",
-		"watch": "node ./node_modules/typescript/bin/tsc -w -p ./src",
-		"test": "node ./node_modules/mocha/bin/mocha -u tdd ./out/tests/",
-		"postinstall": "node ./node_modules/vscode/bin/install"
-	},
-	"main": "./out/extension",
-	"activationEvents": [
-		"onCommand:extension.prophet.getProgramName",
-		"onCommand:extension.prophet.provideInitialConfigurations"
-	],
-	"contributes": {
-		"breakpoints": [
-			{
-				"language": "markdown"
-			}
-		],
-		"debuggers": [
-			{
-				"type": "prophet",
-				"label": "Attach to Sandbox",
-
-				"program": "./out/mockDebug.js",
-				"runtime": "node",
-
-				"variables": {
-					"AskForProgramName": "extension.prophet.getProgramName"
-				},
-
-				"configurationSnippets": [
-					{
-						"label": "Mock Debug: Launch",
-						"description": "A new configuration for launching a mock debug program",
-						"body": {
-							"type": "mock",
-							"request": "launch",
-							"name": "${2:Launch Program}",
-							"program": "^\"\\${workspaceRoot}/${1:Program}\""
-						}
-					}
-				],
-
-				"configurationAttributes": {
-					"launch": {
-						"required": [ "program" ],
-						"properties": {
-							"program": {
-								"type": "string",
-								"description": "Absolute path to a text file.",
-								"default": "${workspaceRoot}/${command:AskForProgramName}"
-							},
-							"stopOnEntry": {
-								"type": "boolean",
-								"description": "Automatically stop after launch.",
-								"default": true
-							},
-							"trace": {
-								"type": "boolean",
-								"description": "Enable logging of the Debug Adapter Protocol.",
-								"default": true
-							}
-						}
-					}
-				},
-				"initialConfigurations": "extension.prophet.provideInitialConfigurations"
-			}
-		]
-	}
+  "name": "prophet",
+  "displayName": "Prophet Debugger",
+  "version": "0.0.1",
+  "publisher": "SqrTT",
+  "description": "Debugger for Demandware/Salesforce sandbox",
+  "author": {
+    "name": "Anatolii Obitskyi",
+    "email": "tolik@sqrtt.pro"
+  },
+  "engines": {
+    "vscode": "^1.11.0",
+    "node": "^6.5.0"
+  },
+  "icon": "images/mock-debug-icon.svg",
+  "categories": [
+    "Debuggers"
+  ],
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Microsoft/vscode-mock-debug.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Microsoft/vscode-mock-debug/issues"
+  },
+  "dependencies": {
+    "extend": "^3.0.0",
+    "request": "^2.81.0",
+    "vscode-debugadapter": "^1.18.0-pre.4",
+    "vscode-debugprotocol": "^1.18.0-pre.2"
+  },
+  "devDependencies": {
+    "@types/es6-collections": "^0.5.29",
+    "@types/es6-promise": "^0.0.32",
+    "@types/mocha": "^2.2.33",
+    "@types/node": "^6.0.50",
+    "typescript": "^2.0.10",
+    "mocha": "^3.1.2",
+    "vscode": "^1.0.3",
+    "vscode-debugadapter-testsupport": "^1.17.0"
+  },
+  "scripts": {
+    "prepublish": "node ./node_modules/typescript/bin/tsc -p ./src",
+    "compile": "node ./node_modules/typescript/bin/tsc -p ./src",
+    "watch": "node ./node_modules/typescript/bin/tsc -w -p ./src",
+    "test": "node ./node_modules/mocha/bin/mocha -u tdd ./out/tests/",
+    "postinstall": "node ./node_modules/vscode/bin/install"
+  },
+  "main": "./out/extension",
+  "activationEvents": [
+    "onCommand:extension.prophet.getProgramName",
+    "onCommand:extension.prophet.provideInitialConfigurations"
+  ],
+  "contributes": {
+    "breakpoints": [
+      {
+        "language": "javascript"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "prophet",
+        "label": "Attach to Sandbox",
+        "program": "./out/mockDebug.js",
+        "runtime": "node",
+        "configurationSnippets": [
+          {
+            "label": "Demandware Debugger",
+            "description": "A new configuration for connecting to sandbox",
+            "body": {
+              "type": "prophet",
+              "request": "launch",
+              "name": "${2:Attach to Sandbox}",
+              "hostname": "${3:*.demandware.net}",
+              "username": "${4:admin}",
+              "password": "${5}",
+              "codeversion": "${6:version1}",
+              "cartridgeroot": "auto",
+              "workspaceroot": "${workspaceRoot}"
+            }
+          }
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "required": [
+              "hostname",
+              "username",
+              "password",
+              "codeversion",
+              "cartridgeroot",
+              "workspaceroot"
+            ],
+            "properties": {
+              "hostname": {
+                "type": "string",
+                "description": "Hostname of instance",
+                "default": "*.demandware.net"
+              },
+              "username": {
+                "type": "string",
+                "description": "username for instance",
+                "default": "admin"
+              },
+              "password": {
+                "type": "string",
+                "description": "password for instance",
+                "default": ""
+              },
+              "codeversion": {
+                "type": "string",
+                "description": "version of code on instance",
+                "default": "vesion1"
+              },
+              "cartridgeroot": {
+                "type": "string",
+                "description": "cartridges root in workspace",
+                "default": "auto"
+              },
+              "workspaceroot": {
+                "type": "string",
+                "description": "root of workspace",
+                "default": "${workspaceRoot}"
+              },
+              "trace": {
+                "type": "boolean",
+                "description": "Enable logging of the Debug Adapter Protocol.",
+                "default": false
+              }
+            }
+          }
+        },
+        "initialConfigurations": "extension.prophet.provideInitialConfigurations"
+      }
+    ]
+  }
 }

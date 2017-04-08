@@ -3,9 +3,9 @@
  *--------------------------------------------------------*/
 'use strict';
 Object.defineProperty(exports, "__esModule", { value: true });
-var vscode = require("vscode");
-var initialConfigurations = {
-    version: '0.2.0',
+const vscode = require("vscode");
+const initialConfigurations = {
+    version: '0.0.1',
     configurations: [
         {
             type: 'mock',
@@ -17,13 +17,13 @@ var initialConfigurations = {
     ]
 };
 function activate(context) {
-    context.subscriptions.push(vscode.commands.registerCommand('extension.mock-debug.getProgramName', function (config) {
+    context.subscriptions.push(vscode.commands.registerCommand('extension.prophet.getProgramName', config => {
         return vscode.window.showInputBox({
             placeHolder: "Please enter the name of a markdown file in the workspace folder",
             value: "readme.md"
         });
     }));
-    context.subscriptions.push(vscode.commands.registerCommand('extension.mock-debug.provideInitialConfigurations', function () {
+    context.subscriptions.push(vscode.commands.registerCommand('extension.prophet.provideInitialConfigurations', () => {
         return [
             '// Use IntelliSense to learn about possible Mock debug attributes.',
             '// Hover to view descriptions of existing attributes.',
