@@ -1,25 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const vscode_debugadapter_1 = require("vscode-debugadapter");
+const path_1 = require("path");
 const Connection_1 = require("./Connection");
 const path = require("path");
-function toScriptPath(filepath, workspacepath, root = 'auto') {
-    const relPath = path.relative(workspacepath, filepath);
-    const sepPath = relPath.split(path.sep);
-    if (root === 'auto') {
-        const cartPos = sepPath.indexOf('cartridges');
-        if (cartPos >= 0) {
-            sepPath.splice(0, cartPos + 1);
-            return '/' + sepPath.join('/');
-        }
-        else {
-            return '/' + sepPath.join('/');
-        }
-    }
-    else {
-        throw new Error('Not implemented yet');
-    }
-}
 class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
     /**
      * Creates a new debug adapter that is used for one debug session.
@@ -29,8 +13,8 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
         super("prophet.txt");
         // maps from sourceFile to array of Breakpoints
         this._breakPoints = new Map();
-        // this debugger uses zero-based lines and columns
-        this.setDebuggerLinesStartAt1(false);
+        this._variableHandles = new vscode_debugadapter_1.Handles();
+        this.setDebuggerLinesStartAt1(true);
         this.setDebuggerColumnsStartAt1(false);
     }
     /**
@@ -39,7 +23,7 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
      */
     initializeRequest(response, args) {
         // This debug adapter implements the configurationDoneRequest.
-        response.body.supportsConfigurationDoneRequest = false;
+        response.body.supportsConfigurationDoneRequest = true;
         // make VS Code to use 'evaluate' when hovering over source
         response.body.supportsEvaluateForHovers = false;
         response.body.supportsConditionalBreakpoints = false;
@@ -65,6 +49,7 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
                 return this.connection
                     .removeBreakpoints()
                     .then(() => {
+                    this.sendResponse(response);
                     this.sendEvent(new vscode_debugadapter_1.InitializedEvent());
                 });
             }).catch(err => {
@@ -82,6 +67,16 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
         // 	//this.continueRequest(<DebugProtocol.ContinueResponse>response, { threadId: MockDebugSession.THREAD_ID });
         // }
     }
+    configurationDoneRequest(response, args) {
+        if (this.connection) {
+            this.connection.startAwaitThreads();
+            this.connection.on('new.thread', thread => {
+                this.sendEvent(new vscode_debugadapter_1.ThreadEvent('started', thread.id));
+                this.sendEvent(new vscode_debugadapter_1.StoppedEvent('breakpoint', thread.id));
+            });
+        }
+        this.sendResponse(response);
+    }
     disconnectRequest(response, args) {
         if (this.connection) {
             this.connection
@@ -98,7 +93,7 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
     setBreakPointsRequest(response, args) {
         var path = args.source.path;
         var clientLines = args.lines;
-        var scriptPath = toScriptPath(path, this.config.workspaceroot, this.config.cartridgeroot);
+        var scriptPath = this.convertClientPathToDebugger(path);
         var breakpoints = new Array();
         this.connection
             .createBreakpoints(clientLines.map(line => ({
@@ -121,37 +116,40 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
         });
     }
     threadsRequest(response) {
-        // return the default thread
-        response.body = {
-            threads: []
-        };
-        this.sendResponse(response);
+        if (this.connection) {
+            this.connection.getThreads().then(threads => {
+                response.body = {
+                    threads: threads
+                        .filter(thread => thread.status === 'halted')
+                        .map(thread => new vscode_debugadapter_1.Thread(thread.id, "thread " + thread.id))
+                };
+                this.sendResponse(response);
+            });
+        }
+        else {
+            // return the default thread
+            response.body = {
+                threads: []
+            };
+            this.sendResponse(response);
+        }
     }
-    /**
-     * Returns a fake 'stacktrace' where every 'stackframe' is a word from the current line.
-     */
     stackTraceRequest(response, args) {
-        // const words = this._sourceLines[this._currentLine].trim().split(/\s+/);
-        // const startFrame = typeof args.startFrame === 'number' ? args.startFrame : 0;
-        // const maxLevels = typeof args.levels === 'number' ? args.levels : words.length-startFrame;
-        // const endFrame = Math.min(startFrame + maxLevels, words.length);
-        // const frames = new Array<StackFrame>();
-        // // every word of the current line becomes a stack frame.
-        // for (let i= startFrame; i < endFrame; i++) {
-        // 	const name = words[i];	// use a word of the line as the stackframe name
-        // 	frames.push(new StackFrame(i, `${name}(${i})`, new Source(basename(this._sourceFile),
-        // 		this.convertDebuggerPathToClient(this._sourceFile)),
-        // 		this.convertDebuggerLineToClient(this._currentLine), 0));
-        // }
-        // response.body = {
-        // 	stackFrames: frames,
-        // 	totalFrames: words.length
-        // };
-        this.sendResponse(response);
+        this.connection.getStackTrace(args.threadId)
+            .then(stack => {
+            response.body = {
+                stackFrames: stack.map(frame => {
+                    return new vscode_debugadapter_1.StackFrame((args.threadId * 100000) + frame.index, frame.location.function_name, new vscode_debugadapter_1.Source(path_1.basename(frame.location.script_path), this.convertDebuggerPathToClient(frame.location.script_path)), this.convertDebuggerLineToClient(frame.location.line_number), 0);
+                }),
+                totalFrames: stack.length
+            };
+            this.sendResponse(response);
+        });
     }
     scopesRequest(response, args) {
         const frameReference = args.frameId;
         const scopes = new Array();
+        scopes.push(new vscode_debugadapter_1.Scope("Local", this._variableHandles.create("" + frameReference), false));
         // scopes.push(new Scope("Local", this._variableHandles.create("local_" + frameReference), false));
         // scopes.push(new Scope("Closure", this._variableHandles.create("closure_" + frameReference), false));
         // scopes.push(new Scope("Global", this._variableHandles.create("global_" + frameReference), true));
@@ -162,47 +160,72 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
     }
     variablesRequest(response, args) {
         const variables = [];
-        // const id = this._variableHandles.get(args.variablesReference);
-        // if (id != null) {
-        // 	variables.push({
-        // 		name: id + "_i",
-        // 		type: "integer",
-        // 		value: "123",
-        // 		variablesReference: 0
-        // 	});
-        // 	variables.push({
-        // 		name: id + "_f",
-        // 		type: "float",
-        // 		value: "3.14",
-        // 		variablesReference: 0
-        // 	});
-        // 	variables.push({
-        // 		name: id + "_s",
-        // 		type: "string",
-        // 		value: "hello world",
-        // 		variablesReference: 0
-        // 	});
-        // 	variables.push({
-        // 		name: id + "_o",
-        // 		type: "object",
-        // 		value: "Object",
-        // 		variablesReference: this._variableHandles.create("object_")
-        // 	});
-        // }
-        // response.body = {
-        // 	variables: variables
-        // };
-        this.sendResponse(response);
+        const id = this._variableHandles.get(args.variablesReference);
+        if (id) {
+            const vals = id.split('_');
+            const frameReferenceStr = vals[0];
+            const path = vals[1] || '';
+            const frameReference = parseInt(frameReferenceStr);
+            const threadID = parseInt((frameReference / 100000) + '');
+            const frameID = frameReference - (threadID * 100000);
+            this.connection.getMembers(threadID, frameID, path)
+                .then(members => {
+                response.body = {
+                    variables: members.map(member => {
+                        var variablesReference = 0;
+                        if (member.type.includes('dw.') || member.type.includes('Object')) {
+                            const encPath = frameReferenceStr + '_' + (path ? path + '.' : '') + member.name;
+                            variablesReference = this._variableHandles.create(encPath);
+                        }
+                        return {
+                            name: member.name,
+                            type: member.type,
+                            value: member.value,
+                            variablesReference: variablesReference
+                        };
+                    })
+                };
+                this.sendResponse(response);
+            });
+        }
+        else {
+            response.body = {
+                variables: variables
+            };
+            this.sendResponse(response);
+        }
     }
     continueRequest(response, args) {
-        this.sendResponse(response);
-        // no more lines: run to end
-        //this.sendEvent(new TerminatedEvent());
+        this.connection
+            .resume(args.threadId)
+            .then(() => {
+            this.sendResponse(response);
+            this.sendEvent(new vscode_debugadapter_1.StoppedEvent('step', args.threadId));
+        });
+    }
+    stepInRequest(response, args) {
+        this.connection
+            .stepInto(args.threadId)
+            .then(() => {
+            this.sendResponse(response);
+            this.sendEvent(new vscode_debugadapter_1.StoppedEvent('step', args.threadId));
+        });
+    }
+    stepOutRequest(response, args) {
+        this.connection
+            .stepOut(args.threadId)
+            .then(() => {
+            this.sendResponse(response);
+            this.sendEvent(new vscode_debugadapter_1.StoppedEvent('step', args.threadId));
+        });
     }
     nextRequest(response, args) {
-        this.sendResponse(response);
-        // no more lines: run to end
-        //this.sendEvent(new TerminatedEvent());
+        this.connection
+            .stepOver(args.threadId)
+            .then(() => {
+            this.sendResponse(response);
+            this.sendEvent(new vscode_debugadapter_1.StoppedEvent('step', args.threadId));
+        });
     }
     evaluateRequest(response, args) {
         response.body = {
@@ -256,6 +279,20 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
         // 	return true;
         // }
         return false;
+    }
+    convertClientPathToDebugger(clientPath) {
+        //	this.config.workspaceroot,
+        if (this.config.cartridgeroot === 'auto') {
+            const sepPath = clientPath.split(path.sep);
+            const cartPos = sepPath.indexOf('cartridge');
+            this.config.cartridgeroot = path.parse(clientPath).root + sepPath.splice(0, cartPos - 1).join(path.sep) + path.sep;
+        }
+        const relPath = path.relative(this.config.cartridgeroot, clientPath);
+        const sepPath = relPath.split(path.sep);
+        return '/' + sepPath.join('/');
+    }
+    convertDebuggerPathToClient(debuggerPath) {
+        return path.join(this.config.cartridgeroot, debuggerPath.split('/').join(path.sep));
     }
     log(msg, line) {
         const e = new vscode_debugadapter_1.OutputEvent(`${msg}: ${line}\n`);
