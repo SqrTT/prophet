@@ -13,6 +13,8 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
         super("prophet.txt");
         // maps from sourceFile to array of Breakpoints
         this._breakPoints = new Map();
+        this.threadsArray = new Array();
+        this.isAwaitingThreads = false;
         this._variableHandles = new vscode_debugadapter_1.Handles();
         this.setDebuggerLinesStartAt1(true);
         this.setDebuggerColumnsStartAt1(false);
@@ -26,7 +28,13 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
         response.body.supportsConfigurationDoneRequest = true;
         // make VS Code to use 'evaluate' when hovering over source
         response.body.supportsEvaluateForHovers = false;
+        response.body.supportsFunctionBreakpoints = false;
         response.body.supportsConditionalBreakpoints = false;
+        response.body.supportsHitConditionalBreakpoints = false;
+        response.body.supportsSetVariable = false;
+        response.body.supportsGotoTargetsRequest = false;
+        response.body.supportsRestartRequest = false;
+        response.body.supportsRestartFrame = false;
         response.body.supportsExceptionInfoRequest = false;
         response.body.supportsExceptionOptions = false;
         response.body.supportsStepBack = false;
@@ -51,40 +59,30 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
                     .then(() => {
                     this.sendResponse(response);
                     this.sendEvent(new vscode_debugadapter_1.InitializedEvent());
+                    this.log('successfully connected');
                 });
             }).catch(err => {
                 this.sendEvent(new vscode_debugadapter_1.TerminatedEvent());
-                this.log(err, 88888);
+                this.catchLog(err);
             });
         }
-        // if (!args.trace) {
-        // 	this._currentLine = 0;
-        // 	this.sendResponse(response);
-        // 	// we stop on the first line
-        // 	this.sendEvent(new StoppedEvent("entry", MockDebugSession.THREAD_ID));
-        // } else {
-        // 	// we just start to run until we hit a breakpoint or an exception
-        // 	//this.continueRequest(<DebugProtocol.ContinueResponse>response, { threadId: MockDebugSession.THREAD_ID });
-        // }
     }
     configurationDoneRequest(response, args) {
         if (this.connection) {
-            this.connection.startAwaitThreads();
-            this.connection.on('new.thread', thread => {
-                this.sendEvent(new vscode_debugadapter_1.ThreadEvent('started', thread.id));
-                this.sendEvent(new vscode_debugadapter_1.StoppedEvent('breakpoint', thread.id));
-            });
+            this.startAwaitThreads();
         }
         this.sendResponse(response);
     }
     disconnectRequest(response, args) {
         if (this.connection) {
+            this.stopAwaitThreads();
             this.connection
                 .destroy()
                 .then(() => {
                 super.disconnectRequest(response, args);
+                this.log('successfully disconected');
             }).catch(err => {
-                this.log(err, 138);
+                this.log(err);
                 super.disconnectRequest(response, args);
             });
         }
@@ -95,24 +93,47 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
         var clientLines = args.lines;
         var scriptPath = this.convertClientPathToDebugger(path);
         var breakpoints = new Array();
-        this.connection
-            .createBreakpoints(clientLines.map(line => ({
-            file: scriptPath,
-            line: this.convertClientLineToDebugger(line)
-        })))
-            .then(brks => {
-            // send back the actual breakpoint positions
-            response.body = {
-                breakpoints: brks.filter(brk => brk.file === scriptPath)
-                    .map(brk => new vscode_debugadapter_1.Breakpoint(true, this.convertDebuggerLineToClient(brk.line)))
-            };
-            this.sendResponse(response);
-        }).catch((err) => {
-            this.log(err, 0);
-            response.body = {
-                breakpoints: []
-            };
-            this.sendResponse(response);
+        if (!this._breakPoints.has(path)) {
+            this._breakPoints.set(path, []);
+        }
+        const scriptBrks = this._breakPoints.get(path);
+        // remove if unexist
+        const removeOld = scriptBrks.map(brkId => {
+            return this.connection
+                .removeBreakpoints(brkId).catch(this.catchLog.bind(this));
+        });
+        Promise.all(removeOld).then(() => {
+            if (clientLines.length) {
+                this.connection
+                    .createBreakpoints(clientLines.map(clientLine => ({
+                    file: scriptPath,
+                    line: this.convertClientLineToDebugger(clientLine)
+                })))
+                    .then(brks => {
+                    // send back the actual breakpoint positions
+                    this._breakPoints.set(path, brks.map(brk => brk.id));
+                    response.body = {
+                        breakpoints: brks.filter(brk => brk.file === scriptPath)
+                            .map(brk => new vscode_debugadapter_1.Breakpoint(true, this.convertDebuggerLineToClient(brk.line), undefined, new vscode_debugadapter_1.Source(brk.id + " - " + path_1.basename(scriptPath), this.convertDebuggerPathToClient(scriptPath))
+                        //args.source.
+                        ))
+                    };
+                    this.sendResponse(response);
+                }).catch((err) => {
+                    this.catchLog(err);
+                    response.body = {
+                        breakpoints: []
+                    };
+                    this.sendResponse(response);
+                });
+            }
+            else {
+                this._breakPoints.set(path, []);
+                response.body = {
+                    breakpoints: []
+                };
+                this.sendResponse(response);
+            }
         });
     }
     threadsRequest(response) {
@@ -124,7 +145,9 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
                         .map(thread => new vscode_debugadapter_1.Thread(thread.id, "thread " + thread.id))
                 };
                 this.sendResponse(response);
-            });
+            })
+                .catch(this.catchLog.bind(this));
+            ;
         }
         else {
             // return the default thread
@@ -144,7 +167,9 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
                 totalFrames: stack.length
             };
             this.sendResponse(response);
-        });
+        })
+            .catch(this.catchLog.bind(this));
+        ;
     }
     scopesRequest(response, args) {
         const frameReference = args.frameId;
@@ -186,7 +211,8 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
                     })
                 };
                 this.sendResponse(response);
-            });
+            })
+                .catch(this.catchLog.bind(this));
         }
         else {
             response.body = {
@@ -200,7 +226,13 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
             .resume(args.threadId)
             .then(() => {
             this.sendResponse(response);
-            this.sendEvent(new vscode_debugadapter_1.StoppedEvent('step', args.threadId));
+            this.connection
+                .getStackTrace(args.threadId)
+                .then(() => this.sendEvent(new vscode_debugadapter_1.StoppedEvent('step', args.threadId)))
+                .catch(() => {
+                this.log(`thread "${args.threadId}" finished`, 200);
+            });
+            //
         });
     }
     stepInRequest(response, args) {
@@ -209,7 +241,8 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
             .then(() => {
             this.sendResponse(response);
             this.sendEvent(new vscode_debugadapter_1.StoppedEvent('step', args.threadId));
-        });
+        })
+            .catch(this.catchLog.bind(this));
     }
     stepOutRequest(response, args) {
         this.connection
@@ -217,7 +250,9 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
             .then(() => {
             this.sendResponse(response);
             this.sendEvent(new vscode_debugadapter_1.StoppedEvent('step', args.threadId));
-        });
+        })
+            .catch(this.catchLog.bind(this));
+        ;
     }
     nextRequest(response, args) {
         this.connection
@@ -225,63 +260,34 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
             .then(() => {
             this.sendResponse(response);
             this.sendEvent(new vscode_debugadapter_1.StoppedEvent('step', args.threadId));
-        });
+        })
+            .catch(this.catchLog.bind(this));
+        ;
     }
     evaluateRequest(response, args) {
-        response.body = {
-            result: `evaluate(context: '${args.context}', '${args.expression}')`,
-            variablesReference: 0
-        };
-        this.sendResponse(response);
+        const frameReference = args.frameId || 0;
+        const threadID = parseInt((frameReference / 100000) + '');
+        const frameID = frameReference - (threadID * 100000);
+        if (this.connection && args.frameId && threadID) {
+            this.connection.evaluate(threadID, args.expression, frameID)
+                .then(res => {
+                response.body = {
+                    result: args.context === 'watch' ? '' + res : '-> ' + res,
+                    variablesReference: 0
+                };
+                this.sendResponse(response);
+            });
+        }
+        else {
+            response.body = {
+                result: `evaluate: undefined thread`,
+                variablesReference: 0
+            };
+            this.sendResponse(response);
+        }
     }
     //---- some helpers
-    /**
-     * Fire StoppedEvent if line is not empty.
-     */
-    fireStepEvent(response, ln) {
-        // if (this._sourceLines[ln].trim().length > 0) {	// non-empty line
-        // 	this._currentLine = ln;
-        // 	this.sendResponse(response);
-        // 	this.sendEvent(new StoppedEvent("step", MockDebugSession.THREAD_ID));
-        // 	return true;
-        // }
-        return false;
-    }
-    /**
-     * Fire StoppedEvent if line has a breakpoint or the word 'exception' is found.
-     */
-    fireEventsForLine(response, ln) {
-        // // find the breakpoints for the current source file
-        // const breakpoints = this._breakPoints.get(this._sourceFile);
-        // if (breakpoints) {
-        // 	const bps = breakpoints.filter(bp => bp.line === this.convertDebuggerLineToClient(ln));
-        // 	if (bps.length > 0) {
-        // 		this._currentLine = ln;
-        // 		// 'continue' request finished
-        // 		this.sendResponse(response);
-        // 		// send 'stopped' event
-        // 		this.sendEvent(new StoppedEvent("breakpoint", MockDebugSession.THREAD_ID));
-        // 		// the following shows the use of 'breakpoint' events to update properties of a breakpoint in the UI
-        // 		// if breakpoint is not yet verified, verify it now and send a 'breakpoint' update event
-        // 		if (!bps[0].verified) {
-        // 			bps[0].verified = true;
-        // 			this.sendEvent(new BreakpointEvent("update", bps[0]));
-        // 		}
-        // 		return true;
-        // 	}
-        // }
-        // // if word 'exception' found in source -> throw exception
-        // if (this._sourceLines[ln].indexOf("exception") >= 0) {
-        // 	this._currentLine = ln;
-        // 	this.sendResponse(response);
-        // 	this.sendEvent(new StoppedEvent("exception", MockDebugSession.THREAD_ID));
-        // 	this.log('exception in line', ln);
-        // 	return true;
-        // }
-        return false;
-    }
     convertClientPathToDebugger(clientPath) {
-        //	this.config.workspaceroot,
         if (this.config.cartridgeroot === 'auto') {
             const sepPath = clientPath.split(path.sep);
             const cartPos = sepPath.indexOf('cartridge');
@@ -294,8 +300,50 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
     convertDebuggerPathToClient(debuggerPath) {
         return path.join(this.config.cartridgeroot, debuggerPath.split('/').join(path.sep));
     }
+    startAwaitThreads() {
+        if (!this.isAwaitingThreads) {
+            this.threadsTimer = setInterval(this.connection.resetThreads.bind(this.connection), 30000);
+            this.awaitThreadsTimer = setInterval(this.awaitThreads.bind(this), 10000);
+            this.isAwaitingThreads = true;
+        }
+    }
+    stopAwaitThreads() {
+        if (this.isAwaitingThreads) {
+            clearInterval(this.awaitThreadsTimer);
+            clearInterval(this.threadsTimer);
+            this.isAwaitingThreads = false;
+        }
+    }
+    awaitThreads() {
+        if (this.isAwaitingThreads) {
+            this.connection.getThreads()
+                .then(activeThreads => {
+                if (activeThreads.length) {
+                    activeThreads.forEach(activeThread => {
+                        if (this.threadsArray.indexOf(activeThread.id) === -1) {
+                            this.sendEvent(new vscode_debugadapter_1.ThreadEvent('started', activeThread.id));
+                            this.sendEvent(new vscode_debugadapter_1.StoppedEvent('breakpoint', activeThread.id));
+                            this.threadsArray.push(activeThread.id);
+                        }
+                    });
+                }
+                this.threadsArray.forEach((threadID, index) => {
+                    if (!activeThreads.some(activeThread => activeThread.id === threadID)) {
+                        this.sendEvent(new vscode_debugadapter_1.ThreadEvent('exited', threadID));
+                        this.threadsArray.splice(index, 1);
+                    }
+                });
+            })
+                .catch(this.catchLog.bind(this));
+        }
+    }
+    catchLog(err) {
+        const e = new vscode_debugadapter_1.OutputEvent(`${err}\n ${err.stack}`);
+        //(<DebugProtocol.OutputEvent>e).body.variablesReference = this._variableHandles.create("args");
+        this.sendEvent(e); // print current line on debug console	
+    }
     log(msg, line) {
-        const e = new vscode_debugadapter_1.OutputEvent(`${msg}: ${line}\n`);
+        const e = new vscode_debugadapter_1.OutputEvent(`${msg}\n`);
         //(<DebugProtocol.OutputEvent>e).body.variablesReference = this._variableHandles.create("args");
         this.sendEvent(e); // print current line on debug console
     }

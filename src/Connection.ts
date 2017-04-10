@@ -1,8 +1,7 @@
 
-
 import request = require('request');
 import extend = require('extend');
-import * as EventEmmiter from 'events';
+
 
 
 const justResolve = (resolve) => {resolve()};
@@ -31,19 +30,11 @@ interface IMember {
     value: string;
 }
 
-export default class Connection extends EventEmmiter {
+export default class Connection {
     protected options : any;
     protected estabilished : boolean;
-    protected timer : null | number;
-    protected isAwaitingThreads : boolean;
-    protected awaitThreadsTimer : number | null;
-    protected threadsMap : Map<number, IThread>
-
 
     constructor (params = {}) {
-        super();
-        this.threadsMap = new Map<number, IThread>();
-
         this.options = extend({}, {
             hostname: 'some.demandware.net',
             password: 'password',
@@ -51,43 +42,8 @@ export default class Connection extends EventEmmiter {
             clientId: 'prophet'
         }, params);
         this.estabilished = false;
-        this.timer = null;
-        this.isAwaitingThreads = false;
-        
     }
-    startAwaitThreads() {
-        if (!this.isAwaitingThreads) {
-            this.timer = setInterval(this.resetThreads.bind(this), 30000);
-            this.awaitThreadsTimer = setInterval(this.awaitThreads.bind(this), 10000);
-            this.isAwaitingThreads = true;
-        }
-    }
-    stopAwaitThreads() {
-        if (this.isAwaitingThreads) {
-            clearInterval(this.awaitThreadsTimer);
-            clearInterval(this.timer);
-            this.isAwaitingThreads = false;
-        }
-    }
-    awaitThreads() {
-        if (this.isAwaitingThreads) {
-            this.getThreads()
-                .then(activeThreads => {
-                    if (activeThreads.length) {
-                        activeThreads.forEach(activeThread => {
-                            if (!this.threadsMap.has(activeThread.id)) {
-                                this.emit('new.thread', activeThread);
-                                this.threadsMap.set(activeThread.id, activeThread)
-                            }
-                            // todo release threads
-                        });
-                    }
-                })
-                .catch(err => {
-                    this.emit('error', err);
-                });
-        }
-    }
+
     getOptions () {
         return {
             baseUrl: 'https://' + this.options.hostname + '/s/-/dw/debugger/v1_0/',
@@ -103,28 +59,22 @@ export default class Connection extends EventEmmiter {
             strictSSL: false
         };
     }
-    makeRequest (options, cb, wasRetry = false) {
+    makeRequest (options, cb) {
         return new Promise((resolve, reject) => {
             if (!this.estabilished) {
                 reject(Error('Connection is not estabilished'));
                 return;
             }
-            console.log('request', options);
+            //console.log('request', options);
 
             request(extend(this.getOptions(), options), (err, res, body) => {
-                console.log('response', body);
+                //console.log('response', body);
                 if (err) {
                     return reject(err);
                 }
 
                 if (res.statusCode >= 400) {
-                    if (wasRetry) {
-                        return reject(new Error(res.statusMessage));
-                    } else {
-                        return this.estabilish().then(() => {
-                            this.makeRequest(options, cb, true);
-                        });
-                    }
+                    return reject(new Error(res.statusMessage));
                 }
                 cb(resolve, reject, body);
             });
@@ -174,10 +124,7 @@ export default class Connection extends EventEmmiter {
         });
     }
     destroy () {
-        clearTimeout(this.timer);
         this.estabilished = false;
-        this.stopAwaitThreads();
-
         return new Promise((resolve, reject) => {
             request(extend(this.getOptions(), {
                 uri: '/client',
@@ -194,10 +141,6 @@ export default class Connection extends EventEmmiter {
         });
     }
 
-    /**
-     * @params breakpoints[]
-     *
-     **/
     createBreakpoints(breakpoints) : Promise<{id, file, line}[]> {
         return this.makeRequest({
             uri: '/breakpoints',
@@ -216,7 +159,7 @@ export default class Connection extends EventEmmiter {
             })));
         });
     }
-    getBreakpoints(id) {
+    getBreakpoints(id?) : Promise<{id, file, line}[]> {
         return this.makeRequest({
             uri: '/breakpoints' + ( id ? '/' + id : ''),
             method: 'get',
@@ -234,21 +177,17 @@ export default class Connection extends EventEmmiter {
             }
         });
     }
-    removeBreakpoints(id?) {
+    removeBreakpoints(id?) : Promise<null>{
         return this.makeRequest({
             uri: '/breakpoints' + ( id ? '/' + id : ''),
             method: 'DELETE'
-        }, (resolve) => {
-            resolve();
-        });
+        }, justResolve);
     }
     resetThreads () {
         return this.makeRequest({
             uri: '/threads/reset',
             method: 'POST'
-        }, (resolve) => {
-            resolve();
-        })
+        }, justResolve)
     }
     getThreads () : Promise<any[]> {
         return this.makeRequest({
@@ -298,7 +237,7 @@ export default class Connection extends EventEmmiter {
             method: 'POST'
         }, justResolve);
     }
-    getEval(threadID, expr = 'this', frameNo = 0) {
+    evaluate(threadID, expr = 'this', frameNo = 0) {
         return this.makeRequest({
             uri: '/threads/' + threadID + '/frames/' + frameNo +
                 '/eval?expr=' + encodeURIComponent(expr),

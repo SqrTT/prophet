@@ -2,12 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const request = require("request");
 const extend = require("extend");
-const EventEmmiter = require("events");
 const justResolve = (resolve) => { resolve(); };
-class Connection extends EventEmmiter {
+class Connection {
     constructor(params = {}) {
-        super();
-        this.threadsMap = new Map();
         this.options = extend({}, {
             hostname: 'some.demandware.net',
             password: 'password',
@@ -15,41 +12,6 @@ class Connection extends EventEmmiter {
             clientId: 'prophet'
         }, params);
         this.estabilished = false;
-        this.timer = null;
-        this.isAwaitingThreads = false;
-    }
-    startAwaitThreads() {
-        if (!this.isAwaitingThreads) {
-            this.timer = setInterval(this.resetThreads.bind(this), 30000);
-            this.awaitThreadsTimer = setInterval(this.awaitThreads.bind(this), 10000);
-            this.isAwaitingThreads = true;
-        }
-    }
-    stopAwaitThreads() {
-        if (this.isAwaitingThreads) {
-            clearInterval(this.awaitThreadsTimer);
-            clearInterval(this.timer);
-            this.isAwaitingThreads = false;
-        }
-    }
-    awaitThreads() {
-        if (this.isAwaitingThreads) {
-            this.getThreads()
-                .then(activeThreads => {
-                if (activeThreads.length) {
-                    activeThreads.forEach(activeThread => {
-                        if (!this.threadsMap.has(activeThread.id)) {
-                            this.emit('new.thread', activeThread);
-                            this.threadsMap.set(activeThread.id, activeThread);
-                        }
-                        // todo release threads
-                    });
-                }
-            })
-                .catch(err => {
-                this.emit('error', err);
-            });
-        }
     }
     getOptions() {
         return {
@@ -66,27 +28,20 @@ class Connection extends EventEmmiter {
             strictSSL: false
         };
     }
-    makeRequest(options, cb, wasRetry = false) {
+    makeRequest(options, cb) {
         return new Promise((resolve, reject) => {
             if (!this.estabilished) {
                 reject(Error('Connection is not estabilished'));
                 return;
             }
-            console.log('request', options);
+            //console.log('request', options);
             request(extend(this.getOptions(), options), (err, res, body) => {
-                console.log('response', body);
+                //console.log('response', body);
                 if (err) {
                     return reject(err);
                 }
                 if (res.statusCode >= 400) {
-                    if (wasRetry) {
-                        return reject(new Error(res.statusMessage));
-                    }
-                    else {
-                        return this.estabilish().then(() => {
-                            this.makeRequest(options, cb, true);
-                        });
-                    }
+                    return reject(new Error(res.statusMessage));
                 }
                 cb(resolve, reject, body);
             });
@@ -138,9 +93,7 @@ class Connection extends EventEmmiter {
         });
     }
     destroy() {
-        clearTimeout(this.timer);
         this.estabilished = false;
-        this.stopAwaitThreads();
         return new Promise((resolve, reject) => {
             request(extend(this.getOptions(), {
                 uri: '/client',
@@ -156,10 +109,6 @@ class Connection extends EventEmmiter {
             });
         });
     }
-    /**
-     * @params breakpoints[]
-     *
-     **/
     createBreakpoints(breakpoints) {
         return this.makeRequest({
             uri: '/breakpoints',
@@ -200,17 +149,13 @@ class Connection extends EventEmmiter {
         return this.makeRequest({
             uri: '/breakpoints' + (id ? '/' + id : ''),
             method: 'DELETE'
-        }, (resolve) => {
-            resolve();
-        });
+        }, justResolve);
     }
     resetThreads() {
         return this.makeRequest({
             uri: '/threads/reset',
             method: 'POST'
-        }, (resolve) => {
-            resolve();
-        });
+        }, justResolve);
     }
     getThreads() {
         return this.makeRequest({
@@ -261,7 +206,7 @@ class Connection extends EventEmmiter {
             method: 'POST'
         }, justResolve);
     }
-    getEval(threadID, expr = 'this', frameNo = 0) {
+    evaluate(threadID, expr = 'this', frameNo = 0) {
         return this.makeRequest({
             uri: '/threads/' + threadID + '/frames/' + frameNo +
                 '/eval?expr=' + encodeURIComponent(expr),
