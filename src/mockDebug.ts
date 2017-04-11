@@ -151,6 +151,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 		if (
 			!scriptPath.includes('/cartridge/controller') &&
 			!scriptPath.includes('/cartridge/scripts/') &&
+			!scriptPath.includes('/cartridge/models/') &&
 			!scriptPath.includes('modules/')
 		) {
 			response.body = {
@@ -386,9 +387,11 @@ class ProphetDebugSession extends LoggingDebugSession {
 				});
 		} else {
 			response.body = {
-				result: `evaluate: undefined thread`,
+				result: '',
 				variablesReference: 0
 			};
+			// TODO: add aviability evaluate trought server's eval
+			this.logError('Unable evaluate without stopped thread')
 			this.sendResponse(response);
 		}
 
@@ -493,7 +496,6 @@ class ProphetDebugSession extends LoggingDebugSession {
 
 	private log(msg: string, line?: number) {
 		const e = new OutputEvent(`${msg}\n`);
-		//(<DebugProtocol.OutputEvent>e).body.variablesReference = this._variableHandles.create("args");
 		this.sendEvent(e);	// print current line on debug console
 	}
 }

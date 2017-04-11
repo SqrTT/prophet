@@ -98,6 +98,7 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
         }
         if (!scriptPath.includes('/cartridge/controller') &&
             !scriptPath.includes('/cartridge/scripts/') &&
+            !scriptPath.includes('/cartridge/models/') &&
             !scriptPath.includes('modules/')) {
             response.body = {
                 breakpoints: []
@@ -290,9 +291,11 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
         }
         else {
             response.body = {
-                result: `evaluate: undefined thread`,
+                result: '',
                 variablesReference: 0
             };
+            // TODO: add aviability evaluate trought server's eval
+            this.logError('Unable evaluate without stopped thread');
             this.sendResponse(response);
         }
     }
@@ -386,7 +389,6 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
     }
     log(msg, line) {
         const e = new vscode_debugadapter_1.OutputEvent(`${msg}\n`);
-        //(<DebugProtocol.OutputEvent>e).body.variablesReference = this._variableHandles.create("args");
         this.sendEvent(e); // print current line on debug console
     }
 }
