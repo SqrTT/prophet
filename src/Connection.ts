@@ -237,7 +237,7 @@ export default class Connection {
             method: 'POST'
         }, justResolve);
     }
-    evaluate(threadID, expr = 'this', frameNo = 0) {
+    evaluate(threadID, expr = 'this', frameNo = 0): Promise<string> {
         return this.makeRequest({
             uri: '/threads/' + threadID + '/frames/' + frameNo +
                 '/eval?expr=' + encodeURIComponent(expr),

@@ -70,7 +70,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 		response.body.supportsFunctionBreakpoints = false;
 		response.body.supportsConditionalBreakpoints = false;
 		response.body.supportsHitConditionalBreakpoints = false;
-		response.body.supportsSetVariable = false;
+		response.body.supportsSetVariable = true;
 		response.body.supportsGotoTargetsRequest = false;
 		response.body.supportsRestartRequest = false;
 		response.body.supportsRestartFrame = false;
@@ -104,7 +104,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 						.then(() => {
 							this.sendResponse(response);
 							this.sendEvent(new InitializedEvent());
-							this.log('successfully connected');
+							this.log('successfully connected\nconsole can be used to evaluate variables\nwaiting for breakpoint hit...');
 						});
 				}).catch(err => {
 					this.sendEvent(new TerminatedEvent());
@@ -198,10 +198,6 @@ class ProphetDebugSession extends LoggingDebugSession {
 			}
 
 		});
-		
-
-
-
 
 	}
 
@@ -359,7 +355,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 	}
 
 	protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {
-
+		
 		const frameReference = args.frameId || 0;
 		const threadID = parseInt((frameReference / 100000) + '');
 		const frameID = frameReference - (threadID * 100000);
@@ -382,7 +378,37 @@ class ProphetDebugSession extends LoggingDebugSession {
 		}
 
 	}
+    protected setVariableRequest(response: DebugProtocol.SetVariableResponse, args: DebugProtocol.SetVariableArguments): void {
+		const id = this._variableHandles.get(args.variablesReference);
+		const vals = id.split('_');
+		const frameReferenceStr = vals[0];
+		var path = vals[1] || '';
+		const frameReference = parseInt(frameReferenceStr);
 
+		path = path.replace(/\.\[/, '[').replace(/\]\./, ']');
+
+		const threadID = parseInt((frameReference / 100000) + '');
+		const frameID = frameReference - (threadID * 100000)
+
+		if (this.connection && threadID) {
+			this.connection.evaluate(threadID, (path ? path + '.' : '') +  args.name + '=' + args.value, frameID)
+				.then(res => {
+					response.body = {
+						value: res,
+						variablesReference: 0
+					};
+					response.success = res.indexOf('DEBUGGER EXPR') === -1 && res.indexOf('is not defined.') === -1;
+					if (!response.success) {
+						response.message = res;
+					}
+					this.sendResponse(response);
+				});
+		} else {
+			response.success = false;
+			this.sendResponse(response);
+		}
+
+	}
 	//---- some helpers
 
 	protected convertClientPathToDebugger(clientPath: string): string {

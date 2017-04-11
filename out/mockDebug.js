@@ -31,7 +31,7 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
         response.body.supportsFunctionBreakpoints = false;
         response.body.supportsConditionalBreakpoints = false;
         response.body.supportsHitConditionalBreakpoints = false;
-        response.body.supportsSetVariable = false;
+        response.body.supportsSetVariable = true;
         response.body.supportsGotoTargetsRequest = false;
         response.body.supportsRestartRequest = false;
         response.body.supportsRestartFrame = false;
@@ -59,7 +59,7 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
                     .then(() => {
                     this.sendResponse(response);
                     this.sendEvent(new vscode_debugadapter_1.InitializedEvent());
-                    this.log('successfully connected');
+                    this.log('successfully connected\nconsole can be used to evaluate variables\nwaiting for breakpoint hit...');
                 });
             }).catch(err => {
                 this.sendEvent(new vscode_debugadapter_1.TerminatedEvent());
@@ -283,6 +283,34 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
                 result: `evaluate: undefined thread`,
                 variablesReference: 0
             };
+            this.sendResponse(response);
+        }
+    }
+    setVariableRequest(response, args) {
+        const id = this._variableHandles.get(args.variablesReference);
+        const vals = id.split('_');
+        const frameReferenceStr = vals[0];
+        var path = vals[1] || '';
+        const frameReference = parseInt(frameReferenceStr);
+        path = path.replace(/\.\[/, '[').replace(/\]\./, ']');
+        const threadID = parseInt((frameReference / 100000) + '');
+        const frameID = frameReference - (threadID * 100000);
+        if (this.connection && threadID) {
+            this.connection.evaluate(threadID, (path ? path + '.' : '') + args.name + '=' + args.value, frameID)
+                .then(res => {
+                response.body = {
+                    value: res,
+                    variablesReference: 0
+                };
+                response.success = res.indexOf('DEBUGGER EXPR') === -1 && res.indexOf('is not defined.') === -1;
+                if (!response.success) {
+                    response.message = res;
+                }
+                this.sendResponse(response);
+            });
+        }
+        else {
+            response.success = false;
             this.sendResponse(response);
         }
     }
