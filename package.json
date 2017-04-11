@@ -1,7 +1,7 @@
 {
   "name": "prophet",
   "displayName": "Prophet Debugger",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "publisher": "SqrTT",
   "description": "Debugger for Demandware/Salesforce sandbox",
   "author": {
@@ -53,6 +53,27 @@
     "onCommand:extension.prophet.provideInitialConfigurations"
   ],
   "contributes": {
+    "languages": [
+      {
+        "id": "isml",
+        "extensions": [
+          ".isml"
+        ],
+        "configuration": "./isml-language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "isml",
+        "scopeName": "text.isml.basic",
+        "path": "./syntaxes/isml.json",
+        "embeddedLanguages": {
+          "text.html": "html",
+          "source.css": "css",
+          "source.js": "javascript"
+        }
+      }
+    ],
     "breakpoints": [
       {
         "language": "javascript"
