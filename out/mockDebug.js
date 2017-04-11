@@ -96,6 +96,17 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
         if (!this._breakPoints.has(path)) {
             this._breakPoints.set(path, []);
         }
+        if (!scriptPath.includes('/cartridge/controller') &&
+            !scriptPath.includes('/cartridge/scripts/') &&
+            !scriptPath.includes('modules/')) {
+            response.body = {
+                breakpoints: []
+            };
+            response.success = false;
+            response.message = "Unable to set breakpoint to non backend file";
+            this.logError(response.message);
+            return this.sendResponse(response);
+        }
         const scriptBrks = this._breakPoints.get(path);
         // remove if unexist
         const removeOld = scriptBrks.map(brkId => {
@@ -232,7 +243,6 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
                 .catch(() => {
                 this.log(`thread "${args.threadId}" finished`, 200);
             });
-            //
         });
     }
     stepInRequest(response, args) {
@@ -369,6 +379,10 @@ class ProphetDebugSession extends vscode_debugadapter_1.LoggingDebugSession {
         const e = new vscode_debugadapter_1.OutputEvent(`${err}\n ${err.stack}`);
         //(<DebugProtocol.OutputEvent>e).body.variablesReference = this._variableHandles.create("args");
         this.sendEvent(e); // print current line on debug console	
+    }
+    logError(err) {
+        const e = new vscode_debugadapter_1.OutputEvent(err, 'stderr');
+        this.sendEvent(e); // print current line on debug console
     }
     log(msg, line) {
         const e = new vscode_debugadapter_1.OutputEvent(`${msg}\n`);

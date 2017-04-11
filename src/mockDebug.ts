@@ -148,6 +148,22 @@ class ProphetDebugSession extends LoggingDebugSession {
 			this._breakPoints.set(path, []);
 		}
 
+		if (
+			!scriptPath.includes('/cartridge/controller') &&
+			!scriptPath.includes('/cartridge/scripts/') &&
+			!scriptPath.includes('modules/')
+		) {
+			response.body = {
+				breakpoints: []
+			};
+			response.success = false;
+			response.message = "Unable to set breakpoint to non backend file";
+
+			this.logError(response.message);
+
+			return this.sendResponse(response);
+		}
+
 		const scriptBrks = this._breakPoints.get(path);
 
 		// remove if unexist
@@ -320,7 +336,6 @@ class ProphetDebugSession extends LoggingDebugSession {
 					.catch(() => {
 						this.log(`thread "${args.threadId}" finished`, 200);
 					})
-				//
 			});
 	}
 
@@ -470,6 +485,10 @@ class ProphetDebugSession extends LoggingDebugSession {
 		const e = new OutputEvent(`${err}\n ${err.stack}`);
 		//(<DebugProtocol.OutputEvent>e).body.variablesReference = this._variableHandles.create("args");
 		this.sendEvent(e);	// print current line on debug console	
+	}
+	private logError(err) {
+		const e = new OutputEvent(err, 'stderr');
+		this.sendEvent(e);	// print current line on debug console
 	}
 
 	private log(msg: string, line?: number) {
