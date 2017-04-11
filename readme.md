@@ -1,41 +1,53 @@
-# VS Code Mock Debug
+<h2 align="center">Debug your Demandware/Salesforce Cloud code</h4>
 
-This is a starter sample for developing VS Code debug adapters.
+A VS Code extension to debug your Demandware/Salesforce Cloud code on Sandbox that support the Script Debugger API (SDAPI) 1.0
 
-**Mock Debug** simulates a debug adapter for Visual Studio Code.
-It supports *step*, *continue*, *breakpoints*, *exceptions*, and
-*variable access* but it is not connected to any real debugger.
-
-The sample is meant as an educational piece showing how to implement a debug
-adapter for VS Code. It can be used as a starting point for developing a real adapter.
-
-More information about how to develop a new debug adapter can be found
-[here](https://code.visualstudio.com/docs/extensions/example-debuggers).
-Or discuss debug adapters on Gitter:
-[![Gitter Chat](http://img.shields.io/badge/chat-online-brightgreen.svg)](https://gitter.im/Microsoft/vscode)
-
-## Using Mock Debug
-
-* Install the **Mock Debug** extension in VS Code.
-* Create a new 'program' file `readme.md` and enter several lines of arbitrary text.
-* Switch to the debug viewlet and press the gear dropdown.
-* Select the debug environment "Mock Debug".
-* Press the green 'play' button to start debugging.
-
-You can now 'step through' the `readme.md` file, set and hit breakpoints, and run into exceptions (if the word exception appears in a line).
-
-![Mock Debug](images/mock-debug.gif)
-
-## Build and Run
-
-[![build status](https://travis-ci.org/Microsoft/vscode-mock-debug.svg?branch=master)](https://travis-ci.org/Microsoft/vscode-mock-debug)
-[![build status](https://ci.appveyor.com/api/projects/status/empmw5q1tk6h1fly/branch/master?svg=true)](https://ci.appveyor.com/project/weinand/vscode-mock-debug)
+**Supported features**
+* Setting breakpoints
+* Stepping
+* Change variables values in running threads
+* Locals scope variables via the VARIABLES panel
+* View variables on hover
+* Watches
+* Console/evaluate code
 
 
-* Clone the project [https://github.com/Microsoft/vscode-mock-debug.git](https://github.com/Microsoft/vscode-mock-debug.git)
-* Open the project folder in VS Code.
-* Press `F5` to build and launch Mock Debug in another VS Code window. In that window:
-  * Open a new workspace, create a new 'program' file `readme.md` and enter several lines of arbitrary text.
-  * Switch to the debug viewlet and press the gear dropdown.
-  * Select the debug environment "Mock Debug".
-  * Press `F5` to start debugging.
+## Getting Started
+To use this extension, you must first open the folder containing the cartridges you want to work on or one of subfolders contain folder `cartridges`.
+
+## Using the debugger
+
+When your launch config is set up, you can debug your project! Pick a launch config from the dropdown on the Debug pane in Code. Press the play button or F5 to start.
+
+
+### Configuration
+
+The extension operates in two modes - it can launch an instance of Chrome navigated to your app, or it can attach to a running instance of Chrome. Just like when using the Node debugger, you configure these modes with a `.vscode/launch.json` file in the root directory of your project. You can create this file manually, or Code will create one for you if you try to run your project, and it doesn't exist yet.
+
+### Launch
+Example `launch.json` configs with `"request": "launch"`. You must specify hostname and other credentials. `cartridgeroot` could be set to `auto` so extention will try do detect path, othervise please set absolute path to folder that contains cartridges.
+
+```json
+{
+    "version": "0.1.0",
+    "configurations": [
+      {
+          "type": "prophet",
+          "request": "launch",
+          "name": "Attach to Sandbox",
+          "hostname": "*.demandware.net",
+          "username": "<username>",
+          "password": "<password>",
+          "codeversion": "version1",
+          "cartridgeroot": "auto",
+          "workspaceroot": "${workspaceRoot}"
+      }
+    ]
+}
+```
+
+If you want to use a different sandboxes, you can also setup several configurations.
+
+
+### Other optional launch config fields
+* `trace`: When true, the adapter logs its own diagnostic info to console. This is often useful info to include when filing an issue on GitHub. 
