@@ -2,7 +2,6 @@
 	"fileTypes": [
 		"isml"
 	],
-	"firstLineMatch": "<(?i:(!DOCTYPE\\s*)?html)",
 	"injections": {
 		"R:text.html - comment.block": {
 			"comment": "Use R: to ensure this matches after any other injections.",
