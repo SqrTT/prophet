@@ -1,7 +1,7 @@
 {
     "name": "prophet",
     "displayName": "Prophet Debugger",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "publisher": "SqrTT",
     "description": "Debugger for Demandware/Salesforce sandbox",
     "author": {
@@ -55,10 +55,10 @@
     ],
     "contributes": {
         "snippets": [
-          {
-            "language": "isml",
-            "path": "./snippets/snippets.json"
-          }
+            {
+                "language": "isml",
+                "path": "./snippets/snippets.json"
+            }
         ],
         "languages": [
             {
