@@ -49,7 +49,6 @@
   },
   "main": "./out/extension",
   "activationEvents": [
-    "onCommand:extension.prophet.getProgramName",
     "onCommand:extension.prophet.provideInitialConfigurations"
   ],
   "contributes": {
@@ -58,6 +57,9 @@
         "id": "isml",
         "extensions": [
           ".isml"
+        ],
+        "aliases": [
+          "ISML"
         ],
         "configuration": "./isml-language-configuration.json"
       }

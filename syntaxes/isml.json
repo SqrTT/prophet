@@ -197,7 +197,7 @@
 			},
             "end": "\\}",
 			"endCaptures": {
-				"(})": {
+				"0": {
 					"name": "entity.name.tag.script.html"
 				}
 			},
@@ -469,6 +469,9 @@
 			"name": "string.quoted.double.html",
 			"patterns": [
 				{
+					"include" : "#tag-attr-script"
+				},
+				{
 					"include": "#embedded-code"
 				},
 				{
@@ -491,6 +494,9 @@
 			},
 			"name": "string.quoted.single.html",
 			"patterns": [
+				{
+					"include" : "#tag-attr-script"
+				},
 				{
 					"include": "#embedded-code"
 				},
@@ -574,6 +580,25 @@
 					"name": "string.unquoted.html"
 				}
 			]
+		},
+		"tag-attr-script" : {
+            "begin": "(\\${)",
+			"beginCaptures": {
+				"1": {
+					"name": "entity.name.tag.script.html"
+				}
+			},
+            "end": "\\}",
+			"endCaptures": {
+				"0": {
+					"name": "entity.name.tag.script.html"
+				}
+			},
+            "patterns": [
+                {
+					"include": "source.js"
+				}
+            ]
 		},
 		"tag-stuff": {
 			"patterns": [
