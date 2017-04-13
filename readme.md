@@ -46,7 +46,11 @@ Example `launch.json` configs with `"request": "launch"`. You must specify hostn
 }
 ```
 
+> Note: for windows user `cartridgeroot` should be set as absolute path to cartridges folder, i.e. `C:\\some\\folder\\path\\to\\cartridges`
+
 If you want to use a different sandboxes, you can also setup several configurations.
+
+
 
 
 ### Other optional launch config fields

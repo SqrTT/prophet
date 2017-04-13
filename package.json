@@ -108,7 +108,7 @@
                             "password": "${5}",
                             "codeversion": "${6:version1}",
                             "cartridgeroot": "auto",
-                            "workspaceroot": "${workspaceRoot}"
+                            "workspaceroot": ""
                         }
                     }
                 ],

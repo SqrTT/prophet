@@ -2,8 +2,6 @@
 import request = require('request');
 import extend = require('extend');
 
-
-
 const justResolve = (resolve) => {resolve()};
 
 interface IThread {
