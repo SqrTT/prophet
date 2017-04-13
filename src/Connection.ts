@@ -121,7 +121,7 @@ export default class Connection {
             }
         });
     }
-    destroy () {
+    dissconnect () {
         this.estabilished = false;
         return new Promise((resolve, reject) => {
             request(extend(this.getOptions(), {
