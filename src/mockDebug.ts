@@ -124,7 +124,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 		if (this.connection) {
 			this.stopAwaitThreads();
 			this.connection
-				.dissconnect()
+				.disconnect()
 				.then(() => {
 					super.disconnectRequest(response, args);
 					this.log('successfully disconected');
