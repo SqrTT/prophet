@@ -59,7 +59,7 @@ If you want to use a different sandboxes, you can also setup several configurati
 
 ### Improve experience
 
-Experience can be improved by using follow `jsconfig.json` in the folder with cartridges. It allows resolve paths to cartridges (`cartridgeroot`) correctly, (except it starts with `~`).
+Experience can be improved by using follow `jsconfig.json` in the folder with cartridges. It allows resolve absolute paths in scripts correctly, (except it starts with `~`).
 
 ```json
 {
