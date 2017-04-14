@@ -55,3 +55,23 @@ If you want to use a different sandboxes, you can also setup several configurati
 
 ### Other optional launch config fields
 * `trace`: When true, the adapter logs its own diagnostic info to console. This is often useful info to include when filing an issue on GitHub. 
+
+
+### Improve experience
+
+Experience can be improved by using follow `jsconfig.json` in the folder with cartridges. It allows resolve paths to cartridges (`cartridgeroot`) correctly, (except it starts with `~`).
+
+```json
+{
+    "compilerOptions": {
+        "target": "es5",
+        "baseUrl": "./",
+        "paths": {
+            "*" : ["./*", "modules/*"]
+        }
+    },
+    "typeAcquisition": {
+        "enable": true
+    }
+}
+```
