@@ -170,7 +170,9 @@ class ProphetDebugSession extends LoggingDebugSession {
 		// remove if unexist
 		const removeOld = scriptBrks.map(brkId => {
 			return this.connection
-				.removeBreakpoints(brkId).catch(this.catchLog.bind(this));
+				.removeBreakpoints(brkId).catch(() => {
+					this.log('unable unset breakpoint. ignoring...');
+				});
 		});
 
 		Promise.all(removeOld).then(() => {
