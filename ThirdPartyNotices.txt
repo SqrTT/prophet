@@ -8,7 +8,7 @@ to you under their original license terms set forth below.  Microsoft reserves a
 expressly granted, whether by implication, estoppel or otherwise.
 
 
-1.	DefinitelyTyped version 0.0.1 (https://github.com/borisyankov/DefinitelyTyped)
+1.  DefinitelyTyped version 0.0.1 (https://github.com/borisyankov/DefinitelyTyped)
 
 
 %% DefinitelyTyped NOTICES AND INFORMATION BEGIN HERE
