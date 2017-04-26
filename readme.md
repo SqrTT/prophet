@@ -75,3 +75,29 @@ Experience can be improved by using follow `jsconfig.json` in the folder with ca
     }
 }
 ```
+### Reporting a bug
+
+To report a bug simply create a new [GitHub Issue](https://github.com/SqrTT/prophet/issues/new) and describe your problem or suggestion. All kinds of feedback are welcome regarding extention including but not limited to:
+
+ * When Prophet doesn't work as expected
+ * When you simply want a new option or feature
+
+Before reporting a bug, please look around to see if there are any open or closed tickets that discuss your issue.
+
+### Contribute
+
+There are many ways to contribute to Prophet.
+
+* Submit bugs and help to verify fixes as they are checked in.
+* Review the source code changes.
+* Engage with other Prophet users and developers.
+* Contribute bug fixes.
+* Contribute tests.
+
+
+#### Pull requests
+
+If you have made or with to make some features/fixes, please, make a fork of this repo, do your changes, and send your pull request to this repo into `develop` branch. After review it will be merged to `develop`, and during some time it will be available in `master` and extention itself. Before making pull request, please, make that it doesn't break anything. (currently there no tests, so test that covers current functionality are welcomed)
+
+
+
