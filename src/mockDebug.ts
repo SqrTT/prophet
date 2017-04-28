@@ -13,7 +13,9 @@ import Connection from './Connection';
 
 import path = require('path');
 
-
+function includes(str: string, pattern: string) {
+	return str.indexOf(pattern) !== -1;
+}
 
 
 /**
@@ -149,10 +151,10 @@ class ProphetDebugSession extends LoggingDebugSession {
 		}
 
 		if (
-			!scriptPath.includes('/cartridge/controller') &&
-			!scriptPath.includes('/cartridge/scripts/') &&
-			!scriptPath.includes('/cartridge/models/') &&
-			!scriptPath.includes('modules/')
+			!includes(scriptPath, '/cartridge/controller') &&
+			!includes(scriptPath, '/cartridge/scripts/') &&
+			!includes(scriptPath, '/cartridge/models/') &&
+			!includes(scriptPath, 'modules/')
 		) {
 			response.body = {
 				breakpoints: []
@@ -304,14 +306,14 @@ class ProphetDebugSession extends LoggingDebugSession {
 						variables: members.map(member => {
 							var variablesReference = 0;
 
-							if (member.type.includes('dw.') || member.type.includes('Object')) {
+							if (includes(member.type, 'dw.') || includes(member.type, 'Object')) {
 								const encPath = frameReferenceStr + '_' + (path ? path + '.' : '') + member.name;
 								variablesReference = this._variableHandles.create(encPath)
 							}
 
 							return {
 								name: member.name,
-								type: member.type,
+								type: member.type.replace(/\./g, '/'),
 								value: member.value,
 								variablesReference: variablesReference
 							}
