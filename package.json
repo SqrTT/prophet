@@ -1,168 +1,187 @@
 {
-    "name": "prophet",
-    "displayName": "Prophet Debugger",
-    "version": "0.3.4",
-    "publisher": "SqrTT",
-    "description": "Debugger for Demandware/Salesforce sandbox",
-    "author": {
-        "name": "Anatolii Obitskyi",
-        "email": "tolik@sqrtt.pro"
-    },
-    "engines": {
-        "vscode": "^1.11.0",
-        "node": "^6.5.0"
-    },
-    "icon": "images/mock-debug-icon.svg",
-    "categories": [
-        "Debuggers",
-        "Languages",
-        "Snippets"
+  "name": "prophet",
+  "displayName": "Prophet Debugger",
+  "version": "0.3.4",
+  "publisher": "SqrTT",
+  "description": "Debugger for Demandware/Salesforce sandbox",
+  "author": {
+    "name": "Anatolii Obitskyi",
+    "email": "tolik@sqrtt.pro"
+  },
+  "engines": {
+    "vscode": "^1.11.0",
+    "node": "^6.5.0"
+  },
+  "icon": "images/mock-debug-icon.svg",
+  "categories": [
+    "Debuggers",
+    "Languages",
+    "Snippets"
+  ],
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SqrTT/prophet.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SqrTT/prophet/issues"
+  },
+  "dependencies": {
+    "extend": "^3.0.0",
+    "request": "^2.81.0",
+    "vscode-debugadapter": "^1.18.0-pre.4",
+    "vscode-debugprotocol": "^1.18.0-pre.2"
+  },
+  "devDependencies": {
+    "@types/es6-collections": "^0.5.29",
+    "@types/es6-promise": "^0.0.32",
+    "@types/mocha": "^2.2.33",
+    "@types/node": "^6.0.50",
+    "typescript": "^2.0.10",
+    "mocha": "^3.1.2",
+    "vscode": "^1.0.3",
+    "vscode-debugadapter-testsupport": "^1.17.0"
+  },
+  "scripts": {
+    "prepublish": "node ./node_modules/typescript/bin/tsc -p ./src",
+    "compile": "node ./node_modules/typescript/bin/tsc -p ./src",
+    "watch": "node ./node_modules/typescript/bin/tsc -w -p ./src",
+    "test": "node ./node_modules/mocha/bin/mocha -u tdd ./out/tests/",
+    "postinstall": "node ./node_modules/vscode/bin/install"
+  },
+  "main": "./out/extension",
+  "activationEvents": [
+    "onCommand:extension.prophet.provideInitialConfigurations"
+  ],
+  "contributes": {
+    "snippets": [
+      {
+        "language": "isml",
+        "path": "./snippets/snippets.json"
+      }
     ],
-    "private": true,
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/SqrTT/prophet.git"
-    },
-    "bugs": {
-        "url": "https://github.com/SqrTT/prophet/issues"
-    },
-    "dependencies": {
-        "extend": "^3.0.0",
-        "request": "^2.81.0",
-        "vscode-debugadapter": "^1.18.0-pre.4",
-        "vscode-debugprotocol": "^1.18.0-pre.2"
-    },
-    "devDependencies": {
-        "@types/es6-collections": "^0.5.29",
-        "@types/es6-promise": "^0.0.32",
-        "@types/mocha": "^2.2.33",
-        "@types/node": "^6.0.50",
-        "typescript": "^2.0.10",
-        "mocha": "^3.1.2",
-        "vscode": "^1.0.3",
-        "vscode-debugadapter-testsupport": "^1.17.0"
-    },
-    "scripts": {
-        "prepublish": "node ./node_modules/typescript/bin/tsc -p ./src",
-        "compile": "node ./node_modules/typescript/bin/tsc -p ./src",
-        "watch": "node ./node_modules/typescript/bin/tsc -w -p ./src",
-        "test": "node ./node_modules/mocha/bin/mocha -u tdd ./out/tests/",
-        "postinstall": "node ./node_modules/vscode/bin/install"
-    },
-    "main": "./out/extension",
-    "activationEvents": [
-        "onCommand:extension.prophet.provideInitialConfigurations"
+    "languages": [
+      {
+        "id": "isml",
+        "extensions": [
+          ".isml"
+        ],
+        "aliases": [
+          "ISML"
+        ],
+        "configuration": "./syntaxes/isml.configuration.json"
+      },
+      {
+        "id": "dwscript",
+        "aliases": [
+          "Demandware Script",
+          "dwscript"
+        ],
+        "extensions": [
+          ".ds"
+        ],
+        "configuration": "./syntaxes/dwscript.configuration.json"
+      }
     ],
-    "contributes": {
-        "snippets": [
-            {
-                "language": "isml",
-                "path": "./snippets/snippets.json"
+    "grammars": [
+      {
+        "language": "isml",
+        "scopeName": "text.isml.basic",
+        "path": "./syntaxes/isml.tmLanguage.json",
+        "embeddedLanguages": {
+          "text.html": "html",
+          "source.css": "css",
+          "source.js": "javascript"
+        }
+      },
+      {
+        "language": "dwscript",
+        "scopeName": "source.dwscript",
+        "path": "./syntaxes/dwscript.tmLanguage.json",
+        "embeddedLanguages": {
+          "source.js": "javascript"
+        }
+      }
+    ],
+    "breakpoints": [
+      {
+        "language": "javascript"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "prophet",
+        "label": "Attach to Sandbox",
+        "program": "./out/mockDebug.js",
+        "runtime": "node",
+        "configurationSnippets": [
+          {
+            "label": "Demandware Debugger",
+            "description": "A new configuration for connecting to sandbox",
+            "body": {
+              "type": "prophet",
+              "request": "launch",
+              "name": "${2:Attach to Sandbox}",
+              "hostname": "${3:*.demandware.net}",
+              "username": "${4:admin}",
+              "password": "${5}",
+              "codeversion": "${6:version1}",
+              "cartridgeroot": "auto",
+              "workspaceroot": ""
             }
+          }
         ],
-        "languages": [
-            {
-                "id": "isml",
-                "extensions": [
-                    ".isml"
-                ],
-                "aliases": [
-                    "ISML"
-                ],
-                "configuration": "./isml-language-configuration.json"
+        "configurationAttributes": {
+          "launch": {
+            "required": [
+              "hostname",
+              "username",
+              "password",
+              "codeversion",
+              "cartridgeroot",
+              "workspaceroot"
+            ],
+            "properties": {
+              "hostname": {
+                "type": "string",
+                "description": "Hostname of instance",
+                "default": "*.demandware.net"
+              },
+              "username": {
+                "type": "string",
+                "description": "username for instance",
+                "default": "admin"
+              },
+              "password": {
+                "type": "string",
+                "description": "password for instance",
+                "default": ""
+              },
+              "codeversion": {
+                "type": "string",
+                "description": "version of code on instance",
+                "default": "vesion1"
+              },
+              "cartridgeroot": {
+                "type": "string",
+                "description": "cartridges root in workspace",
+                "default": "auto"
+              },
+              "workspaceroot": {
+                "type": "string",
+                "description": "root of workspace",
+                "default": "${workspaceRoot}"
+              },
+              "trace": {
+                "type": "boolean",
+                "description": "Enable logging of the Debug Adapter Protocol.",
+                "default": false
+              }
             }
-        ],
-        "grammars": [
-            {
-                "language": "isml",
-                "scopeName": "text.isml.basic",
-                "path": "./syntaxes/isml.json",
-                "embeddedLanguages": {
-                    "text.html": "html",
-                    "source.css": "css",
-                    "source.js": "javascript"
-                }
-            }
-        ],
-        "breakpoints": [
-            {
-                "language": "javascript"
-            }
-        ],
-        "debuggers": [
-            {
-                "type": "prophet",
-                "label": "Attach to Sandbox",
-                "program": "./out/mockDebug.js",
-                "runtime": "node",
-                "configurationSnippets": [
-                    {
-                        "label": "Demandware Debugger",
-                        "description": "A new configuration for connecting to sandbox",
-                        "body": {
-                            "type": "prophet",
-                            "request": "launch",
-                            "name": "${2:Attach to Sandbox}",
-                            "hostname": "${3:*.demandware.net}",
-                            "username": "${4:admin}",
-                            "password": "${5}",
-                            "codeversion": "${6:version1}",
-                            "cartridgeroot": "auto",
-                            "workspaceroot": ""
-                        }
-                    }
-                ],
-                "configurationAttributes": {
-                    "launch": {
-                        "required": [
-                            "hostname",
-                            "username",
-                            "password",
-                            "codeversion",
-                            "cartridgeroot",
-                            "workspaceroot"
-                        ],
-                        "properties": {
-                            "hostname": {
-                                "type": "string",
-                                "description": "Hostname of instance",
-                                "default": "*.demandware.net"
-                            },
-                            "username": {
-                                "type": "string",
-                                "description": "username for instance",
-                                "default": "admin"
-                            },
-                            "password": {
-                                "type": "string",
-                                "description": "password for instance",
-                                "default": ""
-                            },
-                            "codeversion": {
-                                "type": "string",
-                                "description": "version of code on instance",
-                                "default": "vesion1"
-                            },
-                            "cartridgeroot": {
-                                "type": "string",
-                                "description": "cartridges root in workspace",
-                                "default": "auto"
-                            },
-                            "workspaceroot": {
-                                "type": "string",
-                                "description": "root of workspace",
-                                "default": "${workspaceRoot}"
-                            },
-                            "trace": {
-                                "type": "boolean",
-                                "description": "Enable logging of the Debug Adapter Protocol.",
-                                "default": false
-                            }
-                        }
-                    }
-                },
-                "initialConfigurations": "extension.prophet.provideInitialConfigurations"
-            }
-        ]
-    }
+          }
+        },
+        "initialConfigurations": "extension.prophet.provideInitialConfigurations"
+      }
+    ]
+  }
 }
