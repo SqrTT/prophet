@@ -1,7 +1,9 @@
 {
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
 	"fileTypes": [
 		"isml"
 	],
+
 	"injections": {
 		"R:text.html - comment.block": {
 			"comment": "Use R: to ensure this matches after any other injections.",
