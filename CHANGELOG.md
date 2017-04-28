@@ -1,7 +1,7 @@
 
 ### 0.3.5
 
-Add support ds files, but marked as depracared as doesnt allow use VSCode fully
+Add support `ds` files, but marked as deprecated as does not allow use VSCode fully
 
 ### 0.3.0
 
