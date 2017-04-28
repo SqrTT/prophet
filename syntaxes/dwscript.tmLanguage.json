@@ -1,0 +1,48 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"fileTypes": [
+		"ds"
+	],
+	"name": "Demandware Script",
+	"patterns": [
+		{
+			"include": "source.js"
+		},
+		{
+			"match": "(importPackage|importScript|trace)",
+			"name": "support.function.dwscript"
+		},
+		{
+			"match": "(PipelineDictionary|\\sFile(?:\\s|[^\\w]))",
+			"name": "support.type.dwscript"
+		},
+		{
+			"match": "PIPELET_(ERROR|NEXT)",
+			"name": "support.constant.dwscript"
+		},
+		{
+			"include": "#dwscript-type"
+		}
+	],
+	"repository": {
+		"dwscript-type": {
+			"begin": "((?:dw\\.){1}(?:campaign|catalog|content|crypto|customer|io|net|object|oms|order|rpc|system|util|value|web)(?:\\s|\\.)?([A-Z]{1}[a-zA-Z0-9-_]+)?)",
+			"beginCaptures": {
+				"1": {
+					"name": "support.type.dwscript"
+				},
+				"2": {
+					"name": "support.namespace.dwscript"
+				},
+				"3": {
+					"name": "support.class.dwscript"
+				}
+			},
+			"end": "(?:|\\s|\\.|,)",
+			"endCaptures": {},
+			"name": "support.class.dwscript"
+		}
+	},
+	"scopeName": "source.dwscript",
+	"uuid": "253fe05e-a2cc-44e1-be30-c214c9ed4c13"
+}

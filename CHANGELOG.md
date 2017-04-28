@@ -1,4 +1,8 @@
 
+### 0.3.5
+
+Add support `ds` files, but marked as deprecated as does not allow use VSCode fully
+
 ### 0.3.0
 
 Added common sinppents
