@@ -1,4 +1,8 @@
 
+### 0.3.6
+
+Add extended html snippets for isml (thanks to [Ahmet Suat ERKEN](https://github.com/suaterken))
+
 ### 0.3.5
 
 Add support `ds` files, but marked as deprecated as does not allow use VSCode fully
