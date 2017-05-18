@@ -253,6 +253,8 @@ class ProphetDebugSession extends LoggingDebugSession {
 					//new Thread(MockDebugSession.THREAD_ID, "thread 1")
 				]
 			};
+			response.success = false;
+			response.message = 'Connection is not estabilished';
 			this.sendResponse(response);
 		}
 	}
@@ -346,35 +348,35 @@ class ProphetDebugSession extends LoggingDebugSession {
 		this.connection
 			.resume(args.threadId)
 			.then(() => {
-				this.sendResponse(response);
 				this.connection
 					.getStackTrace(args.threadId)
-					.then(() => 
-						this.sendEvent(new ContinuedEvent(args.threadId))
+					.then(() =>
+						this.sendEvent(new StoppedEvent('breakpoint', args.threadId))
 					)
 					.catch(() => {
 						this.log(`thread "${args.threadId}" finished`, 200);
 					})
 			});
+		this.sendResponse(response);
 	}
 
 	protected stepInRequest(response: DebugProtocol.StepInResponse, args: DebugProtocol.StepInArguments): void {
 		this.connection
 			.stepInto(args.threadId)
 			.then(() => {
-				this.sendResponse(response);
 				this.sendEvent(new StoppedEvent('step', args.threadId));
 			})
 			.catch(this.catchLog.bind(this));
+			this.sendResponse(response);
 	}
 	protected stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments): void {
 		this.connection
 			.stepOut(args.threadId)
 			.then(() => {
-				this.sendResponse(response);
 				this.sendEvent(new StoppedEvent('step', args.threadId));
 			})
-			.catch(this.catchLog.bind(this));;
+			.catch(this.catchLog.bind(this));
+		this.sendResponse(response);
 	}
 
 
@@ -382,10 +384,10 @@ class ProphetDebugSession extends LoggingDebugSession {
 		this.connection
 			.stepOver(args.threadId)
 			.then(() => {
-				this.sendResponse(response);
 				this.sendEvent(new StoppedEvent('step', args.threadId));
 			})
-			.catch(this.catchLog.bind(this));;
+			.catch(this.catchLog.bind(this));
+		this.sendResponse(response);
 	}
 
 	protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {
@@ -414,7 +416,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 		}
 
 	}
-    protected setVariableRequest(response: DebugProtocol.SetVariableResponse, args: DebugProtocol.SetVariableArguments): void {
+	protected setVariableRequest(response: DebugProtocol.SetVariableResponse, args: DebugProtocol.SetVariableArguments): void {
 		const id = this._variableHandles.get(args.variablesReference);
 		const vals = id.split('_');
 		const frameReferenceStr = vals[0];
