@@ -1,9 +1,9 @@
 
 import {
-	Logger,
+	logger, Logger,
 	DebugSession, LoggingDebugSession,
 	InitializedEvent, TerminatedEvent, StoppedEvent, BreakpointEvent, OutputEvent, Event, ThreadEvent,
-	Thread, StackFrame, Scope, Source, Handles, Breakpoint
+	ContinuedEvent, Thread, StackFrame, Scope, Source, Handles, Breakpoint
 } from 'vscode-debugadapter';
 import {DebugProtocol} from 'vscode-debugprotocol';
 import {readFileSync} from 'fs';
@@ -16,6 +16,7 @@ import path = require('path');
 function includes(str: string, pattern: string) {
 	return str.indexOf(pattern) !== -1;
 }
+
 
 
 /**
@@ -37,10 +38,10 @@ class ProphetDebugSession extends LoggingDebugSession {
 	// maps from sourceFile to array of Breakpoints
 	private _breakPoints = new Map<string, Array<number>>();
 	private threadsArray = new Array<number>();
-	private connection : Connection | null;
+	private connection : Connection;
 	private config: LaunchRequestArguments
-	private threadsTimer : number | null;
-	private awaitThreadsTimer : number | null;
+	private threadsTimer : number;
+	private awaitThreadsTimer : number;
 	private isAwaitingThreads = false;
 	private _variableHandles = new Handles<string>();
 
@@ -65,21 +66,24 @@ class ProphetDebugSession extends LoggingDebugSession {
 
 
 		// This debug adapter implements the configurationDoneRequest.
-		response.body.supportsConfigurationDoneRequest = true;
+		if (response.body) {
+			response.body.supportsConfigurationDoneRequest = true;
 
-		// make VS Code to use 'evaluate' when hovering over source
-		response.body.supportsEvaluateForHovers = false;
-		response.body.supportsFunctionBreakpoints = false;
-		response.body.supportsConditionalBreakpoints = false;
-		response.body.supportsHitConditionalBreakpoints = false;
-		response.body.supportsSetVariable = true;
-		response.body.supportsGotoTargetsRequest = false;
-		response.body.supportsRestartRequest = false;
-		response.body.supportsRestartFrame = false;
-		response.body.supportsExceptionInfoRequest = false;
-		response.body.supportsExceptionOptions = false;
-		response.body.supportsStepBack = false;
-		response.body.exceptionBreakpointFilters = [];
+			// make VS Code to use 'evaluate' when hovering over source
+			response.body.supportsEvaluateForHovers = false;
+			response.body.supportsFunctionBreakpoints = false;
+			response.body.supportsConditionalBreakpoints = false;
+			response.body.supportsHitConditionalBreakpoints = false;
+			response.body.supportsSetVariable = true;
+			response.body.supportsGotoTargetsRequest = false;
+			response.body.supportsRestartRequest = false;
+			response.body.supportsRestartFrame = false;
+			response.body.supportsExceptionInfoRequest = false;
+			response.body.supportsExceptionOptions = false;
+			response.body.supportsStepBack = false;
+			response.body.exceptionBreakpointFilters = [];
+		}
+
 		
 		this.sendResponse(response);
 	}
@@ -87,7 +91,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 	protected launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments): void {
 
 		if (args.trace) {
-			Logger.setup(Logger.LogLevel.Verbose, /*logToFile=*/false);
+			logger.setup(Logger.LogLevel.Verbose, /*logToFile=*/ false);
 		}
 
 		this.config = args;
@@ -101,7 +105,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 			this.connection
 				.estabilish()
 				.then(() => {
-					return this.connection
+					this.connection && this.connection
 						.removeBreakpoints()
 						.then(() => {
 							this.sendResponse(response);
@@ -140,8 +144,16 @@ class ProphetDebugSession extends LoggingDebugSession {
 
 	protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
 
-		var path = args.source.path;
-		var clientLines = args.lines;
+		const path = args.source.path;
+		const connection = this.connection;
+
+		if (!path) {
+			response.body = {
+				breakpoints: []
+			};
+			return this.sendResponse(response);
+		}
+		var clientLines = (args.breakpoints || []).map(breakpoint => breakpoint.line);
 		var scriptPath = this.convertClientPathToDebugger(path);
 
 		var breakpoints = new Array<Breakpoint>();
@@ -337,7 +349,9 @@ class ProphetDebugSession extends LoggingDebugSession {
 				this.sendResponse(response);
 				this.connection
 					.getStackTrace(args.threadId)
-					.then(() => this.sendEvent(new StoppedEvent('step', args.threadId)))
+					.then(() => 
+						this.sendEvent(new ContinuedEvent(args.threadId))
+					)
 					.catch(() => {
 						this.log(`thread "${args.threadId}" finished`, 200);
 					})

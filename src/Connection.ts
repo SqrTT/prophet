@@ -1,6 +1,5 @@
 
 import request = require('request');
-import extend = require('extend');
 
 const justResolve = (resolve) => {resolve()};
 
@@ -33,7 +32,7 @@ export default class Connection {
 	protected estabilished : boolean;
 
 	constructor (params = {}) {
-		this.options = extend({}, {
+		this.options = Object.assign({}, {
 			hostname: 'some.demandware.net',
 			password: 'password',
 			username: 'username',
@@ -41,7 +40,6 @@ export default class Connection {
 		}, params);
 		this.estabilished = false;
 	}
-
 	getOptions () {
 		return {
 			baseUrl: 'https://' + this.options.hostname + '/s/-/dw/debugger/v1_0/',
@@ -57,16 +55,16 @@ export default class Connection {
 			strictSSL: false
 		};
 	}
-	makeRequest (options, cb) {
+	makeRequest<T> (options, cb : (resolve, reject, body) => void) : Promise<T> {
 		return new Promise((resolve, reject) => {
 			if (!this.estabilished) {
 				reject(Error('Connection is not estabilished'));
 				return;
 			}
-			//console.log('request', options);
+			console.log('request', options);
 
-			request(extend(this.getOptions(), options), (err, res, body) => {
-				//console.log('response', body);
+			request(Object.assign(this.getOptions(), options), (err, res, body) => {
+				console.log('response', body);
 				if (err) {
 					return reject(err);
 				}
@@ -80,7 +78,7 @@ export default class Connection {
 	}
 	estabilish () {
 		return new Promise((resolve, reject) => {
-			request(extend(this.getOptions(), {
+			request(Object.assign(this.getOptions(), {
 				uri: '/client',
 				method: 'POST'
 			}), (err, res) => {
@@ -124,7 +122,7 @@ export default class Connection {
 	disconnect () {
 		this.estabilished = false;
 		return new Promise((resolve, reject) => {
-			request(extend(this.getOptions(), {
+			request(Object.assign(this.getOptions(), {
 				uri: '/client',
 				method: 'DELETE'
 			}), (err, res) => {
@@ -175,7 +173,7 @@ export default class Connection {
 			}
 		});
 	}
-	removeBreakpoints(id?) : Promise<null>{
+	removeBreakpoints(id?) {
 		return this.makeRequest({
 			uri: '/breakpoints' + ( id ? '/' + id : ''),
 			method: 'DELETE'
