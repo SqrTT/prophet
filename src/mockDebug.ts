@@ -40,10 +40,11 @@ class ProphetDebugSession extends LoggingDebugSession {
 	private threadsArray = new Array<number>();
 	private connection : Connection;
 	private config: LaunchRequestArguments
-	private threadsTimer : number;
-	private awaitThreadsTimer : number;
+	private threadsTimer : NodeJS.Timer;
+	private awaitThreadsTimer : NodeJS.Timer;
 	private isAwaitingThreads = false;
 	private _variableHandles = new Handles<string>();
+	private pendingThreads = new Map<number, 'step'| 'breakpoint' | 'exception' | 'pause' | 'entry'>();
 
 
 
@@ -100,7 +101,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 		// The frontend will end the configuration sequence by calling 'configurationDone' request.
 
 		if (!this.connection) {
-			this.connection =  new Connection(args);
+			this.connection = new Connection(args);
 
 			this.connection
 				.estabilish()
@@ -348,15 +349,10 @@ class ProphetDebugSession extends LoggingDebugSession {
 		this.connection
 			.resume(args.threadId)
 			.then(() => {
-				this.connection
-					.getStackTrace(args.threadId)
-					.then(() =>
-						this.sendEvent(new StoppedEvent('breakpoint', args.threadId))
-					)
-					.catch(() => {
-						this.log(`thread "${args.threadId}" finished`, 200);
-					})
-			});
+				this.pendingThreads.set(args.threadId, 'breakpoint');
+				return this.awaitThreads();
+			})
+			.catch(this.catchLog.bind(this));;
 		this.sendResponse(response);
 	}
 
@@ -364,7 +360,8 @@ class ProphetDebugSession extends LoggingDebugSession {
 		this.connection
 			.stepInto(args.threadId)
 			.then(() => {
-				this.sendEvent(new StoppedEvent('step', args.threadId));
+				this.pendingThreads.set(args.threadId, 'step');
+				return this.awaitThreads();
 			})
 			.catch(this.catchLog.bind(this));
 			this.sendResponse(response);
@@ -373,7 +370,8 @@ class ProphetDebugSession extends LoggingDebugSession {
 		this.connection
 			.stepOut(args.threadId)
 			.then(() => {
-				this.sendEvent(new StoppedEvent('step', args.threadId));
+				this.pendingThreads.set(args.threadId, 'step');
+				return this.awaitThreads();
 			})
 			.catch(this.catchLog.bind(this));
 		this.sendResponse(response);
@@ -384,7 +382,8 @@ class ProphetDebugSession extends LoggingDebugSession {
 		this.connection
 			.stepOver(args.threadId)
 			.then(() => {
-				this.sendEvent(new StoppedEvent('step', args.threadId));
+				this.pendingThreads.set(args.threadId, 'step');
+				return this.awaitThreads();
 			})
 			.catch(this.catchLog.bind(this));
 		this.sendResponse(response);
@@ -469,8 +468,14 @@ class ProphetDebugSession extends LoggingDebugSession {
 	}
 	startAwaitThreads() {
 		if (!this.isAwaitingThreads) {
-			this.threadsTimer = setInterval(this.connection.resetThreads.bind(this.connection), 30000);
-			this.awaitThreadsTimer = setInterval(this.awaitThreads.bind(this), 10000);
+			this.threadsTimer = setInterval(() => {
+				this.connection.resetThreads().catch(err => {
+					this.logError(err + ' Please restart debugger')
+				})
+			}, 30000);
+			this.awaitThreadsTimer = setInterval(() => {
+				this.awaitThreads()
+			}, 10000);
 			this.isAwaitingThreads = true;
 		}
 	}
@@ -491,6 +496,13 @@ class ProphetDebugSession extends LoggingDebugSession {
 								this.sendEvent(new ThreadEvent('started', activeThread.id));
 								this.sendEvent(new StoppedEvent('breakpoint', activeThread.id));
 								this.threadsArray.push(activeThread.id)
+							} else if (this.pendingThreads.has(activeThread.id) && activeThread.status === 'halted') {
+								this.sendEvent(
+									new StoppedEvent(
+										this.pendingThreads.get(activeThread.id) || 'breakpoint', activeThread.id
+									)
+								);
+								this.pendingThreads.delete(activeThread.id);
 							}
 						});
 					}

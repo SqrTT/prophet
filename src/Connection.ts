@@ -185,7 +185,7 @@ export default class Connection {
 			method: 'POST'
 		}, justResolve)
 	}
-	getThreads () : Promise<any[]> {
+	getThreads () : Promise<IThread[]> {
 		return this.makeRequest({
 			uri: '/threads',
 			method: 'GET',
