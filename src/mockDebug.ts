@@ -1,9 +1,9 @@
 
 import {
-	Logger,
+	logger, Logger,
 	DebugSession, LoggingDebugSession,
 	InitializedEvent, TerminatedEvent, StoppedEvent, BreakpointEvent, OutputEvent, Event, ThreadEvent,
-	Thread, StackFrame, Scope, Source, Handles, Breakpoint
+	ContinuedEvent, Thread, StackFrame, Scope, Source, Handles, Breakpoint
 } from 'vscode-debugadapter';
 import {DebugProtocol} from 'vscode-debugprotocol';
 import {readFileSync} from 'fs';
@@ -16,6 +16,7 @@ import path = require('path');
 function includes(str: string, pattern: string) {
 	return str.indexOf(pattern) !== -1;
 }
+
 
 
 /**
@@ -37,12 +38,13 @@ class ProphetDebugSession extends LoggingDebugSession {
 	// maps from sourceFile to array of Breakpoints
 	private _breakPoints = new Map<string, Array<number>>();
 	private threadsArray = new Array<number>();
-	private connection : Connection | null;
+	private connection : Connection;
 	private config: LaunchRequestArguments
-	private threadsTimer : number | null;
-	private awaitThreadsTimer : number | null;
+	private threadsTimer : NodeJS.Timer;
+	private awaitThreadsTimer : NodeJS.Timer;
 	private isAwaitingThreads = false;
 	private _variableHandles = new Handles<string>();
+	private pendingThreads = new Map<number, 'step'| 'breakpoint' | 'exception' | 'pause' | 'entry'>();
 
 
 
@@ -65,21 +67,24 @@ class ProphetDebugSession extends LoggingDebugSession {
 
 
 		// This debug adapter implements the configurationDoneRequest.
-		response.body.supportsConfigurationDoneRequest = true;
+		if (response.body) {
+			response.body.supportsConfigurationDoneRequest = true;
 
-		// make VS Code to use 'evaluate' when hovering over source
-		response.body.supportsEvaluateForHovers = false;
-		response.body.supportsFunctionBreakpoints = false;
-		response.body.supportsConditionalBreakpoints = false;
-		response.body.supportsHitConditionalBreakpoints = false;
-		response.body.supportsSetVariable = true;
-		response.body.supportsGotoTargetsRequest = false;
-		response.body.supportsRestartRequest = false;
-		response.body.supportsRestartFrame = false;
-		response.body.supportsExceptionInfoRequest = false;
-		response.body.supportsExceptionOptions = false;
-		response.body.supportsStepBack = false;
-		response.body.exceptionBreakpointFilters = [];
+			// make VS Code to use 'evaluate' when hovering over source
+			response.body.supportsEvaluateForHovers = false;
+			response.body.supportsFunctionBreakpoints = false;
+			response.body.supportsConditionalBreakpoints = false;
+			response.body.supportsHitConditionalBreakpoints = false;
+			response.body.supportsSetVariable = true;
+			response.body.supportsGotoTargetsRequest = false;
+			response.body.supportsRestartRequest = false;
+			response.body.supportsRestartFrame = false;
+			response.body.supportsExceptionInfoRequest = false;
+			response.body.supportsExceptionOptions = false;
+			response.body.supportsStepBack = false;
+			response.body.exceptionBreakpointFilters = [];
+		}
+
 		
 		this.sendResponse(response);
 	}
@@ -87,7 +92,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 	protected launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments): void {
 
 		if (args.trace) {
-			Logger.setup(Logger.LogLevel.Verbose, /*logToFile=*/false);
+			logger.setup(Logger.LogLevel.Verbose, /*logToFile=*/ false);
 		}
 
 		this.config = args;
@@ -96,12 +101,12 @@ class ProphetDebugSession extends LoggingDebugSession {
 		// The frontend will end the configuration sequence by calling 'configurationDone' request.
 
 		if (!this.connection) {
-			this.connection =  new Connection(args);
+			this.connection = new Connection(args);
 
 			this.connection
 				.estabilish()
 				.then(() => {
-					return this.connection
+					this.connection && this.connection
 						.removeBreakpoints()
 						.then(() => {
 							this.sendResponse(response);
@@ -140,8 +145,16 @@ class ProphetDebugSession extends LoggingDebugSession {
 
 	protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
 
-		var path = args.source.path;
-		var clientLines = args.lines;
+		const path = args.source.path;
+		const connection = this.connection;
+
+		if (!path) {
+			response.body = {
+				breakpoints: []
+			};
+			return this.sendResponse(response);
+		}
+		var clientLines = (args.breakpoints || []).map(breakpoint => breakpoint.line);
 		var scriptPath = this.convertClientPathToDebugger(path);
 
 		var breakpoints = new Array<Breakpoint>();
@@ -241,6 +254,8 @@ class ProphetDebugSession extends LoggingDebugSession {
 					//new Thread(MockDebugSession.THREAD_ID, "thread 1")
 				]
 			};
+			response.success = false;
+			response.message = 'Connection is not estabilished';
 			this.sendResponse(response);
 		}
 	}
@@ -334,33 +349,32 @@ class ProphetDebugSession extends LoggingDebugSession {
 		this.connection
 			.resume(args.threadId)
 			.then(() => {
-				this.sendResponse(response);
-				this.connection
-					.getStackTrace(args.threadId)
-					.then(() => this.sendEvent(new StoppedEvent('step', args.threadId)))
-					.catch(() => {
-						this.log(`thread "${args.threadId}" finished`, 200);
-					})
-			});
+				this.pendingThreads.set(args.threadId, 'breakpoint');
+				return this.awaitThreads();
+			})
+			.catch(this.catchLog.bind(this));;
+		this.sendResponse(response);
 	}
 
 	protected stepInRequest(response: DebugProtocol.StepInResponse, args: DebugProtocol.StepInArguments): void {
 		this.connection
 			.stepInto(args.threadId)
 			.then(() => {
-				this.sendResponse(response);
-				this.sendEvent(new StoppedEvent('step', args.threadId));
+				this.pendingThreads.set(args.threadId, 'step');
+				return this.awaitThreads();
 			})
 			.catch(this.catchLog.bind(this));
+			this.sendResponse(response);
 	}
 	protected stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments): void {
 		this.connection
 			.stepOut(args.threadId)
 			.then(() => {
-				this.sendResponse(response);
-				this.sendEvent(new StoppedEvent('step', args.threadId));
+				this.pendingThreads.set(args.threadId, 'step');
+				return this.awaitThreads();
 			})
-			.catch(this.catchLog.bind(this));;
+			.catch(this.catchLog.bind(this));
+		this.sendResponse(response);
 	}
 
 
@@ -368,10 +382,11 @@ class ProphetDebugSession extends LoggingDebugSession {
 		this.connection
 			.stepOver(args.threadId)
 			.then(() => {
-				this.sendResponse(response);
-				this.sendEvent(new StoppedEvent('step', args.threadId));
+				this.pendingThreads.set(args.threadId, 'step');
+				return this.awaitThreads();
 			})
-			.catch(this.catchLog.bind(this));;
+			.catch(this.catchLog.bind(this));
+		this.sendResponse(response);
 	}
 
 	protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {
@@ -400,7 +415,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 		}
 
 	}
-    protected setVariableRequest(response: DebugProtocol.SetVariableResponse, args: DebugProtocol.SetVariableArguments): void {
+	protected setVariableRequest(response: DebugProtocol.SetVariableResponse, args: DebugProtocol.SetVariableArguments): void {
 		const id = this._variableHandles.get(args.variablesReference);
 		const vals = id.split('_');
 		const frameReferenceStr = vals[0];
@@ -453,8 +468,14 @@ class ProphetDebugSession extends LoggingDebugSession {
 	}
 	startAwaitThreads() {
 		if (!this.isAwaitingThreads) {
-			this.threadsTimer = setInterval(this.connection.resetThreads.bind(this.connection), 30000);
-			this.awaitThreadsTimer = setInterval(this.awaitThreads.bind(this), 10000);
+			this.threadsTimer = setInterval(() => {
+				this.connection.resetThreads().catch(err => {
+					this.logError(err + ' Please restart debugger')
+				})
+			}, 30000);
+			this.awaitThreadsTimer = setInterval(() => {
+				this.awaitThreads()
+			}, 10000);
 			this.isAwaitingThreads = true;
 		}
 	}
@@ -475,6 +496,13 @@ class ProphetDebugSession extends LoggingDebugSession {
 								this.sendEvent(new ThreadEvent('started', activeThread.id));
 								this.sendEvent(new StoppedEvent('breakpoint', activeThread.id));
 								this.threadsArray.push(activeThread.id)
+							} else if (this.pendingThreads.has(activeThread.id) && activeThread.status === 'halted') {
+								this.sendEvent(
+									new StoppedEvent(
+										this.pendingThreads.get(activeThread.id) || 'breakpoint', activeThread.id
+									)
+								);
+								this.pendingThreads.delete(activeThread.id);
 							}
 						});
 					}
