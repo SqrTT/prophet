@@ -57,6 +57,11 @@ class ProphetDebugSession extends LoggingDebugSession {
 
 		this.setDebuggerLinesStartAt1(true);
 		this.setDebuggerColumnsStartAt1(false);
+
+		process.once('uncaughtException', err => {
+			this.logError(err);
+			this.shutdown();
+		})
 	}
 
 	/**
@@ -180,7 +185,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 			return this.sendResponse(response);
 		}
 
-		const scriptBrks = this._breakPoints.get(path);
+		const scriptBrks = this._breakPoints.get(path) || [];
 
 		// remove if unexist
 		const removeOld = scriptBrks.map(brkId => {

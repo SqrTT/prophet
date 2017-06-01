@@ -9,7 +9,7 @@
         "email": "tolik@sqrtt.pro"
     },
     "engines": {
-        "vscode": "^1.11.0",
+        "vscode": "^1.12.0",
         "node": "^7.0.0"
     },
     "icon": "images/mock-debug-icon.svg",
@@ -27,19 +27,19 @@
         "url": "https://github.com/SqrTT/prophet/issues"
     },
     "dependencies": {
-        "request": "^2.81.0",
-        "vscode-debugadapter": "^1.19.0",
-        "vscode-debugprotocol": "^1.19.0"
+        "vscode-debugadapter": "^1.20.0",
+        "vscode-debugprotocol": "^1.20.0",
+        "vscode-languageclient": "^3.2.2",
+        "vscode-languageserver": "^3.2.2"
     },
     "devDependencies": {
-        "@types/es6-collections": "^0.5.30",
-        "@types/es6-promise": "^0.0.32",
-        "@types/mocha": "^2.2.33",
-        "@types/node": "^6.0.50",
-        "mocha": "^3.1.2",
-        "typescript": "^2.3.2",
-        "vscode": "^1.0.3",
-        "vscode-debugadapter-testsupport": "^1.17.0"
+        "@types/mocha": "^2.2.41",
+        "@types/node": "^6.0.74",
+        "mocha": "^3.4.2",
+        "request": "^2.81.0",
+        "typescript": "^2.3.4",
+        "vscode": "^1.1.0",
+        "vscode-debugadapter-testsupport": "^1.20.0"
     },
     "scripts": {
         "prepublish": "node ./node_modules/typescript/bin/tsc -p ./src",
@@ -50,7 +50,8 @@
     },
     "main": "./out/extension",
     "activationEvents": [
-        "onCommand:extension.prophet.provideInitialConfigurations"
+        "onCommand:extension.prophet.provideInitialConfigurations",
+        "onLanguage:isml"
     ],
     "contributes": {
         "snippets": [
