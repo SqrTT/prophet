@@ -1,7 +1,7 @@
 {
     "name": "prophet",
     "displayName": "Prophet Debugger",
-    "version": "0.3.7",
+    "version": "0.4.0",
     "publisher": "SqrTT",
     "description": "Debugger for Demandware/Salesforce sandbox",
     "author": {
