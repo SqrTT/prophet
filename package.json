@@ -51,7 +51,9 @@
     "main": "./out/extension",
     "activationEvents": [
         "onCommand:extension.prophet.provideInitialConfigurations",
-        "onLanguage:isml"
+        "onLanguage:isml",
+        "onLanguage:dwscript",
+        "onLanguage:javascript"
     ],
     "contributes": {
         "snippets": [

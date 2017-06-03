@@ -5,7 +5,7 @@
 'use strict';
 
 import * as path from 'path';
-import { workspace, Disposable, ExtensionContext, commands, window } from 'vscode';
+import { workspace, Disposable, ExtensionContext, commands, window, Uri } from 'vscode';
 import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, TransportKind } from 'vscode-languageclient';
 
 import * as http from 'http';
@@ -71,43 +71,52 @@ export function activate(context: ExtensionContext) {
 	// client can be deactivated on extension deactivation
 	//context.subscriptions.push(disposable);
 
+	if (workspace.rootPath) {
+		/// open files from browser
+		var server = http.createServer(function (req, res) {
+			res.writeHead(200, {'Content-Type': 'text/plain'});
+			res.end('ok');
 
-	/// open files from browser
-console.log('runned server');
-	var server = http.createServer(function (req, res) {
-		res.writeHead(200, {'Content-Type': 'text/plain'});
- 		res.end('ok');
+			if (req.url && req.url.includes('/target') && workspace.rootPath) {
+				var reqUrl = req.url.split('/target=')[1].split('&')[0]; // fixme
 
-		if (req.url && req.url !== '/favicon.ico' && workspace.rootPath) {
-			var reqUrl = req.url.split('/target=')[1].split('&')[0]; // fixme
+				var filePaths = [
+					path.join(workspace.rootPath, ...reqUrl.split('/')),
+					path.join(workspace.rootPath, 'cartridges', ...reqUrl.split('/')),
+					path.join(workspace.rootPath, ...reqUrl.split('/')).replace('.js', '.ds'),
+					path.join(workspace.rootPath, 'cartridges', ...reqUrl.split('/')).replace('.js', '.ds')
+				];
 
-			var filePaths = [
-				path.join(workspace.rootPath, ...reqUrl.split('/')),
-				path.join(workspace.rootPath, 'cartridges', ...reqUrl.split('/')),
-				path.join(workspace.rootPath, ...reqUrl.split('/')).replace('.js', '.ds'),
-				path.join(workspace.rootPath, 'cartridges', ...reqUrl.split('/')).replace('.js', '.ds')
-			];
+				var filePath = filePaths.find(existsSync);
 
-			console.log(JSON.stringify(filePaths));
-
-			var filePath = filePaths.find(filename => existsSync(filename));
-
-			if (filePath) {
-				workspace.openTextDocument(filePath).then((textDocument) => {
-					window.showTextDocument(textDocument);
-				}, err => {
-					window.showErrorMessage(err);
-				});
+				if (filePath) {
+					commands.executeCommand('vscode.open', Uri.file(filePath)).then(() => {
+						
+					}, err => {
+						window.showErrorMessage(err);
+					});
+				} else {
+					window.showWarningMessage(`Unable to find "${reqUrl}"`);
+				}
 			}
-///home/tolik/git/ecom-fnw/cartridges/app_storefront_controllers/cartridge/controllers/Home.js
-///home/tolik/git/ecom-fnw/cartridges/app_storefront_controllers/cartridge/controllers/Home.ds
-			
-		}
 
-	});
-	server.listen(60606);
+		});
+		server.once('error', err => {
+			if (err instanceof Error) {
+				window.showWarningMessage(`Unable open port for browsers files, probably other instance or Digital Studio is opened. Error: ${err.message}`);
+				server.close();
+			}
+		});
+		server.once('listening', () => {
+			context.subscriptions.push(
+				new Disposable(() => {
+					server.close();
+				})
+			);
+		})
 
-	//server.close();
+		server.listen(60606);
+	}
 }
 
 export function deactivate() {
