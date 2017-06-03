@@ -10,6 +10,7 @@ A VS Code extension to debug your Demandware/Salesforce Cloud code on Sandbox th
 * View variables on hover
 * Watches
 * Console/evaluate code
+* Open files trought Storefront Toolkit
 
 
 ## Getting Started

@@ -1,3 +1,7 @@
+### 0.3.8
+
+Added support for opening files trought Storefront Toolkit
+
 
 ### 0.3.6
 
