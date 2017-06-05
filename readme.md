@@ -11,6 +11,7 @@ A VS Code extension to debug your Demandware/Salesforce Cloud code on Sandbox th
 * Watches
 * Console/evaluate code
 * Open files trought Storefront Toolkit
+* Open `isinclude` templates via Ctrl+Click (as links)
 
 
 ## Getting Started
