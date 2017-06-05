@@ -60,16 +60,30 @@ export function activate(context: ExtensionContext) {
 			// Synchronize the setting section 'languageServerExample' to the server
 			configurationSection: 'ismlLanguageServer',
 			// Notify the server about file changes to '.clientrc files contain in the workspace
-			//fileEvents: workspace.createFileSystemWatcher('**/.')
+			//fileEvents: workspace.createFileSystemWatcher('**/*.isml')
+
 		}
 	}
 	
 	// Create the language client and start the client.
-	//let disposable = new LanguageClient('ismlLanguageServer', 'ISML Language Server', serverOptions, clientOptions).start();
+	let ismlLanguageServer = new LanguageClient('ismlLanguageServer', 'ISML Language Server', serverOptions, clientOptions);
+	let disposable = ismlLanguageServer.start();
+
+
+	ismlLanguageServer.onReady().then(() => {
+		ismlLanguageServer.onNotification('isml:selectfiles', (test) => {
+			window.showQuickPick(test.data).then(selected => {
+				ismlLanguageServer.sendNotification('isml:selectedfile', selected);
+			}, err => {
+				ismlLanguageServer.sendNotification('isml:selectedfile', undefined);
+			});
+		});
+	})
+
 	
 	// Push the disposable to the context's subscriptions so that the 
 	// client can be deactivated on extension deactivation
-	//context.subscriptions.push(disposable);
+	context.subscriptions.push(disposable);
 
 	if (workspace.rootPath) {
 		/// open files from browser

@@ -27,11 +27,13 @@
         "url": "https://github.com/SqrTT/prophet/issues"
     },
     "dependencies": {
+        "glob": "^7.1.2",
         "request": "^2.81.0",
         "vscode-debugadapter": "^1.20.0",
         "vscode-debugprotocol": "^1.20.0",
         "vscode-languageclient": "^3.2.2",
-        "vscode-languageserver": "^3.2.2"
+        "vscode-languageserver": "^3.2.2",
+        "vscode-uri": "^1.0.0"
     },
     "devDependencies": {
         "@types/mocha": "^2.2.41",
