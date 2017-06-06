@@ -2,14 +2,14 @@
 import {
 	logger, Logger,
 	DebugSession, LoggingDebugSession,
-	InitializedEvent, TerminatedEvent, StoppedEvent, BreakpointEvent, OutputEvent, Event, ThreadEvent,
-	ContinuedEvent, Thread, StackFrame, Scope, Source, Handles, Breakpoint
+	InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent,
+	Thread, StackFrame, Scope, Source, Handles, Breakpoint
 } from 'vscode-debugadapter';
 import {DebugProtocol} from 'vscode-debugprotocol';
-import {readFileSync} from 'fs';
-import {basename} from 'path';
 
+import {basename, join} from 'path';
 import Connection from './Connection';
+import * as process from 'process';
 
 import path = require('path');
 
@@ -53,7 +53,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 	 * We configure the default implementation of a debug adapter here.
 	 */
 	public constructor() {
-		super("prophet.txt");
+		super(join(__dirname, '..', "prophet-debugger.log"));
 
 		this.setDebuggerLinesStartAt1(true);
 		this.setDebuggerColumnsStartAt1(false);
@@ -97,7 +97,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 	protected launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments): void {
 
 		if (args.trace) {
-			logger.setup(Logger.LogLevel.Verbose, /*logToFile=*/ false);
+			logger.setup(Logger.LogLevel.Verbose, /*logToFile=*/ true);
 		}
 
 		this.config = args;
@@ -151,7 +151,6 @@ class ProphetDebugSession extends LoggingDebugSession {
 	protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
 
 		const path = args.source.path;
-		const connection = this.connection;
 
 		if (!path) {
 			response.body = {
@@ -161,8 +160,6 @@ class ProphetDebugSession extends LoggingDebugSession {
 		}
 		var clientLines = (args.breakpoints || []).map(breakpoint => breakpoint.line);
 		var scriptPath = this.convertClientPathToDebugger(path);
-
-		var breakpoints = new Array<Breakpoint>();
 
 		if (!this._breakPoints.has(path)) {
 			this._breakPoints.set(path, []);
