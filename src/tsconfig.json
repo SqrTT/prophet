@@ -9,6 +9,7 @@
 		"noImplicitAny": false,
 		"removeComments": false,
 		"preserveConstEnums": true,
-		"strictNullChecks": true
+		"strictNullChecks": true,
+		"noUnusedLocals": true
 	}
 }

@@ -2,9 +2,7 @@
 import {
 	IPCMessageReader, IPCMessageWriter,
 	createConnection, IConnection,
-	TextDocuments, TextDocument, Diagnostic, DiagnosticSeverity, 
-	InitializeParams, InitializeResult, RequestHandler, TextDocumentPositionParams, Hover, ResponseError, ErrorCodes,
-	DocumentLinkParams, DocumentLink, Range, Position
+	TextDocuments, InitializeResult, DocumentLinkParams, DocumentLink, Range, Position
 } from 'vscode-languageserver';
 
 import Uri from 'vscode-uri';

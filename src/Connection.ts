@@ -61,10 +61,8 @@ export default class Connection {
 				reject(Error('Connection is not estabilished'));
 				return;
 			}
-			console.log('request', options);
 
 			request(Object.assign(this.getOptions(), options), (err, res, body) => {
-				console.log('response', body);
 				if (err) {
 					return reject(err);
 				}

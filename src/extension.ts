@@ -4,12 +4,12 @@
 
 'use strict';
 
-import * as path from 'path';
+import {join} from 'path';
 import { workspace, Disposable, ExtensionContext, commands, window, Uri } from 'vscode';
-import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, TransportKind } from 'vscode-languageclient';
+import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
 
-import * as http from 'http';
 import {existsSync} from 'fs';
+import {createServer} from "http";
 
 
 const initialConfigurations = {
@@ -41,7 +41,7 @@ export function activate(context: ExtensionContext) {
 
 
 	// The server is implemented in node
-	let serverModule = context.asAbsolutePath(path.join('out', 'server', 'ismlServer.js'));
+	let serverModule = context.asAbsolutePath(join('out', 'server', 'ismlServer.js'));
 	// The debug options for the server
 	let debugOptions = { execArgv: ["--nolazy", "--debug=6004"] };
 	
@@ -87,7 +87,7 @@ export function activate(context: ExtensionContext) {
 
 	if (workspace.rootPath) {
 		/// open files from browser
-		var server = http.createServer(function (req, res) {
+		var server = createServer(function (req, res) {
 			res.writeHead(200, {'Content-Type': 'text/plain'});
 			res.end('ok');
 
@@ -95,10 +95,10 @@ export function activate(context: ExtensionContext) {
 				var reqUrl = req.url.split('/target=')[1].split('&')[0]; // fixme
 
 				var filePaths = [
-					path.join(workspace.rootPath, ...reqUrl.split('/')),
-					path.join(workspace.rootPath, 'cartridges', ...reqUrl.split('/')),
-					path.join(workspace.rootPath, ...reqUrl.split('/')).replace('.js', '.ds'),
-					path.join(workspace.rootPath, 'cartridges', ...reqUrl.split('/')).replace('.js', '.ds')
+					join(workspace.rootPath, ...reqUrl.split('/')),
+					join(workspace.rootPath, 'cartridges', ...reqUrl.split('/')),
+					join(workspace.rootPath, ...reqUrl.split('/')).replace('.js', '.ds'),
+					join(workspace.rootPath, 'cartridges', ...reqUrl.split('/')).replace('.js', '.ds')
 				];
 
 				var filePath = filePaths.find(existsSync);
