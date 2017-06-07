@@ -24,6 +24,8 @@ let documents: TextDocuments = new TextDocuments();
 // for open, change and close text document events
 documents.listen(connection);
 
+let warnedOnce = new Set<string>();
+
 // After the server has started the client sends an initialize request. The server receives
 // in the passed params the rootPath of the workspace plus the client capabilities. 
 let workspaceRoot: string | undefined;
@@ -87,7 +89,12 @@ connection.onDocumentLinks((params: DocumentLinkParams) => {
 				}
 			});
 		} else {
-			reject(new Error('Wrong scheme'));
+			resolve([]);
+			const warnMsg = `Unable to handle a "${uri.scheme}" scheme`;
+			if (!warnedOnce.has(warnMsg)) {
+				connection.console.warn(warnMsg);
+				warnedOnce.add(warnMsg);
+			}
 		}
 	});
 });
