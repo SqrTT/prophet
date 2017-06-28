@@ -451,13 +451,25 @@ class ProphetDebugSession extends LoggingDebugSession {
 	//---- some helpers
 
 	protected convertClientPathToDebugger(clientPath: string): string {
+
 			
 		if (this.config.cartridgeroot === 'auto') {
-			const sepPath = clientPath.split(path.sep);
+			var workingPath = clientPath;
 
-			const cartPos = sepPath.indexOf('cartridge');
+			while (
+				path.parse(workingPath).root !== workingPath &&
+				path.basename(workingPath) !== 'cartridge' &&
+				path.basename(workingPath) !== 'modules'
+			) {
+				workingPath = path.dirname(workingPath);
+			}
 
-			this.config.cartridgeroot = path.parse(clientPath).root + sepPath.splice(0, cartPos - 1).join(path.sep) + path.sep
+			if (path.parse(workingPath).root === workingPath) {
+				this.logError('Unable detect "cartridgeroot"');
+			} else {
+				this.config.cartridgeroot = path.dirname(workingPath);
+			}
+			this.log(`Auto detected "cartridgeroot" to "${this.config.cartridgeroot}"`);
 		}
 
 		const relPath = path.relative(this.config.cartridgeroot, clientPath);
