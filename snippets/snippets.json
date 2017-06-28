@@ -2,7 +2,7 @@
     "isif condition": {
         "prefix": "isif",
         "body": [
-            "<isif condition=\"${ ${1} }\" >",
+            "<isif condition=\"${1}\" >",
             "",
             "${<iselse/>}",
             "",
@@ -13,7 +13,7 @@
     "isloop": {
         "prefix": "isloop",
         "body": [
-            "<loop items=\"${1}\" var=\"${2}\">",
+            "<isloop items=\"${1}\" var=\"${2}\">",
             "${0}",
             "</isloop>"
         ],
