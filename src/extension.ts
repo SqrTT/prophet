@@ -1,6 +1,3 @@
-/*---------------------------------------------------------
- * Copyright (C) Microsoft Corporation. All rights reserved.
- *--------------------------------------------------------*/
 
 'use strict';
 
@@ -10,6 +7,7 @@ import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } f
 
 import {existsSync} from 'fs';
 import {createServer} from "http";
+import * as glob from 'glob';
 
 
 const initialConfigurations = {
@@ -132,6 +130,25 @@ export function activate(context: ExtensionContext) {
 		})
 
 		server.listen(60606);
+		const rootPath = workspace.rootPath;
+
+		// init watcher
+		glob('**/dw.json', {
+			cwd: rootPath,
+			root: rootPath,
+			nodir: true,
+			follow: false,
+			ignore: ['**/node_modules/**', '**/.git/**']
+		}, (error, files : string[]) => {
+			if (error) {
+				window.showErrorMessage(error);
+			} else if (files.length && workspace.rootPath) {
+				import('./server/uploadServer').then(uploadServer => {
+					uploadServer.init(join(rootPath, files.shift() || ''))
+						.then(disposable => context.subscriptions.push(disposable));
+				});
+			}
+		});
 	}
 }
 

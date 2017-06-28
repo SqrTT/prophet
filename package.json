@@ -27,13 +27,18 @@
         "url": "https://github.com/SqrTT/prophet/issues"
     },
     "dependencies": {
+        "chokidar": "^1.7.0",
         "glob": "^7.1.2",
         "request": "^2.81.0",
+        "rimraf": "^2.6.1",
+        "rxjs": "^5.4.1",
         "vscode-debugadapter": "^1.21.0",
         "vscode-debugprotocol": "^1.21.0",
         "vscode-languageclient": "^3.3.0",
         "vscode-languageserver": "^3.3.0",
-        "vscode-uri": "^1.0.1"
+        "vscode-uri": "^1.0.1",
+        "walk": "^2.3.9",
+        "yazl": "^2.4.2"
     },
     "devDependencies": {
         "@types/mocha": "^2.2.41",
@@ -44,6 +49,7 @@
         "vscode-debugadapter-testsupport": "^1.20.0"
     },
     "scripts": {
+        "vscode:prepublish": "node ./node_modules/typescript/bin/tsc -p ./src",
         "prepublish": "node ./node_modules/typescript/bin/tsc -p ./src",
         "compile": "node ./node_modules/typescript/bin/tsc -p ./src",
         "watch": "node ./node_modules/typescript/bin/tsc -w -p ./src",
@@ -53,9 +59,7 @@
     "main": "./out/extension",
     "activationEvents": [
         "onCommand:extension.prophet.provideInitialConfigurations",
-        "onLanguage:isml",
-        "onLanguage:dwscript",
-        "onLanguage:javascript"
+        "workspaceContains:**/cartridge/*.properties"
     ],
     "contributes": {
         "snippets": [
