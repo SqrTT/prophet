@@ -467,7 +467,11 @@ class ProphetDebugSession extends LoggingDebugSession {
 			if (path.parse(workingPath).root === workingPath) {
 				this.logError('Unable detect "cartridgeroot"');
 			} else {
-				this.config.cartridgeroot = path.dirname(workingPath);
+				if (path.dirname(workingPath) === 'modules') {
+					this.config.cartridgeroot = path.dirname(workingPath);
+				} else {
+					this.config.cartridgeroot = path.dirname(path.dirname(workingPath));
+				}
 			}
 			this.log(`Auto detected "cartridgeroot" to "${this.config.cartridgeroot}"`);
 		}
