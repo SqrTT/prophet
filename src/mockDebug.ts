@@ -452,7 +452,6 @@ class ProphetDebugSession extends LoggingDebugSession {
 
 	protected convertClientPathToDebugger(clientPath: string): string {
 
-			
 		if (this.config.cartridgeroot === 'auto') {
 			var workingPath = clientPath;
 

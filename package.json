@@ -193,6 +193,16 @@
                 },
                 "initialConfigurations": "extension.prophet.provideInitialConfigurations"
             }
-        ]
+        ],
+        "configuration": {
+            "title": "Prophet Configuration",
+            "properties": {
+                "extension.prophet.upload.enabled" : {
+                    "type": "boolean",
+                    "default" : false,
+                    "description": "Enable upload to sandbox"
+                }
+            }
+        }
     }
 }

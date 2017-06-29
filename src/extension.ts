@@ -132,23 +132,32 @@ export function activate(context: ExtensionContext) {
 		server.listen(60606);
 		const rootPath = workspace.rootPath;
 
-		// init watcher
-		glob('**/dw.json', {
-			cwd: rootPath,
-			root: rootPath,
-			nodir: true,
-			follow: false,
-			ignore: ['**/node_modules/**', '**/.git/**']
-		}, (error, files : string[]) => {
-			if (error) {
-				window.showErrorMessage(error);
-			} else if (files.length && workspace.rootPath) {
-				import('./server/uploadServer').then(uploadServer => {
-					uploadServer.init(join(rootPath, files.shift() || ''))
-						.then(disposable => context.subscriptions.push(disposable));
-				});
-			}
-		});
+		const configuration = workspace.getConfiguration('extension.prophet');
+
+		const isUploadEnabled = configuration.get('upload.enabled');
+
+		if (isUploadEnabled) {
+			// init watcher
+			glob('**/dw.json', {
+				cwd: rootPath,
+				root: rootPath,
+				nodir: true,
+				follow: false,
+				ignore: ['**/node_modules/**', '**/.git/**']
+			}, (error, files : string[]) => {
+				if (error) {
+					window.showErrorMessage(error);
+				} else if (files.length && workspace.rootPath) {
+					import('./server/uploadServer').then(uploadServer => {
+						uploadServer.init(join(rootPath, files.shift() || ''))
+							.then(disposable => context.subscriptions.push(disposable));
+					});
+				} else {
+					window.showWarningMessage('Unable to find "dw.json". Upload cartridges disabled.');
+				}
+			});
+		}
+
 	}
 }
 
