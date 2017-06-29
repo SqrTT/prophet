@@ -473,7 +473,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 					this.config.cartridgeroot = path.dirname(path.dirname(workingPath));
 				}
 			}
-			this.log(`Auto detected "cartridgeroot" to "${this.config.cartridgeroot}"`);
+			this.log(`"cartridgeroot" is set to "${this.config.cartridgeroot}"`);
 		}
 
 		const relPath = path.relative(this.config.cartridgeroot, clientPath);
