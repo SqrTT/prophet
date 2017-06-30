@@ -8,6 +8,7 @@ import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } f
 import {existsSync} from 'fs';
 import {createServer} from "http";
 import * as glob from 'glob';
+import {EventEmitter} from 'events';
 
 
 const initialConfigurations = {
@@ -131,12 +132,39 @@ export function activate(context: ExtensionContext) {
 
 		server.listen(60606);
 		const rootPath = workspace.rootPath;
+		const uploaderBus = new EventEmitter();
+
+		context.subscriptions.push(workspace.onDidChangeConfiguration(() => {
+			const configuration = workspace.getConfiguration('extension.prophet');
+
+			if (configuration.get('upload.enabled')) {
+				loadUploaderConfig();
+				uploaderBus.emit('start');
+			} else {
+				uploaderBus.emit('stop');
+			}
+		}));
+
+		context.subscriptions.push(commands.registerCommand('extension.prophet.command.enable.upload', () => {
+			uploaderBus.emit('start');
+		}));
+		context.subscriptions.push(commands.registerCommand('extension.prophet.command.clean.upload', () => {
+			uploaderBus.emit('start');
+		}));
+		context.subscriptions.push(commands.registerCommand('extension.prophet.command.disable.upload', () => {
+			uploaderBus.emit('stop');
+		}));
 
 		const configuration = workspace.getConfiguration('extension.prophet');
 
 		const isUploadEnabled = configuration.get('upload.enabled');
 
-		if (isUploadEnabled) {
+		var isUploadLoaded = false;
+		function loadUploaderConfig() {
+			if (isUploadLoaded) {
+				return;
+			}
+			isUploadLoaded = true;
 			// init watcher
 			glob('**/dw.json', {
 				cwd: rootPath,
@@ -149,13 +177,17 @@ export function activate(context: ExtensionContext) {
 					window.showErrorMessage(error);
 				} else if (files.length && workspace.rootPath) {
 					import('./server/uploadServer').then(uploadServer => {
-						uploadServer.init(join(rootPath, files.shift() || ''))
+						uploadServer.init(join(rootPath, files.shift() || ''), uploaderBus)
 							.then(disposable => context.subscriptions.push(disposable));
 					});
 				} else {
 					window.showWarningMessage('Unable to find "dw.json". Upload cartridges disabled.');
 				}
 			});
+		}
+
+		if (isUploadEnabled) {
+			loadUploaderConfig();
 		}
 
 	}

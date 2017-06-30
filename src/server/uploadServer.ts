@@ -1,4 +1,5 @@
 import {Observable} from 'rxjs/Observable';
+import {EventEmitter} from "events";
 import 'rxjs/add/operator/mergeMap';
 import 'rxjs/add/observable/merge';
 import 'rxjs/add/operator/concat';
@@ -85,7 +86,7 @@ function uploadAndWatch(webdav : WebDav, outputChannel : OutputChannel, config :
 
 				if (err instanceof Error) {
 					if (err.message === 'Not Found') {
-						outputChannel.appendLine(`Please check existence of code version.`);
+						outputChannel.appendLine(`Please check existence of code version: "${config.version}"`);
 					} else if (err.message === 'Unauthorized') {
 						outputChannel.appendLine(`Please check your credentials (login, password, etc)`);
 					}else {
@@ -120,7 +121,7 @@ function uploadAndWatch(webdav : WebDav, outputChannel : OutputChannel, config :
 						} else {
 							throw Error('Unknown action');
 						}
-					}, 10)
+					}, 5)
 			}).subscribe(
 				() => {},
 				err => {
@@ -132,7 +133,7 @@ function uploadAndWatch(webdav : WebDav, outputChannel : OutputChannel, config :
 		return () => subscription.unsubscribe();
 	});
 }
-export async function init(configFilename: string) {
+export async function init(configFilename: string, uploaderBus: EventEmitter) {
 	const outputChannel = window.createOutputChannel('Prophet Uploader');
 	let webdav : WebDav;
 	let currentOperation;
@@ -161,7 +162,8 @@ export async function init(configFilename: string) {
 						() => {}
 				);
 				var retryCounter = 0;
-				currentOperation = uploadAndWatch(webdav, outputChannel, config, rootDir)
+
+				var observableUploader = uploadAndWatch(webdav, outputChannel, config, rootDir)
 					.retryWhen(function (errors) {
 						// retry for some errors, end the stream with an error for others
 						return errors.do(function (e) {
@@ -175,20 +177,38 @@ export async function init(configFilename: string) {
 							}
 						});
 					})
-					.subscribe(
-						() => {
-							// reset counter to zero if success
-							retryCounter = 0;
-						},
-						err => {
-							outputChannel.show();
-							outputChannel.append(`Error: ${err}\n`);
-						},
-						() => {
-							outputChannel.appendLine(`END!`);
-						}
-					);
 
+					uploaderBus.on('start', () => {
+						if (currentOperation) {
+							currentOperation.unsubscribe();
+							outputChannel.appendLine(`Restarting`);
+						} else {
+							outputChannel.appendLine(`Starting`);
+						}
+						currentOperation = observableUploader.subscribe(
+							() => {
+								// reset counter to zero if success
+								retryCounter = 0;
+							},
+							err => {
+								outputChannel.show();
+								outputChannel.append(`Error: ${err}\n`);
+							},
+							() => {
+								outputChannel.appendLine(`END!`);
+							}
+						);
+					});
+
+					uploaderBus.on('stop', () => {
+						if (currentOperation) {
+							outputChannel.appendLine(`Stopping`);
+							currentOperation.unsubscribe();
+							currentOperation = null;
+						}
+					});
+
+					uploaderBus.emit('start');
 			} else {
 				outputChannel.show();
 				outputChannel.append(`Error: Unable parse cofig\n`);

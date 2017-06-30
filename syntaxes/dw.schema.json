@@ -1,0 +1,72 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "description": "Sandbox configuration file. Note 'dw.json' should be placed in root of cartridges",
+    "properties": {
+        "hostname" : {
+            "type" :"string",
+            "default": "*.demandware.net",
+            "format" : "hostname",
+            "description": "Domian name of sandbox"
+        },
+        "username": {
+            "type" :"string",
+            "default": "admin",
+            "description": "Username/Login"
+        },
+        "password": {
+            "type":"string",
+            "default": "Passw0rd!",
+            "description": "User's password"
+        },
+        "code-version": {
+            "type":"string",
+            "default": "version1",
+            "description": "Version of code. Note: code version should exist before can be uploaded"
+        },
+        "version" : {
+            "type":"string",
+            "default": "version1",
+            "description": "Version of code. Note: code version should exist before can be uploaded"
+        },
+        "cartridge": {
+            "type" :"array",
+            "description": "List of cartridges. If empty than all subdirectory of current directory is treated as cartridges and will be uploaded",
+            "items": { "type": "string" },
+            "uniqueItems": true
+        },
+        "p12" : {
+            "type":"string",
+            "description": "Absolute path certificate file [Currently not supported]"
+        },
+        "passphrase" : {
+            "type":"string",
+            "description": "Passphrase for certificate file [Currently not supported]"
+        },
+        "verbose" : {
+            "type":"boolean",
+            "default": false,
+            "description": "Enable more verbose logging"
+        }
+    },
+    "dependencies": {
+        "p12" : ["passphrase"]
+    },
+    "oneOf" : [{
+            "required" :[
+                "hostname",
+                "username",
+                "password",
+                "version"
+            ]
+        },{
+            "required" :[
+                "hostname",
+                "username",
+                "password",
+                "code-version"
+            ]
+        }
+    ],
+    "additionalProperties" :false
+}

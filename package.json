@@ -62,6 +62,29 @@
         "workspaceContains:**/cartridge/*.properties"
     ],
     "contributes": {
+        "commands":[
+            {
+                "command": "extension.prophet.command.enable.upload",
+                "title": "Prophet: Enable Upload",
+                "description" : "Enable upload of cartridges"
+            },
+            {
+                "command":  "extension.prophet.command.disable.upload",
+                "title": "Prophet: Disable Upload",
+                "description" : "Disale upload of cartridges"
+            },
+            {
+                "command":  "extension.prophet.command.clean.upload",
+                "title": "Prophet: Clean Project/Upload all",
+                "description" : "Clean Project/Upload all"
+            }
+        ],
+        "jsonValidation": [
+            {
+                "fileMatch": "dw.json",
+                "url": "./syntaxes/dw.schema.json"
+            }
+        ],
         "snippets": [
             {
                 "language": "isml",
