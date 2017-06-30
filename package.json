@@ -12,7 +12,7 @@
         "vscode": "^1.11.0",
         "node": "^7.0.0"
     },
-    "icon": "images/mock-debug-icon.svg",
+    "icon": "images/salesforce-logo.svg",
     "categories": [
         "Debuggers",
         "Languages",
