@@ -1,8 +1,10 @@
-<h2 align="center">Debug your Demandware/Salesforce Cloud code</h4>
+<h2 align="center">Work your Demandware/Salesforce Cloud code</h4>
 
-A VS Code extension to debug your Demandware/Salesforce Cloud code on Sandbox that support the Script Debugger API (SDAPI) 1.0
+A VS Code extension to work with Demandware/Salesforce Cloud code on Sandbox that support the Script Debugger API (SDAPI) 1.0
 
 **Supported features**
+* Upload cartridges and watch changes
+* Syntax highlight for `isml` and `ds` files
 * Setting breakpoints
 * Stepping
 * Change variables values in running threads
@@ -53,10 +55,41 @@ Example `launch.json` configs with `"request": "launch"`. You must specify hostn
 If you want to use a different sandboxes, you can also setup several configurations.
 
 
-
-
 ### Other optional launch config fields
 * `trace`: When true, the adapter logs its own diagnostic info to console. This is often useful info to include when filing an issue on GitHub. 
+
+
+## Using the uploader
+
+Configuration for uploader should live in the file named `dw.json` (similar is used by `dwupload` and is compatible witn the uploader). Configuration should be placed in the directory that contains all cartridges.
+
+```
+├── bc_library
+├── bm_integrationframework
+├── dw.json
+├── jsconfig.json
+└── modules
+```
+
+Example of file:
+```json
+{
+    "hostname": "example.demandware.net",
+    "username": "user",
+    "password": "password",
+    "cartridge": ["cartridgeA", "cartridgeB"],// optional
+    "code-version": "version2"
+}
+```
+The second step: enabling the uploader in workspace preferences. Open preferences, switch to workspace preferences and set value to `true` for `"extension.prophet.upload.enabled"`. Detailed log information is written in output channel `Prophet Uploader`. (Note. credentials are read once, so if you change then you should reload window, press F1 and select `Reload Window`).
+
+You can temporarily disable watching or force upload cartridges (i.e. clean project) via commands.
+
+* Prophet: Enable Upload
+* Prophet: Disable Upload
+* Prophet: Clean Project/Upload all
+
+(press F1 and select command)
 
 
 ### Improve experience
