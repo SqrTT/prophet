@@ -60,7 +60,7 @@ function fileWatcher(config, cartRoot : string) {
 
 const uploadCartridges = (webdav : WebDav, outputChannel : OutputChannel, config : any, cartRoot: string) => {
 
-	const cartridges = config.cartridge || getDirectories(cartRoot);
+	const cartridges = (config.cartridge && config.cartridge.length) || getDirectories(cartRoot);
 	const toUpload = cartridges
 		.map(str => str.trim())
 		.filter(Boolean)
@@ -146,9 +146,12 @@ export async function init(configFilename: string, uploaderBus: EventEmitter) {
 			outputChannel.append(`Error: ${err}\n`);
 		} else {
 			const config = tryParse(data.toString());
-			const rootDir = dirname(configFilename);
+			var rootDir = dirname(configFilename);
 
 			if (config) {
+				if (config.root) {
+					rootDir = join(rootDir, config.root);
+				}
 				outputChannel.append(`Using directory "${rootDir}" as cartridges root\n`);
 
 				webdav = new WebDav({

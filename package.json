@@ -3,7 +3,7 @@
     "displayName": "Prophet Debugger",
     "version": "0.5.4",
     "publisher": "SqrTT",
-    "description": "Debugger for Demandware/Salesforce sandbox",
+    "description": "Debugger and Uploader for Demandware/Salesforce sandbox",
     "author": {
         "name": "Anatolii Obitskyi",
         "email": "tolik@sqrtt.pro"
@@ -45,7 +45,7 @@
         "@types/node": "^6.0.74",
         "mocha": "^3.4.2",
         "typescript": "^2.4.1",
-        "vscode": "^1.1.0",
+        "vscode": "^1.1.1`",
         "vscode-debugadapter-testsupport": "^1.20.0"
     },
     "scripts": {

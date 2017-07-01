@@ -1,3 +1,7 @@
+### 0.6.0
+
+Implemented file/cartridges uploader
+
 ### 0.5.0
 
 Open local `isinclude` files via Ctrl+Click
@@ -5,7 +9,6 @@ Open local `isinclude` files via Ctrl+Click
 ### 0.4.0
 
 Added support for opening files trought Storefront Toolkit
-
 
 ### 0.3.6
 

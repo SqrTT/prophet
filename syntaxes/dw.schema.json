@@ -47,6 +47,10 @@
             "type":"boolean",
             "default": false,
             "description": "Enable more verbose logging"
+        },
+        "root" : {
+            "type":"string",
+            "description": "Optional path to cartridges if dw.json is not in cartridges root. Relative to dw.json"
         }
     },
     "dependencies": {
