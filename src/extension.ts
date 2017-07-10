@@ -1,14 +1,13 @@
 
 'use strict';
-
+import {Observable} from 'rxjs/Observable';
 import {join} from 'path';
-import { workspace, Disposable, ExtensionContext, commands, window, Uri } from 'vscode';
+import { workspace, Disposable, ExtensionContext, commands, window, Uri, OutputChannel } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
 
 import {existsSync} from 'fs';
 import {createServer} from "http";
 import * as glob from 'glob';
-import {EventEmitter} from 'events';
 
 
 const initialConfigurations = {
@@ -28,6 +27,9 @@ const initialConfigurations = {
 	]
 };
 
+var uploaderSubscription;
+var outputChannel : OutputChannel;
+
 export function activate(context: ExtensionContext) {
 
 	context.subscriptions.push(commands.registerCommand('extension.prophet.provideInitialConfigurations', () => {
@@ -38,6 +40,9 @@ export function activate(context: ExtensionContext) {
 		].join('\n');
 	}));
 
+	outputChannel = window.createOutputChannel('Prophet Uploader');
+
+	context.subscriptions.push(outputChannel);
 
 	// The server is implemented in node
 	let serverModule = context.asAbsolutePath(join('out', 'server', 'ismlServer.js'));
@@ -132,65 +137,108 @@ export function activate(context: ExtensionContext) {
 
 		server.listen(60606);
 		const rootPath = workspace.rootPath;
-		const uploaderBus = new EventEmitter();
 
+		var prevState;
 		context.subscriptions.push(workspace.onDidChangeConfiguration(() => {
 			const configuration = workspace.getConfiguration('extension.prophet');
+			const isUploadEnabled = configuration.get('upload.enabled');
 
-			if (configuration.get('upload.enabled')) {
-				loadUploaderConfig();
-				uploaderBus.emit('start');
-			} else {
-				uploaderBus.emit('stop');
+			if (isUploadEnabled !== prevState) {
+				prevState = isUploadEnabled;
+				if (isUploadEnabled) {
+					loadUploaderConfig(rootPath);
+				} else {
+					if (uploaderSubscription) {
+						outputChannel.appendLine(`Stopping`);
+						uploaderSubscription.unsubscribe();
+						uploaderSubscription = null;
+					}
+				}
 			}
+
 		}));
 
 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.enable.upload', () => {
-			uploaderBus.emit('start');
+			loadUploaderConfig(rootPath);
 		}));
 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.clean.upload', () => {
-			uploaderBus.emit('start');
+			loadUploaderConfig(rootPath);
 		}));
 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.disable.upload', () => {
-			uploaderBus.emit('stop');
+			if (uploaderSubscription) {
+				outputChannel.appendLine(`Stopping`);
+				uploaderSubscription.unsubscribe();
+				uploaderSubscription = null;
+			}
 		}));
 
 		const configuration = workspace.getConfiguration('extension.prophet');
 
 		const isUploadEnabled = configuration.get('upload.enabled');
-
-		var isUploadLoaded = false;
-		function loadUploaderConfig() {
-			if (isUploadLoaded) {
-				return;
-			}
-			isUploadLoaded = true;
-			// init watcher
-			glob('**/dw.json', {
-				cwd: rootPath,
-				root: rootPath,
-				nodir: true,
-				follow: false,
-				ignore: ['**/node_modules/**', '**/.git/**']
-			}, (error, files : string[]) => {
-				if (error) {
-					window.showErrorMessage(error);
-				} else if (files.length && workspace.rootPath) {
-					import('./server/uploadServer').then(uploadServer => {
-						uploadServer.init(join(rootPath, files.shift() || ''), uploaderBus)
-							.then(disposable => context.subscriptions.push(disposable));
-					});
-				} else {
-					window.showWarningMessage('Unable to find "dw.json". Upload cartridges disabled.');
-				}
-			});
-		}
-
+		prevState = isUploadEnabled;
 		if (isUploadEnabled) {
-			loadUploaderConfig();
+			loadUploaderConfig(rootPath);
+		} else {
+			outputChannel.appendLine('Uploader disabled in configuration');
 		}
 
 	}
+}
+
+function loadUploaderConfig(rootPath) {
+	if (uploaderSubscription) {
+		uploaderSubscription.unsubscribe();
+		uploaderSubscription = null;
+		outputChannel.appendLine(`Restarting`);
+	} else {
+		outputChannel.appendLine(`Starting...`);
+	}
+
+	uploaderSubscription = Observable.create(observer => {
+		var subscribtion;
+		glob('**/dw.json', {
+			cwd: rootPath,
+			root: rootPath,
+			nodir: true,
+			follow: false,
+			ignore: ['**/node_modules/**', '**/.git/**']
+		}, (error, files : string[]) => {
+			if (error) {
+				observer.error(error);
+			} else if (files.length && workspace.rootPath) {
+				import('./server/uploadServer').then(function (uploadServer) {
+					const configFilename = join(rootPath, files.shift() || '');
+					outputChannel.appendLine(`Using config file "${configFilename}"`);
+
+					subscribtion = uploadServer.init(configFilename, outputChannel)
+						.subscribe(
+						() => {
+							// reset counter to zero if success
+						},
+						err => {
+							observer.error(err)
+						},
+						() => {
+							observer.complete();
+						}
+					);
+				});
+			} else {
+				observer.error('Unable to find "dw.json". Upload cartridges disabled.');
+			}
+		});
+		return () => {
+			subscribtion.unsubscribe();
+		}
+	}).subscribe(
+		() => {},
+		err => {
+			outputChannel.show();
+			outputChannel.appendLine(`Error: ${err}`);
+		}
+	);
+
+
 }
 
 export function deactivate() {
