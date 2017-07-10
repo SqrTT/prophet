@@ -224,6 +224,11 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Enable upload to sandbox"
+                },
+                "extension.prophet.ismlServer.activateOn": {
+                    "type": "array",
+                    "default": ["isml"],
+                    "description": "list of file extention for server activation"
                 }
             }
         }

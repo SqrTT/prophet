@@ -26,6 +26,11 @@ documents.listen(connection);
 
 let warnedOnce = new Set<string>();
 
+
+const customTagsMap = new Map<string, string>();
+
+customTagsMap.set('contentasset', 'somestrangfile');
+
 // After the server has started the client sends an initialize request. The server receives
 // in the passed params the rootPath of the workspace plus the client capabilities. 
 let workspaceRoot: string | undefined;
@@ -33,6 +38,9 @@ connection.onInitialize((params): InitializeResult => {
 
 	if (params.rootPath) {
 		connection.console.log('isml server init..');
+
+		parseFilesForCustomTags(params.rootPath);
+
 		workspaceRoot = params.rootPath;
 		return {
 			capabilities: {
@@ -71,18 +79,36 @@ connection.onDocumentLinks((params: DocumentLinkParams) => {
 				} else {
 					const fileLines = data.toString().split('\n');
 					const documentLinks : DocumentLink[] = [];
+					const customTagsList = Array.from(customTagsMap.keys());
 
 					fileLines.forEach((fileLine, index) => {
+
+						const customTag = customTagsList.find(customTag => fileLine.includes('<is' + customTag))
+
+						if (customTag) {
+							const startPos = fileLine.indexOf('<is' + customTag);
+
+							documentLinks.push(DocumentLink.create(
+								Range.create(
+									Position.create(index, startPos + 1),
+									Position.create(index, startPos + customTag.length + 3)
+								)
+							));
+						}
+
 						if (fileLine.includes('template="')) {
 							const startPos = fileLine.indexOf('template="') + 10;
 							const endPos = fileLine.indexOf('"', startPos);
 
-							documentLinks.push(DocumentLink.create(
-								Range.create(
-									Position.create(index, startPos),
-									Position.create(index, endPos)
-								)
-							));
+							if (fileLine[startPos] !== '$') { // ignore variable
+								documentLinks.push(DocumentLink.create(
+									Range.create(
+										Position.create(index, startPos),
+										Position.create(index, endPos)
+									)
+								));
+							}
+
 						}
 					});
 					resolve(documentLinks);
@@ -100,19 +126,31 @@ connection.onDocumentLinks((params: DocumentLinkParams) => {
 });
 
 connection.onDocumentLinkResolve(documentLink => {
+	
 	return new Promise((resolve, reject) => {
 		readFile(lastFilePath, (err, data) => {
 			if (err) {
 				reject(err);
 			} else {
 				const fileLines = data.toString().split('\n');
+				const customTagsList = Array.from(customTagsMap.keys());
 
 				fileLines.some((fileLine, index) => {
-					if (documentLink.range.start.line === index && fileLine.includes('template="')) {
-						const startPos = fileLine.indexOf('template="') + 10;
-						const endPos = fileLine.indexOf('"', startPos);
+					const customTag = customTagsList.find(customTag => fileLine.includes('<is' + customTag));
 
-						let fileToOpen = fileLine.substr(startPos, endPos - startPos);
+					if (documentLink.range.start.line === index && (customTag || fileLine.includes('template="'))) {
+
+						let fileToOpen : string;
+
+						if (customTag) {
+							fileToOpen = customTagsMap.get(customTag) || '';
+						} else {
+							const startPos = fileLine.indexOf('template="') + 10;
+							const endPos = fileLine.indexOf('"', startPos);
+
+							fileToOpen = fileLine.substr(startPos, endPos - startPos);
+						}
+
 						
 						if (!fileToOpen.includes('.isml')) {
 							fileToOpen = fileToOpen + '.isml';
@@ -180,3 +218,38 @@ process.once('uncaughtException', err => {
 	connection.dispose();
 	process.exit(-1);
 })
+
+
+function parseFilesForCustomTags(rootPath) {
+	glob(join('**', 'templates' ,'**', '*modules*.isml'), {
+		cwd: rootPath,
+		nodir: true,
+		follow: false,
+		ignore: ['**/node_modules/**', '**/.git/**'],
+		cache: true
+	}, (er, files) => {
+		if (er) {
+			connection.console.error(er);
+		} else {
+			files.forEach(file => {
+				readFile(join(rootPath, file), (err, data) => {
+					if (err) {
+						connection.console.error(err.toString());
+					} else {
+						const fileContent = data.toString().replace(/[\s\n\r]/ig, '');
+
+						fileContent.replace(/\<ismodule(.+?)\>/ig, function (str, $1) {
+							const name = (/name\=[\'\"](.+?)[\'\"]/ig).exec($1);
+							const template = (/template\=[\'\"](.+?)[\'\"]/ig).exec($1);
+
+							if (name && template) {
+								customTagsMap.set(name[1], template[1]);
+							}
+							return '';
+						})
+					}
+				})
+			})
+		}
+	});
+}

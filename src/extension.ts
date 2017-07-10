@@ -31,7 +31,7 @@ var uploaderSubscription;
 var outputChannel : OutputChannel;
 
 export function activate(context: ExtensionContext) {
-
+	const configuration = workspace.getConfiguration('extension.prophet');
 	context.subscriptions.push(commands.registerCommand('extension.prophet.provideInitialConfigurations', () => {
 		return [
 			'// Use IntelliSense to learn about possible Prophet attributes.',
@@ -59,10 +59,10 @@ export function activate(context: ExtensionContext) {
 	// Options to control the language client
 	let clientOptions: LanguageClientOptions = {
 		// Register the server for plain text documents
-		documentSelector: [{
-			language: 'isml',
+		documentSelector: (configuration.get('ismlServer.activateOn') as string[] || ['isml'] ).map(type => ({
+			language: type,
 			scheme: 'file'
-		}],
+		})),
 		synchronize: {
 			// Synchronize the setting section 'languageServerExample' to the server
 			configurationSection: 'ismlLanguageServer',
@@ -171,8 +171,6 @@ export function activate(context: ExtensionContext) {
 				uploaderSubscription = null;
 			}
 		}));
-
-		const configuration = workspace.getConfiguration('extension.prophet');
 
 		const isUploadEnabled = configuration.get('upload.enabled');
 		prevState = isUploadEnabled;

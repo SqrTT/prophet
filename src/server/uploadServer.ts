@@ -113,61 +113,51 @@ const uploadCartridges = (webdav : WebDav, outputChannel : OutputChannel, config
 
 
 function uploadAndWatch(webdav : WebDav, outputChannel : OutputChannel, config : any, rootDir: string) {
-	return Observable.create(observer => {
-		const subscription = webdav.dirList(rootDir)
-			.do(() => {
-				outputChannel.appendLine(`Connection validated successfully`);
-			}, (err) => {
-				outputChannel.appendLine(`Unable validate connection!`);
+	return webdav.dirList(rootDir)
+		.do(() => {
+			outputChannel.appendLine(`Connection validated successfully`);
+		}, (err) => {
+			outputChannel.appendLine(`Unable validate connection!`);
 
-				if (err instanceof Error) {
-					if (err.message === 'Not Found') {
-						outputChannel.appendLine(`Please check existence of code version: "${config.version}"`);
-					} else if (err.message === 'Unauthorized') {
-						outputChannel.appendLine(`Please check your credentials (login, password, etc)`);
+			if (err instanceof Error) {
+				if (err.message === 'Not Found') {
+					outputChannel.appendLine(`Please check existence of code version: "${config.version}"`);
+				} else if (err.message === 'Unauthorized') {
+					outputChannel.appendLine(`Please check your credentials (login, password, etc)`);
+				} else {
+					outputChannel.appendLine(`Validation error: ${err.message}`);
+				}
+			}
+		}).flatMap(() => {
+			return webdav.getActiveCodeVersion();
+		}).do((version) => {
+			if (version !== config.version) {
+				outputChannel.show();
+				outputChannel.appendLine(`\nWarn: Current code version is "${version}" while uploading is processed into "${config.version}"\n`);
+			}
+			outputChannel.appendLine(`Current active version is: ${version}`);
+		}).flatMap(() => {
+			outputChannel.appendLine(`Start uploading cartridges`);
+			return uploadCartridges(webdav, outputChannel, config, rootDir);
+		}).do(() => {
+			outputChannel.appendLine(`Cartridges uploaded successfully`);
+		}).flatMap(() => {
+			outputChannel.appendLine(`Watching files`);
+			return fileWatcher(config, rootDir)
+				.mergeMap(([action, fileName]) => {
+					if (action === 'upload') {
+						outputChannel.appendLine(`[U]: "${fileName}"`);
+
+						return webdav.post(fileName, rootDir);
+					} else if (action === 'delete') {
+						outputChannel.appendLine(`[D]: "${fileName}"`);
+
+						return webdav.delete(fileName, rootDir);
 					} else {
-						outputChannel.appendLine(`Validation error: ${err.message}`);
+						throw Error('Unknown action');
 					}
-				}
-			}).flatMap(() => {
-				return webdav.getActiveCodeVersion();
-			}).do((version) => {
-				if (version !== config.version) {
-					outputChannel.show();
-					outputChannel.appendLine(`\nWarn: Current code version is "${version}" while uploading is processed into "${config.version}"\n`);
-				}
-				outputChannel.appendLine(`Current active version is: ${version}`);
-			}).flatMap(() => {
-				outputChannel.appendLine(`Start uploading cartridges`);
-				return uploadCartridges(webdav, outputChannel, config, rootDir);
-			}).do(() => {
-				outputChannel.appendLine(`Cartridges uploaded successfully`);
-			}).flatMap(() => {
-				outputChannel.appendLine(`Watching files`);
-				return fileWatcher(config, rootDir)
-					.mergeMap(([action, fileName]) => {
-						if (action === 'upload') {
-							outputChannel.appendLine(`[U]: "${fileName}"`);
-
-							return webdav.post(fileName, rootDir);
-						} else if (action === 'delete') {
-							outputChannel.appendLine(`[D]: "${fileName}"`);
-
-							return webdav.delete(fileName, rootDir);
-						} else {
-							throw Error('Unknown action');
-						}
-					}, 5)
-			}).subscribe(
-				() => {},
-				err => {
-					outputChannel.appendLine(`"${err}"`);
-					observer.error(err);
-				},
-				() => observer.complete()
-			)
-		return () => subscription.unsubscribe();
-	});
+				}, 5)
+		})
 }
 export function init(configFilename: string, outputChannel: OutputChannel) {
 
