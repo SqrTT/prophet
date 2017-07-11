@@ -10,10 +10,10 @@ A VS Code extension to work with Demandware/Salesforce Cloud code on Sandbox tha
 * Change variables values in running threads
 * Locals scope variables via the VARIABLES panel
 * View variables on hover
-* Watches
+* Variable watches
 * Console/evaluate code
 * Open files trought Storefront Toolkit
-* Open `isinclude` templates via Ctrl+Click (as links)
+* Quick open `isinclude` templates and custom tags via Ctrl+Click (as links)
 
 
 ## Getting Started
@@ -81,7 +81,7 @@ Example of file:
     "code-version": "version2"
 }
 ```
-The second step: enabling the uploader in workspace preferences. Open preferences, switch to workspace preferences and set value to `true` for `"extension.prophet.upload.enabled"`. Detailed log information is written in output channel `Prophet Uploader`. (Note. credentials are read once, so if you change then you should reload window, press F1 and select `Reload Window`).
+The second step: enabling the uploader in workspace preferences. Open preferences, switch to workspace preferences and set value to `true` for `"extension.prophet.upload.enabled"`. Detailed log information is written in output channel `Prophet Uploader`. (Note: once you change `dw.json` you should run 'Clean Project/Upload all' from command menu to apply them).
 
 You can temporarily disable watching or force upload cartridges (i.e. clean project) via commands.
 
@@ -90,6 +90,11 @@ You can temporarily disable watching or force upload cartridges (i.e. clean proj
 * Prophet: Clean Project/Upload all
 
 (press F1 and select command)
+
+#### Other configuration
+
+* `extension.prophet.cartridges.path` - List of cartridges separated by colon. Allows  quick open don't ask a user to choose the file. Automatically open file that match first cartridge in list.
+* `extension.prophet.ismlServer.activateOn` - allow activate isml server for non standatd (isml) files, ex. `html`
 
 
 ### Improve experience
