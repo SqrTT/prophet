@@ -1,7 +1,7 @@
 {
     "name": "prophet",
     "displayName": "Prophet Debugger",
-    "version": "0.6.2",
+    "version": "0.6.3",
     "publisher": "SqrTT",
     "description": "Debugger and Uploader for Demandware/Salesforce sandbox",
     "author": {
@@ -227,7 +227,9 @@
                 },
                 "extension.prophet.ismlServer.activateOn": {
                     "type": "array",
-                    "default": ["isml"],
+                    "default": [
+                        "isml"
+                    ],
                     "description": "list of file extention for server activation"
                 },
                 "extension.prophet.cartridges.path": {
