@@ -78,6 +78,23 @@ export function activate(context: ExtensionContext) {
 
 	ismlLanguageServer.onReady().then(() => {
 		ismlLanguageServer.onNotification('isml:selectfiles', (test) => {
+			const configuration = workspace.getConfiguration('extension.prophet');
+			const cartPath = String(configuration.get('cartridges.path'));
+
+			if (cartPath.trim().length) {
+				const cartridges = cartPath.split(':');
+
+				const cartridge = cartridges.find(cartridge =>
+					(test.data || []).some(filename => filename.includes(cartridge)));
+
+				if (cartridge) {
+					ismlLanguageServer.sendNotification('isml:selectedfile', test.data.find(
+						filename => filename.includes(cartridge)
+					));
+					return;
+				}
+
+			}
 			window.showQuickPick(test.data).then(selected => {
 				ismlLanguageServer.sendNotification('isml:selectedfile', selected);
 			}, err => {

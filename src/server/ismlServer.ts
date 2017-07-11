@@ -25,11 +25,10 @@ let documents: TextDocuments = new TextDocuments();
 documents.listen(connection);
 
 let warnedOnce = new Set<string>();
-
+let customTagPromise : Promise<any>;
 
 const customTagsMap = new Map<string, string>();
 
-customTagsMap.set('contentasset', 'somestrangfile');
 
 // After the server has started the client sends an initialize request. The server receives
 // in the passed params the rootPath of the workspace plus the client capabilities. 
@@ -39,7 +38,7 @@ connection.onInitialize((params): InitializeResult => {
 	if (params.rootPath) {
 		connection.console.log('isml server init..');
 
-		parseFilesForCustomTags(params.rootPath);
+		customTagPromise = parseFilesForCustomTags(params.rootPath);
 
 		workspaceRoot = params.rootPath;
 		return {
@@ -68,7 +67,7 @@ connection.onDocumentLinks((params: DocumentLinkParams) => {
 
 	connection.console.log('onDocumentLinks ' + JSON.stringify(params));
 
-	return new Promise((resolve, reject) => {
+	return customTagPromise.then(() => new Promise((resolve, reject) => {
 		const uri = Uri.parse(params.textDocument.uri);
 
 		if (uri.scheme === 'file') {
@@ -122,7 +121,7 @@ connection.onDocumentLinks((params: DocumentLinkParams) => {
 				warnedOnce.add(warnMsg);
 			}
 		}
-	});
+	}));
 });
 
 connection.onDocumentLinkResolve(documentLink => {
@@ -221,35 +220,41 @@ process.once('uncaughtException', err => {
 
 
 function parseFilesForCustomTags(rootPath) {
-	glob(join('**', 'templates' ,'**', '*modules*.isml'), {
-		cwd: rootPath,
-		nodir: true,
-		follow: false,
-		ignore: ['**/node_modules/**', '**/.git/**'],
-		cache: true
-	}, (er, files) => {
-		if (er) {
-			connection.console.error(er);
-		} else {
-			files.forEach(file => {
-				readFile(join(rootPath, file), (err, data) => {
-					if (err) {
-						connection.console.error(err.toString());
-					} else {
-						const fileContent = data.toString().replace(/[\s\n\r]/ig, '');
+	return new Promise((resolve, reject) => {
+		glob(join('**', 'templates' ,'**', '*modules*.isml'), {
+			cwd: rootPath,
+			nodir: true,
+			follow: false,
+			ignore: ['**/node_modules/**', '**/.git/**'],
+			cache: true
+		}, (er, files) => {
+			if (er) {
+				connection.console.error(er);
+				reject(er);
+			} else {
+				const processedFiles = files.map(file => new Promise((resolve, reject) => {
+					readFile(join(rootPath, file), (err, data) => {
+						if (err) {
+							connection.console.error(err.toString());
+							reject(err);
+						} else {
+							const fileContent = data.toString().replace(/[\s\n\r]/ig, '');
 
-						fileContent.replace(/\<ismodule(.+?)\>/ig, function (str, $1) {
-							const name = (/name\=[\'\"](.+?)[\'\"]/ig).exec($1);
-							const template = (/template\=[\'\"](.+?)[\'\"]/ig).exec($1);
+							fileContent.replace(/\<ismodule(.+?)\>/ig, function (str, $1) {
+								const name = (/name\=[\'\"](.+?)[\'\"]/ig).exec($1);
+								const template = (/template\=[\'\"](.+?)[\'\"]/ig).exec($1);
 
-							if (name && template) {
-								customTagsMap.set(name[1], template[1]);
-							}
-							return '';
-						})
-					}
-				})
-			})
-		}
+								if (name && template) {
+									customTagsMap.set(name[1], template[1]);
+								}
+								return '';
+							})
+							resolve();
+						}
+					})
+				}));
+				Promise.all(processedFiles).then(resolve, reject);
+			}
+		});
 	});
 }
