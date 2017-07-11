@@ -63,7 +63,12 @@ function getDirectories(srcPath) {
 
 function fileWatcher(config, cartRoot : string) {
 	return Observable.create(observer => {
-		const cartridges = config.cartridge || getDirectories(cartRoot);
+		var cartridges;
+		if (config.cartridge && config.cartridge.length) {
+			cartridges = config.cartridge;
+		} else {
+			cartridges = getDirectories(cartRoot)
+		}
 
 		const watcher = chokidar.watch(null, {
 			ignored: [
@@ -95,8 +100,13 @@ function fileWatcher(config, cartRoot : string) {
 }
 
 const uploadCartridges = (webdav : WebDav, outputChannel : OutputChannel, config : any, cartRoot: string) => {
+	var cartridges;
+	if (config.cartridge && config.cartridge.length) {
+		cartridges = config.cartridge;
+	} else {
+		cartridges = getDirectories(cartRoot)
+	}
 
-	const cartridges = (config.cartridge && config.cartridge.length) || getDirectories(cartRoot);
 	const toUpload = cartridges
 		.map(str => str.trim())
 		.filter(Boolean)
