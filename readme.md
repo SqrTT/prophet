@@ -81,7 +81,7 @@ Example of file:
     "code-version": "version2"
 }
 ```
-The second step: enabling the uploader in workspace preferences. Open preferences, switch to workspace preferences and set value to `true` for `"extension.prophet.upload.enabled"`. Detailed log information is written in output channel `Prophet Uploader`. (Note: once you change `dw.json` you should run 'Clean Project/Upload all' from command menu to apply them).
+The second step: enabling the uploader in workspace preferences. Open preferences, switch to workspace preferences and set value to `true` for `"extension.prophet.upload.enabled"`. Detailed log information is written in output channel `Prophet Uploader`. (Note: once you change `dw.json` you should run 'Clean Project/Upload all' from command menu to apply it).
 
 You can temporarily disable watching or force upload cartridges (i.e. clean project) via commands.
 
