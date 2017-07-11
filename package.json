@@ -224,6 +224,16 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Enable upload to sandbox"
+                },
+                "extension.prophet.ismlServer.activateOn": {
+                    "type": "array",
+                    "default": ["isml"],
+                    "description": "list of file extention for server activation"
+                },
+                "extension.prophet.cartridges.path": {
+                    "type": "string",
+                    "default": "",
+                    "description": "List of cartridges separated by colon. (app_storefront_controllers:app_storefront_core:bc_library)"
                 }
             }
         }

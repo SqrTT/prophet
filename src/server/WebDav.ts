@@ -7,12 +7,13 @@ import 'rxjs/add/operator/do';
 import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/filter';
 
-interface DavOptions {
+export interface DavOptions {
 	hostname: string,
 	username: string,
 	password: string,
 	version: string,
-	root: string
+	root: string,
+	debug? : boolean
 }
 
 export default class WebDav {
