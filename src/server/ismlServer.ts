@@ -4,6 +4,7 @@ import {
 	createConnection, IConnection,
 	TextDocuments, InitializeResult, DocumentLinkParams, DocumentLink, Range, Position
 } from 'vscode-languageserver';
+import { getLanguageService } from 'vscode-html-languageservice'; 
 
 import Uri from 'vscode-uri';
 import {join} from 'path';
@@ -33,6 +34,8 @@ const customTagsMap = new Map<string, string>();
 // After the server has started the client sends an initialize request. The server receives
 // in the passed params the rootPath of the workspace plus the client capabilities. 
 let workspaceRoot: string | undefined;
+let languageService = getLanguageService();
+
 connection.onInitialize((params): InitializeResult => {
 
 	if (params.rootPath) {
@@ -48,7 +51,8 @@ connection.onInitialize((params): InitializeResult => {
 					//hoverProvider: true
 					documentLinkProvider: {
 						resolveProvider: true
-					}
+					},
+					documentRangeFormattingProvider: true 
 				}
 			}
 	} else {
@@ -209,6 +213,10 @@ connection.onNotification('isml:selectedfile', test => {
 	selectedFilesEmitter.emit('selectedfile', test);
 })
 
+connection.onDocumentRangeFormatting(formatParams => {
+	let document = documents.get(formatParams.textDocument.uri);
+	return languageService.format(document, formatParams.range, formatParams.options);
+});
 // Listen on the connection
 connection.listen();
 
