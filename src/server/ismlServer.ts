@@ -2,9 +2,10 @@
 import {
 	IPCMessageReader, IPCMessageWriter,
 	createConnection, IConnection,
-	TextDocuments, InitializeResult, DocumentLinkParams, DocumentLink, Range, Position
+	TextDocuments, InitializeResult, DocumentLinkParams, DocumentLink, Range, Position,
+	Hover
 } from 'vscode-languageserver';
-import { getLanguageService } from 'vscode-html-languageservice'; 
+import { getLanguageService } from './langServer/htmlLanguageService'; 
 
 import Uri from 'vscode-uri';
 import {join} from 'path';
@@ -25,7 +26,6 @@ let documents: TextDocuments = new TextDocuments();
 // for open, change and close text document events
 documents.listen(connection);
 
-let warnedOnce = new Set<string>();
 let customTagPromise : Promise<any>;
 
 const customTagsMap = new Map<string, string>();
@@ -52,7 +52,13 @@ connection.onInitialize((params): InitializeResult => {
 					documentLinkProvider: {
 						resolveProvider: true
 					},
-					documentRangeFormattingProvider: true 
+					documentRangeFormattingProvider: true,
+					documentHighlightProvider: true,
+					hoverProvider: true,
+					completionProvider: {
+						resolveProvider: false
+					},
+					documentSymbolProvider: true
 				}
 			}
 	} else {
@@ -69,62 +75,50 @@ connection.onInitialize((params): InitializeResult => {
 let lastFilePath = '';
 connection.onDocumentLinks((params: DocumentLinkParams) => {
 
-	connection.console.log('onDocumentLinks ' + JSON.stringify(params));
+	//connection.console.log('onDocumentLinks ' + JSON.stringify(params));
 
 	return customTagPromise.then(() => new Promise((resolve, reject) => {
 		const uri = Uri.parse(params.textDocument.uri);
+		let document = documents.get(params.textDocument.uri);
 
-		if (uri.scheme === 'file') {
-			readFile(uri.fsPath, (err, data) => {
-				lastFilePath = uri.fsPath;
-				if (err) {
-					reject(err);
-				} else {
-					const fileLines = data.toString().split('\n');
-					const documentLinks : DocumentLink[] = [];
-					const customTagsList = Array.from(customTagsMap.keys());
+		lastFilePath = uri.fsPath;
 
-					fileLines.forEach((fileLine, index) => {
+		const fileLines = document.getText().split('\n');
+		const documentLinks : DocumentLink[] = [];
+		const customTagsList = Array.from(customTagsMap.keys());
 
-						const customTag = customTagsList.find(customTag => fileLine.includes('<is' + customTag))
+		fileLines.forEach((fileLine, index) => {
 
-						if (customTag) {
-							const startPos = fileLine.indexOf('<is' + customTag);
+			const customTag = customTagsList.find(customTag => fileLine.includes('<is' + customTag))
 
-							documentLinks.push(DocumentLink.create(
-								Range.create(
-									Position.create(index, startPos + 1),
-									Position.create(index, startPos + customTag.length + 3)
-								)
-							));
-						}
+			if (customTag) {
+				const startPos = fileLine.indexOf('<is' + customTag);
 
-						if (fileLine.includes('template="')) {
-							const startPos = fileLine.indexOf('template="') + 10;
-							const endPos = fileLine.indexOf('"', startPos);
-
-							if (fileLine[startPos] !== '$') { // ignore variable
-								documentLinks.push(DocumentLink.create(
-									Range.create(
-										Position.create(index, startPos),
-										Position.create(index, endPos)
-									)
-								));
-							}
-
-						}
-					});
-					resolve(documentLinks);
-				}
-			});
-		} else {
-			resolve([]);
-			const warnMsg = `Unable to handle a "${uri.scheme}" scheme`;
-			if (!warnedOnce.has(warnMsg)) {
-				connection.console.warn(warnMsg);
-				warnedOnce.add(warnMsg);
+				documentLinks.push(DocumentLink.create(
+					Range.create(
+						Position.create(index, startPos + 1),
+						Position.create(index, startPos + customTag.length + 3)
+					)
+				));
 			}
-		}
+
+			if (fileLine.includes('template="')) {
+				const startPos = fileLine.indexOf('template="') + 10;
+				const endPos = fileLine.indexOf('"', startPos);
+
+				if (fileLine[startPos] !== '$') { // ignore variable
+					documentLinks.push(DocumentLink.create(
+						Range.create(
+							Position.create(index, startPos),
+							Position.create(index, endPos)
+						)
+					));
+				}
+
+			}
+		});
+		resolve(documentLinks);
+
 	}));
 });
 
@@ -217,6 +211,45 @@ connection.onDocumentRangeFormatting(formatParams => {
 	let document = documents.get(formatParams.textDocument.uri);
 	return languageService.format(document, formatParams.range, formatParams.options);
 });
+
+connection.onDocumentHighlight(docParam => {
+	let document = documents.get(docParam.textDocument.uri);
+
+	return languageService.findDocumentHighlights(
+		document,
+		docParam.position,
+		languageService.parseHTMLDocument(document)
+	);
+});
+
+connection.onHover(hoverParam => {
+	let document = documents.get(hoverParam.textDocument.uri);
+
+	return languageService.doHover(
+		document,
+		hoverParam.position,
+		languageService.parseHTMLDocument(document)
+	) || <Promise<Hover | undefined>>Promise.resolve(undefined);
+});
+
+
+connection.onCompletion(params => {
+	let document = documents.get(params.textDocument.uri);
+
+	return languageService.doComplete(
+		document,
+		params.position,
+		languageService.parseHTMLDocument(document)
+	);
+});
+
+connection.onDocumentSymbol(params => {
+	let document = documents.get(params.textDocument.uri);
+
+	return languageService.findDocumentSymbols(document, languageService.parseHTMLDocument(document));
+});
+
+
 // Listen on the connection
 connection.listen();
 

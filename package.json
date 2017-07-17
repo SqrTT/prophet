@@ -34,9 +34,9 @@
         "rxjs": "^5.4.1",
         "vscode-debugadapter": "^1.21.0",
         "vscode-debugprotocol": "^1.21.0",
-        "vscode-html-languageservice": "^2.0.5",
         "vscode-languageclient": "^3.3.0",
         "vscode-languageserver": "^3.3.0",
+        "vscode-nls": "^2.0.2",
         "vscode-uri": "^1.0.1",
         "walk": "^2.3.9",
         "yazl": "^2.4.2"
@@ -228,7 +228,9 @@
                 },
                 "extension.prophet.ismlServer.activateOn": {
                     "type": "array",
-                    "default": ["isml"],
+                    "default": [
+                        "isml"
+                    ],
                     "description": "list of file extention for server activation"
                 },
                 "extension.prophet.cartridges.path": {
