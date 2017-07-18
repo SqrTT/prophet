@@ -75,6 +75,25 @@
 			]
 		},
 		{
+			"begin": "<!---",
+			"captures": {
+				"0": {
+					"name": "punctuation.definition.comment.html"
+				}
+			},
+			"end": "--->",
+			"name": "comment.block.html",
+			"patterns": [
+				{
+					"match": "--",
+					"name": "invalid.illegal.bad-comments-or-CDATA.html"
+				},
+				{
+					"include": "#embedded-code"
+				}
+			]
+		},
+		{
 			"begin": "<!--",
 			"captures": {
 				"0": {
