@@ -4,6 +4,7 @@
 		"module": "commonjs",
 		"moduleResolution": "node",
 		"inlineSourceMap": false,
+		"allowJs": true,
 		"sourceMap": true,
 		"outDir": "../out",
 		"noImplicitAny": false,
