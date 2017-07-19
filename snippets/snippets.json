@@ -4,7 +4,7 @@
         "body": [
             "<isif condition=\"${1}\" >",
             "",
-            "${<iselse/>}",
+            "${2:<iselse/>}",
             "",
             "</isif>"
         ],

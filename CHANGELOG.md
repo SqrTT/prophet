@@ -1,3 +1,13 @@
+### 0.7.0
+
+* fix upload specified cartridges
+* Advanced support of ISML syntax
+* * Hover information
+* * autocomplete tags
+* * auto formatting
+* * find Symbols
+* * highlighting selected tags
+
 ### 0.6.3
 
 * Added quick open for custom tags
