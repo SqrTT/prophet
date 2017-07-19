@@ -39,7 +39,36 @@ import arrays = require('../utils/arrays');
 import * as nls from 'vscode-nls';
 let localize = nls.loadMessageBundle();
 
-export const EMPTY_ELEMENTS: string[] = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'keygen', 'link', 'menuitem', 'meta', 'param', 'source', 'track', 'wbr'];
+export const EMPTY_ELEMENTS: string[] = [
+	'area',
+	'base',
+	'br',
+	'col',
+	'embed',
+	'hr',
+	'img',
+	'input',
+	'keygen',
+	'link',
+	'menuitem',
+	'meta',
+	'param',
+	'source',
+	'track',
+	'wbr',
+	'isset',
+	'isprint',
+	'isstatus',
+	'iselse',
+	'isbreak',
+	'iscontinue',
+	'isslot',
+	'isinclude',
+	'iscontent',
+	'isinputfield',
+	'iscache']
+	.sort();
+
 
 export function isEmptyElement(e: string) : boolean {
 	return !!e && arrays.binarySearch(

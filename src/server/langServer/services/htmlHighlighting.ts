@@ -14,6 +14,7 @@ export function findDocumentHighlights(document: TextDocument, position: Positio
 	if (!node.tag) {
 		return [];
 	}
+
 	let result : DocumentHighlight[] = [];
 	let startTagRange = getTagNameRange(TokenType.StartTag, document, node.start);
 	let endTagRange = typeof node.endTagStart === 'number' && getTagNameRange(TokenType.EndTag, document, node.endTagStart);
@@ -24,6 +25,52 @@ export function findDocumentHighlights(document: TextDocument, position: Positio
 				range: startTagRange 
 			});
 		}
+		if (node.tag === 'iselse') {
+			const isifNode = node.parent;
+
+			if (isifNode && isifNode.tag === 'isif') {
+				let startTagRange = getTagNameRange(TokenType.StartTag, document, isifNode.start);
+				let endTagRange = typeof isifNode.endTagStart === 'number' && getTagNameRange(TokenType.EndTag, document, isifNode.endTagStart);
+
+				if (startTagRange) {
+					result.push({
+						kind: DocumentHighlightKind.Read,
+						range: startTagRange 
+					});
+				}
+				if (endTagRange) {
+					result.push({ kind: DocumentHighlightKind.Read, range: endTagRange });
+				}
+			}
+		}
+		if (node.tag === 'isif') {
+			const iselseNode = node.children.find(nd => nd.tag === 'iselse');
+
+			if (iselseNode) {
+				const iselseNodeRange = getTagNameRange(TokenType.StartTag, document, iselseNode.start);
+				if (iselseNodeRange) {
+					result.push({
+						kind: DocumentHighlightKind.Read,
+						range: iselseNodeRange
+					});
+				}
+			}
+
+			const iselseifNodes = node.children.filter(nd => nd.tag === 'iselseif');
+
+			if (iselseifNodes && iselseifNodes.length) {
+				iselseifNodes.forEach(iselseifNode => {
+				const iselseifNodeRange = getTagNameRange(TokenType.StartTag, document, iselseifNode.start);
+					if (iselseifNodeRange) {
+						result.push({
+							kind: DocumentHighlightKind.Read,
+							range: iselseifNodeRange
+						});
+					}
+				});
+			}
+		}
+
 		if (endTagRange) {
 			result.push({ kind: DocumentHighlightKind.Read, range: endTagRange });
 		}
