@@ -5,14 +5,14 @@ import {
 	TextDocuments, InitializeResult, DocumentLinkParams, DocumentLink, Range, Position,
 	Hover
 } from 'vscode-languageserver';
-import { getLanguageService } from './langServer/htmlLanguageService'; 
+import { getLanguageService } from './langServer/htmlLanguageService';
 
 import Uri from 'vscode-uri';
-import {join} from 'path';
+import { join } from 'path';
 
-import {readFile} from 'fs';
+import { readFile } from 'fs';
 import * as glob from 'glob';
-import {EventEmitter} from 'events';
+import { EventEmitter } from 'events';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport
 let connection: IConnection = createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
@@ -26,7 +26,7 @@ let documents: TextDocuments = new TextDocuments();
 // for open, change and close text document events
 documents.listen(connection);
 
-let customTagPromise : Promise<any>;
+let customTagPromise: Promise<any>;
 
 const customTagsMap = new Map<string, string>();
 
@@ -35,7 +35,7 @@ const customTagsMap = new Map<string, string>();
 // in the passed params the rootPath of the workspace plus the client capabilities. 
 let workspaceRoot: string | undefined;
 let languageService = getLanguageService();
-
+let userFormatParams;
 connection.onInitialize((params): InitializeResult => {
 
 	if (params.rootPath) {
@@ -43,24 +43,26 @@ connection.onInitialize((params): InitializeResult => {
 
 		customTagPromise = parseFilesForCustomTags(params.rootPath);
 
+
+		userFormatParams = params.initializationOptions.formatParams;
 		workspaceRoot = params.rootPath;
 		return {
 			capabilities: {
-					// Tell the client that the server works in FULL text document sync mode
-					textDocumentSync: documents.syncKind,
-					//hoverProvider: true
-					documentLinkProvider: {
-						resolveProvider: true
-					},
-					documentRangeFormattingProvider: true,
-					documentHighlightProvider: true,
-					hoverProvider: true,
-					completionProvider: {
-						resolveProvider: false
-					},
-					documentSymbolProvider: true
-				}
+				// Tell the client that the server works in FULL text document sync mode
+				textDocumentSync: documents.syncKind,
+				//hoverProvider: true
+				documentLinkProvider: {
+					resolveProvider: true
+				},
+				documentRangeFormattingProvider: true,
+				documentHighlightProvider: true,
+				hoverProvider: true,
+				completionProvider: {
+					resolveProvider: false
+				},
+				documentSymbolProvider: true
 			}
+		}
 	} else {
 		connection.console.log('isml server would not work without project');
 		return {
@@ -71,21 +73,19 @@ connection.onInitialize((params): InitializeResult => {
 	}
 });
 
-
-let lastFilePath = '';
+let lastFileLines: string[] = [];
 connection.onDocumentLinks((params: DocumentLinkParams) => {
 
 	//connection.console.log('onDocumentLinks ' + JSON.stringify(params));
 
 	return customTagPromise.then(() => new Promise((resolve, reject) => {
-		const uri = Uri.parse(params.textDocument.uri);
 		let document = documents.get(params.textDocument.uri);
 
-		lastFilePath = uri.fsPath;
-
 		const fileLines = document.getText().split('\n');
-		const documentLinks : DocumentLink[] = [];
+		const documentLinks: DocumentLink[] = [];
 		const customTagsList = Array.from(customTagsMap.keys());
+
+		lastFileLines = fileLines;
 
 		fileLines.forEach((fileLine, index) => {
 
@@ -123,80 +123,74 @@ connection.onDocumentLinks((params: DocumentLinkParams) => {
 });
 
 connection.onDocumentLinkResolve(documentLink => {
-	
+
 	return new Promise((resolve, reject) => {
-		readFile(lastFilePath, (err, data) => {
-			if (err) {
-				reject(err);
-			} else {
-				const fileLines = data.toString().split('\n');
-				const customTagsList = Array.from(customTagsMap.keys());
+		const fileLines = lastFileLines;
+		const customTagsList = Array.from(customTagsMap.keys());
 
-				fileLines.some((fileLine, index) => {
-					const customTag = customTagsList.find(customTag => fileLine.includes('<is' + customTag));
+		fileLines.some((fileLine, index) => {
+			const customTag = customTagsList.find(customTag => fileLine.includes('<is' + customTag));
 
-					if (documentLink.range.start.line === index && (customTag || fileLine.includes('template="'))) {
+			if (documentLink.range.start.line === index && (customTag || fileLine.includes('template="'))) {
 
-						let fileToOpen : string;
+				let fileToOpen: string;
 
-						if (customTag) {
-							fileToOpen = customTagsMap.get(customTag) || '';
+				if (customTag) {
+					fileToOpen = customTagsMap.get(customTag) || '';
+				} else {
+					const startPos = fileLine.indexOf('template="') + 10;
+					const endPos = fileLine.indexOf('"', startPos);
+
+					fileToOpen = fileLine.substr(startPos, endPos - startPos);
+				}
+
+
+				if (!fileToOpen.includes('.isml')) {
+					fileToOpen = fileToOpen + '.isml';
+				}
+
+				// options is optional
+				glob(join('**', 'templates', '**', fileToOpen), {
+					cwd: workspaceRoot,
+					nodir: true,
+					follow: false,
+					ignore: ['**/node_modules/**', '**/.git/**'],
+					cache: true
+				}, (er, files) => {
+					if (er) {
+						connection.console.error('fileToOpen opening ERROR ' + JSON.stringify(er))
+						reject(er);
+					} else {
+						if (!files && !files.length) {
+							connection.console.warn('Not found files to open');
+							reject(new Error('No files to open'));
+						} else if (files.length === 1) {
+							let doc = DocumentLink.create(
+								documentLink.range,
+								Uri.file(join(workspaceRoot + '', files.pop())).toString()
+							);
+							connection.console.log('fileToOpen opening: ' + JSON.stringify(doc));
+							resolve(doc);
 						} else {
-							const startPos = fileLine.indexOf('template="') + 10;
-							const endPos = fileLine.indexOf('"', startPos);
-
-							fileToOpen = fileLine.substr(startPos, endPos - startPos);
-						}
-
-						
-						if (!fileToOpen.includes('.isml')) {
-							fileToOpen = fileToOpen + '.isml';
-						}
-
-						// options is optional
-						glob(join('**', 'templates' ,'**', fileToOpen), {
-							cwd: workspaceRoot,
-							nodir: true,
-							follow: false,
-							ignore: ['**/node_modules/**', '**/.git/**'],
-							cache: true
-						}, (er, files) => {
-							if (er) {
-								connection.console.error('fileToOpen opening ERROR ' + JSON.stringify(er))
-								reject(er);
-							} else {
-								if (!files && !files.length) {
-									connection.console.warn('Not found files to open');
-									reject(new Error('No files to open'));
-								} else if (files.length === 1) {
+							selectedFilesEmitter.once('selectedfile', selected => {
+								if (selected) {
 									let doc = DocumentLink.create(
 										documentLink.range,
-										Uri.file(join(workspaceRoot + '', files.pop())).toString()
+										Uri.file(join(workspaceRoot + '', selected)).toString()
 									);
 									connection.console.log('fileToOpen opening: ' + JSON.stringify(doc));
 									resolve(doc);
 								} else {
-									selectedFilesEmitter.once('selectedfile', selected => {
-										if (selected) {
-											let doc = DocumentLink.create(
-												documentLink.range,
-												Uri.file(join(workspaceRoot + '', selected)).toString()
-											);
-											connection.console.log('fileToOpen opening: ' + JSON.stringify(doc));
-											resolve(doc);
-										} else {
-											resolve();
-										}
-									});
-									connection.sendNotification('isml:selectfiles', {data: files});
+									resolve();
 								}
-							}
-						})
-						return true;
-					} else {
-						return false;
+							});
+							connection.sendNotification('isml:selectfiles', { data: files });
+						}
 					}
-				});
+				})
+				return true;
+			} else {
+				return false;
 			}
 		});
 	});
@@ -209,7 +203,9 @@ connection.onNotification('isml:selectedfile', test => {
 
 connection.onDocumentRangeFormatting(formatParams => {
 	let document = documents.get(formatParams.textDocument.uri);
-	return languageService.format(document, formatParams.range, formatParams.options);
+
+	connection.console.log('111' + JSON.stringify(formatParams.options))
+	return languageService.format(document, formatParams.range, Object.assign({}, userFormatParams, formatParams.options));
 });
 
 connection.onDocumentHighlight(docParam => {
@@ -262,7 +258,7 @@ process.once('uncaughtException', err => {
 
 function parseFilesForCustomTags(rootPath) {
 	return new Promise((resolve, reject) => {
-		glob(join('**', 'templates' ,'**', '*modules*.isml'), {
+		glob(join('**', 'templates', '**', '*modules*.isml'), {
 			cwd: rootPath,
 			nodir: true,
 			follow: false,
