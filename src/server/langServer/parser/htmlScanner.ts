@@ -177,6 +177,8 @@ const _LFD = '\f'.charCodeAt(0);
 const _WSP = ' '.charCodeAt(0);
 const _TAB = '\t'.charCodeAt(0);
 
+const ISCOMMENT_START_CHARS = ('iscomment').split('').map(char => char.charCodeAt(0));
+const ISCOMMENT_END_CHARS = ('</iscomment>').split('').map(char => char.charCodeAt(0));
 
 export enum ScannerState {
 	WithinContent,
@@ -255,12 +257,16 @@ export function createScanner(input: string, initialOffset = 0, initialState: Sc
 		let errorMessage;
 
 		switch (state) {
-			case ScannerState.WithinComment:
-				if (stream.advanceIfChars([_MIN, _MIN, _RAN])) { // -->
+			case ScannerState.WithinComment: //
+				if (stream.advanceIfChars([_MIN, _MIN, _RAN]) || stream.advanceIfChars(ISCOMMENT_END_CHARS)) { // -->
 					state = ScannerState.WithinContent;
 					return finishToken(offset, TokenType.EndCommentTag);
 				}
-				stream.advanceUntilChars([_MIN, _MIN, _RAN]); // -->
+
+				if (!stream.advanceUntilChars([_MIN, _MIN, _RAN])) {// -->
+					stream.goBackTo(offset);
+					stream.advanceUntilChars(ISCOMMENT_END_CHARS);
+				}; 
 				return finishToken(offset, TokenType.Comment);
 			case ScannerState.WithinDoctype:
 				if (stream.advanceIfChar(_RAN)) {
@@ -280,6 +286,10 @@ export function createScanner(input: string, initialOffset = 0, initialState: Sc
 							state = ScannerState.WithinDoctype;
 							return finishToken(offset, TokenType.StartDoctypeTag);
 						}
+					}
+					if (stream.advanceIfChars(ISCOMMENT_START_CHARS)) { // <iscomment
+						state = ScannerState.WithinComment;
+						return finishToken(offset, TokenType.StartCommentTag);
 					}
 					if (stream.advanceIfChar(_FSL)) { // /
 						state = ScannerState.AfterOpeningEndTag;
@@ -351,7 +361,7 @@ export function createScanner(input: string, initialOffset = 0, initialState: Sc
 					return finishToken(offset, TokenType.StartTagSelfClose);
 				}
 				if (stream.advanceIfChar(_RAN)) { // >
-					if (lastTag === 'script') {
+					if (lastTag === 'script' || lastTag === 'isscript') {
 						if (lastTypeValue && htmlScriptContents[lastTypeValue]) {
 							// stay in html
 							state = ScannerState.WithinContent;
@@ -412,7 +422,7 @@ export function createScanner(input: string, initialOffset = 0, initialState: Sc
 				// see http://stackoverflow.com/questions/14574471/how-do-browsers-parse-a-script-tag-exactly
 				let sciptState = 1;
 				while (!stream.eos()) {
-					let match = stream.advanceIfRegExp(/<!--|-->|<\/?script\s*\/?>?/i);
+					let match = stream.advanceIfRegExp(/<!--|-->|<\/?isscript>|<\/?script\s*\/?>?/i);
 					if (match.length === 0) {
 						stream.goToEnd();
 						return finishToken(offset, TokenType.Script);
