@@ -4,7 +4,7 @@ import {Observable} from 'rxjs/Observable';
 import {join} from 'path';
 import { workspace, Disposable, ExtensionContext, commands, window, Uri, OutputChannel } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
-
+import { CartridgesView } from "./providers/CartridgesView"; 
 import {existsSync} from 'fs';
 import {createServer} from "http";
 import * as glob from 'glob';
@@ -197,6 +197,11 @@ export function activate(context: ExtensionContext) {
 			outputChannel.appendLine('Uploader disabled in configuration');
 		}
 
+
+		// add views
+		context.subscriptions.push(
+			window.registerTreeDataProvider("cartridgesView", new CartridgesView(workspace.rootPath))
+		);
 	}
 }
 

@@ -9,7 +9,7 @@
         "email": "tolik@sqrtt.pro"
     },
     "engines": {
-        "vscode": "^1.11.0",
+        "vscode": "^1.14.0",
         "node": "^7.0.0"
     },
     "icon": "images/mock-debug-icon.ico",
@@ -63,6 +63,14 @@
         "workspaceContains:**/cartridge/*.properties"
     ],
     "contributes": {
+        "views": {
+            "explorer": [
+                {
+                    "id": "cartridgesView",
+                    "name": "Cartridges"
+                }
+            ]
+        },
         "commands": [
             {
                 "command": "extension.prophet.command.enable.upload",
