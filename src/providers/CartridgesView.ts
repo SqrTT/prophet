@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as find from 'find';
 
 export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 	private _onDidChangeTreeData: vscode.EventEmitter<CartridgeItem | undefined> = new vscode.EventEmitter<CartridgeItem | undefined>();
@@ -63,20 +64,30 @@ export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 
 	private getCartridgesInWorkspace(workspaceRoot: string): CartridgeItem[] {
 		if (this.pathExists(workspaceRoot)) {
-			var directories = this.getDirectories(workspaceRoot)
+			var projectFiles = find.fileSync(/\.project/, workspaceRoot);
 
-			const checkIfCartridge = (dir: string): boolean => {
-				return this.pathExists(path.join(this.workspaceRoot, dir, 'cartridge'));
+			const checkIfCartridge = (projectFile: string): boolean => {
+				let fileContent = fs.readFileSync(projectFile, 'UTF-8');
+
+				// Use a regex check rather than parsing the XML since the file is not that big.
+				var nature = fileContent.match(/<nature>com.demandware.studio.core.beehiveNature<\/nature>/);
+
+				return nature !== null && nature.length > 0;
 			};
 
-			const toCardridge = (dir: string): CartridgeItem => {
-				return new CartridgeItem(dir, 'cartridge', path.join(this.workspaceRoot, dir, 'cartridge'), vscode.TreeItemCollapsibleState.Collapsed);
+			const toCardridge = (projectFile: string): CartridgeItem => {
+				let projectFileDirectory = path.dirname(projectFile);
+				let projectName = projectFileDirectory.split(path.sep).pop();
+
+				if (!projectName) projectName = 'Unknown project name';
+
+				return new CartridgeItem(projectName, 'cartridge', path.join(projectFileDirectory, 'cartridge'), vscode.TreeItemCollapsibleState.Collapsed);
 			}
 
-			let filteredDirectories = directories.filter(checkIfCartridge);
+			//let filteredDirectories = directories.filter(checkIfCartridge);
 
-			if (filteredDirectories.length > 0) {
-				return filteredDirectories.map(toCardridge);
+			if (projectFiles.length > 0) {
+				return projectFiles.filter(checkIfCartridge).map(toCardridge);
 			} else {
 				return [new CartridgeItem('No cartridges found in this workspace.', 'cartridge', this.workspaceRoot, vscode.TreeItemCollapsibleState.None)];
 			}

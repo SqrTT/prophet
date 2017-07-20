@@ -28,6 +28,7 @@
     },
     "dependencies": {
         "chokidar": "^1.7.0",
+        "find": "^0.2.7",
         "glob": "^7.1.2",
         "request": "^2.81.0",
         "rimraf": "^2.6.1",
