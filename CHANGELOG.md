@@ -12,7 +12,7 @@
 
 * Added quick open for custom tags
 * Added `extension.prophet.cartridges.path` property that allows quick open don't ask a user to choose the file.
-* Added `extension.prophet.ismlServer.activateOn` property that allow activate isml server for non standar1d (isml) files, ex. `html`
+* Added `extension.prophet.ismlServer.activateOn` property that allow activate isml server for non standard (isml) files, ex. `html`
 * small refactoring of uploader (not need reload the whole editor for applying settings from `dw.json`)
 
 
