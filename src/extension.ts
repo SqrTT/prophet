@@ -231,6 +231,10 @@ export function activate(context: ExtensionContext) {
 
 					if (cartridgesView)
 						cartridgesView.refresh();
+
+					if (isUploadEnabled) {
+						loadUploaderConfig(rootPath);
+					}
 				});
 			});
 		}));
