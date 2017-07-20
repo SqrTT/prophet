@@ -2,8 +2,8 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as find from 'find';
-import { getDirectories, getFiles, pathExists} from '../lib/FileHelper';
+import * as glob from 'glob';
+import { getDirectories, getFiles, pathExists } from '../lib/FileHelper';
 
 export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 	private _onDidChangeTreeData: vscode.EventEmitter<CartridgeItem | undefined> = new vscode.EventEmitter<CartridgeItem | undefined>();
@@ -67,7 +67,14 @@ export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 
 	private getCartridgesInWorkspace(workspaceRoot: string): CartridgeItem[] {
 		if (pathExists(workspaceRoot)) {
-			var projectFiles = find.fileSync(/\.project/, workspaceRoot);
+			var projectFiles = glob.sync('**/.project', {
+				cwd: workspaceRoot,
+				root: workspaceRoot,
+				nodir: true,
+				follow: false,
+				absolute: true,
+				ignore: ['**/node_modules/**', '**/.git/**']
+			});
 
 			const checkIfCartridge = (projectFile: string): boolean => {
 				let fileContent = fs.readFileSync(projectFile, 'UTF-8');
@@ -104,7 +111,7 @@ export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 		}
 	}
 
-	
+
 }
 
 class CartridgeItem extends vscode.TreeItem {
