@@ -261,7 +261,7 @@ export function createScanner(input: string, initialOffset = 0, initialState: Sc
 			case ScannerState.WithinComment: //
 
 				if (isWithinIscomment) {
-					if (stream.advanceIfChars(ISCOMMENT_END_CHARS)) { // -->
+					if (stream.advanceIfChars(ISCOMMENT_END_CHARS)) { // </iscomment>
 						state = ScannerState.WithinContent;
 						return finishToken(offset, TokenType.EndCommentTag);
 					} else {
@@ -297,7 +297,7 @@ export function createScanner(input: string, initialOffset = 0, initialState: Sc
 							return finishToken(offset, TokenType.StartDoctypeTag);
 						}
 					}
-					if (stream.advanceIfChars(ISCOMMENT_START_CHARS)) { // <iscomment
+					if (stream.advanceIfChars(ISCOMMENT_START_CHARS)) { // iscomment
 						isWithinIscomment = true;
 						state = ScannerState.WithinComment;
 						return finishToken(offset, TokenType.StartCommentTag);
