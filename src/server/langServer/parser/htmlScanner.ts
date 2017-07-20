@@ -221,6 +221,7 @@ export function createScanner(input: string, initialOffset = 0, initialState: Sc
 	let lastTag: string;
 	let lastAttributeName: string;
 	let lastTypeValue: string;
+	let isWithinIscomment = false;
 
 	function nextElementName(): string {
 		return stream.advanceIfRegExp(/^[_:\w][_:\w-.\d]*/).toLowerCase();
@@ -258,15 +259,23 @@ export function createScanner(input: string, initialOffset = 0, initialState: Sc
 
 		switch (state) {
 			case ScannerState.WithinComment: //
-				if (stream.advanceIfChars([_MIN, _MIN, _RAN]) || stream.advanceIfChars(ISCOMMENT_END_CHARS)) { // -->
-					state = ScannerState.WithinContent;
-					return finishToken(offset, TokenType.EndCommentTag);
-				}
 
-				if (!stream.advanceUntilChars([_MIN, _MIN, _RAN])) {// -->
-					stream.goBackTo(offset);
-					stream.advanceUntilChars(ISCOMMENT_END_CHARS);
+				if (isWithinIscomment) {
+					if (stream.advanceIfChars(ISCOMMENT_END_CHARS)) { // -->
+						state = ScannerState.WithinContent;
+						return finishToken(offset, TokenType.EndCommentTag);
+					} else {
+						stream.advanceUntilChars(ISCOMMENT_END_CHARS);
+					}
+				} else {
+					if (stream.advanceIfChars([_MIN, _MIN, _RAN])) { // -->
+						state = ScannerState.WithinContent;
+						return finishToken(offset, TokenType.EndCommentTag);
+					} else {
+						stream.advanceUntilChars([_MIN, _MIN, _RAN])// -->
+					}
 				}; 
+				
 				return finishToken(offset, TokenType.Comment);
 			case ScannerState.WithinDoctype:
 				if (stream.advanceIfChar(_RAN)) {
@@ -280,6 +289,7 @@ export function createScanner(input: string, initialOffset = 0, initialState: Sc
 					if (!stream.eos() && stream.peekChar() === _BNG) { // !
 						if (stream.advanceIfChars([_BNG, _MIN, _MIN])) { // <!--
 							state = ScannerState.WithinComment;
+							isWithinIscomment = false;
 							return finishToken(offset, TokenType.StartCommentTag);
 						}
 						if (stream.advanceIfRegExp(/^!doctype/i)) {
@@ -288,6 +298,7 @@ export function createScanner(input: string, initialOffset = 0, initialState: Sc
 						}
 					}
 					if (stream.advanceIfChars(ISCOMMENT_START_CHARS)) { // <iscomment
+						isWithinIscomment = true;
 						state = ScannerState.WithinComment;
 						return finishToken(offset, TokenType.StartCommentTag);
 					}

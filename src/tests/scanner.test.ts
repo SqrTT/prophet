@@ -735,6 +735,21 @@ suite('HTML Scanner', () => {
 		]);
 	});
 
+	test('combination isComment and <!--', () => {
+		assertTokens([{
+			input: '<iscomment>foo bar</iscomment><!-- test -->',
+			tokens: [
+				{ offset: 0, type: TokenType.StartCommentTag },
+				{ offset: 10, type: TokenType.Comment },
+				{ offset: 18, type: TokenType.EndCommentTag },
+				{ offset: 30, type: TokenType.StartCommentTag },
+				{ offset: 34, type: TokenType.Comment },
+				{ offset: 40, type: TokenType.EndCommentTag }
+			]
+		}
+		]);
+	});
+
 	test('multiline isComment with div', () => {
 		assertTokens([{
 			input: '<div><iscomment>\nfoo bar\n</iscomment></div>',
