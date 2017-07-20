@@ -1,7 +1,9 @@
+'use strict';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as find from 'find';
+import { getDirectories, getFiles, pathExists} from '../lib/FileHelper';
 
 export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 	private _onDidChangeTreeData: vscode.EventEmitter<CartridgeItem | undefined> = new vscode.EventEmitter<CartridgeItem | undefined>();
@@ -29,7 +31,7 @@ export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 			if (element) {
 				resolve(this.getCartridgeItemFilesOrFolders(element));
 			} else {
-				if (this.pathExists(this.workspaceRoot)) {
+				if (pathExists(this.workspaceRoot)) {
 					resolve(this.getCartridgesInWorkspace(this.workspaceRoot));
 				} else {
 					vscode.window.showInformationMessage('No workspace!');
@@ -40,8 +42,8 @@ export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 	}
 
 	private getCartridgeItemFilesOrFolders(element: CartridgeItem): CartridgeItem[] {
-		var files = this.getFiles(element.location);
-		var directories = this.getDirectories(element.location);
+		var files = getFiles(element.location);
+		var directories = getDirectories(element.location);
 
 		if (files.length > 0 || directories.length > 0) {
 			const toFileElement = (fileName: string): CartridgeItem => {
@@ -64,7 +66,7 @@ export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 
 
 	private getCartridgesInWorkspace(workspaceRoot: string): CartridgeItem[] {
-		if (this.pathExists(workspaceRoot)) {
+		if (pathExists(workspaceRoot)) {
 			var projectFiles = find.fileSync(/\.project/, workspaceRoot);
 
 			const checkIfCartridge = (projectFile: string): boolean => {
@@ -102,25 +104,7 @@ export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 		}
 	}
 
-	private getDirectories(srcpath) {
-		return fs.readdirSync(srcpath)
-			.filter(file => fs.lstatSync(path.join(srcpath, file)).isDirectory())
-	}
-
-	private getFiles(srcpath) {
-		return fs.readdirSync(srcpath)
-			.filter(file => !fs.lstatSync(path.join(srcpath, file)).isDirectory())
-	}
-
-	private pathExists(p: string): boolean {
-		try {
-			fs.accessSync(p);
-		} catch (err) {
-			return false;
-		}
-
-		return true;
-	}
+	
 }
 
 class CartridgeItem extends vscode.TreeItem {
