@@ -3,7 +3,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
-
 	private _onDidChangeTreeData: vscode.EventEmitter<CartridgeItem | undefined> = new vscode.EventEmitter<CartridgeItem | undefined>();
 	readonly onDidChangeTreeData: vscode.Event<CartridgeItem | undefined> = this._onDidChangeTreeData.event;
 
@@ -28,7 +27,6 @@ export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 			if (element) {
 				resolve(this.getCartridgeItemFilesOrFolders(element));
 			} else {
-
 				if (this.pathExists(this.workspaceRoot)) {
 					resolve(this.getCartridgesInWorkspace(this.workspaceRoot));
 				} else {
@@ -43,8 +41,6 @@ export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 		var files = this.getFiles(element.location);
 		var directories = this.getDirectories(element.location);
 
-
-
 		if (files.length > 0 || directories.length > 0) {
 			const toFileElement = (fileName: string): CartridgeItem => {
 				return new CartridgeItem(fileName, 'cartridge-item-file', path.join(element.location, fileName), vscode.TreeItemCollapsibleState.None, {
@@ -55,22 +51,17 @@ export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 			}
 
 			const toFolderElement = (directory: string): CartridgeItem => {
-				return new CartridgeItem(directory, 'cartridge-item-folder', path.join(element.location, directory), vscode.TreeItemCollapsibleState.Collapsed, {
-					command: '',
-					title: '',
-					arguments: [],
-				});
+				return new CartridgeItem(directory, 'cartridge-item-folder', path.join(element.location, directory), vscode.TreeItemCollapsibleState.Collapsed);
 			}
 
 			return directories.map(toFolderElement).concat(files.map(toFileElement));
 		}
 
-		return [new CartridgeItem('No files', 'cartridge-file', '', vscode.TreeItemCollapsibleState.None)];
+		return [new CartridgeItem('No files', 'cartridge-file', element.location, vscode.TreeItemCollapsibleState.None)];
 	}
 
 
 	private getCartridgesInWorkspace(workspaceRoot: string): CartridgeItem[] {
-
 		if (this.pathExists(workspaceRoot)) {
 			var directories = this.getDirectories(workspaceRoot)
 
@@ -79,11 +70,7 @@ export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 			};
 
 			const toCardridge = (dir: string): CartridgeItem => {
-				return new CartridgeItem(dir, 'cartridge', path.join(this.workspaceRoot, dir, 'cartridge'), vscode.TreeItemCollapsibleState.Collapsed, {
-					command: '',
-					title: '',
-					arguments: [dir],
-				});
+				return new CartridgeItem(dir, 'cartridge', path.join(this.workspaceRoot, dir, 'cartridge'), vscode.TreeItemCollapsibleState.Collapsed);
 			}
 
 			return directories.filter(checkIfCartridge).map(toCardridge);
@@ -114,8 +101,7 @@ export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 }
 
 class CartridgeItem extends vscode.TreeItem {
-	isFile = false;
-	fileExtension;
+	fileExtension: string;
 
 	constructor(
 		public readonly name: string,
@@ -130,17 +116,25 @@ class CartridgeItem extends vscode.TreeItem {
 		this.type = type;
 
 		if (this.type === 'cartridge-item-file') {
-			this.isFile = true;
 			this.fileExtension = path.extname(this.name).replace('.', '');
-		}
 
-		if (this.type !== 'cartridge-item-folder')
 			this.iconPath = {
-				light: path.join(__filename, '..', '..', '..', 'images', 'resources', ((this.fileExtension) ? this.fileExtension : this.type) + '.svg'),
-				dark: path.join(__filename, '..', '..', '..', 'images', 'resources', ((this.fileExtension) ? this.fileExtension : this.type) + '.svg')
+				light: path.join(__filename, '..', '..', '..', 'images', 'resources', this.fileExtension + '.svg'),
+				dark: path.join(__filename, '..', '..', '..', 'images', 'resources', this.fileExtension + '.svg')
 			};
+
+			this.contextValue = 'file';
+		}
+		else if (this.type === 'cartridge-item-folder') {
+			this.contextValue = 'folder';
+		} else {
+			this.contextValue = 'cartridge';
+
+			this.iconPath = {
+				light: path.join(__filename, '..', '..', '..', 'images', 'resources', 'cartridge.svg'),
+				dark: path.join(__filename, '..', '..', '..', 'images', 'resources', 'cartridge.svg')
+			};
+
+		}
 	}
-
-
-	contextValue = 'cartridge';
 }
