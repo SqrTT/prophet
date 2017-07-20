@@ -1,7 +1,7 @@
 {
     "name": "prophet",
     "displayName": "Prophet Debugger",
-    "version": "0.7.0",
+    "version": "0.7.2",
     "publisher": "SqrTT",
     "description": "Debugger and Uploader for Demandware/Salesforce sandbox",
     "author": {
@@ -51,7 +51,7 @@
         "vscode-debugadapter-testsupport": "^1.20.0"
     },
     "scripts": {
-        "vscode:prepublish": "node ./node_modules/typescript/bin/tsc -p ./src",
+        "vscode:prepublish": "npm install && npm run compile && npm run test",
         "prepublish": "node ./node_modules/typescript/bin/tsc -p ./src",
         "compile": "node ./node_modules/typescript/bin/tsc -p ./src",
         "watch": "node ./node_modules/typescript/bin/tsc -w -p ./src",
