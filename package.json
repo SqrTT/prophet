@@ -72,10 +72,18 @@
             ]
         },
         "menus": {
-            "view/item/context": [
+            "view/title": [
                 {
                     "command": "extension.prophet.command.clean.upload",
-                    "when": "viewItem == cartridge"
+                    "when": "view == cartridgesView"
+                },
+                {
+                    "command": "extension.prophet.command.enable.upload",
+                    "when": "view == cartridgesView"
+                },
+                {
+                    "command": "extension.prophet.command.disable.upload",
+                    "when": "view == cartridgesView"
                 }
             ]
         },
