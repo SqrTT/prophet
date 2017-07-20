@@ -225,14 +225,14 @@ export function activate(context: ExtensionContext) {
 			window.showInputBox(folderOptions).then(folderValue => {
 				window.showInputBox(cartridgeOptions).then(value => {
 					if (!value) return;
-					new CartridgeHelper(rootPath).createCartridge(value, folderValue);
+					if (!folderValue) { folderValue = ''; }
+
+					new CartridgeHelper(rootPath).createCartridge(value.trim().replace(' ', '_'), folderValue.trim());
 
 					if (cartridgesView)
 						cartridgesView.refresh();
 				});
-
 			});
-
 		}));
 
 

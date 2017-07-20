@@ -14,7 +14,17 @@ export class CartridgeHelper {
     }
 
     createMainDirectory(name, directory) {
-        fs.mkdir(path.join(this.workspaceRoot, directory, name));
+        let pathToCreate = path.join(this.workspaceRoot, directory, name);
+
+        pathToCreate
+            .split(path.sep)
+            .reduce((currentPath, folder) => {
+                currentPath += folder + path.sep;
+                if (!fs.existsSync(currentPath)) {
+                    fs.mkdirSync(currentPath);
+                }
+                return currentPath;
+            }, '');
     }
 
     createCartridgeDirectories(name, directory) {
