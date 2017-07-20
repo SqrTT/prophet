@@ -8,8 +8,9 @@ import 'rxjs/add/operator/retryWhen';
 
 import {OutputChannel, workspace} from 'vscode';
 import {default as WebDav, DavOptions} from './WebDav';
+import {getDirectories} from '../lib/FileHelper'
 import {dirname, join} from 'path';
-import {readdirSync, statSync, createReadStream} from 'fs';
+import {createReadStream} from 'fs';
 import * as chokidar from 'chokidar';
 
 
@@ -55,10 +56,6 @@ function getWebDavClient(config : DavOptions, outputChannel: OutputChannel, root
 		observer.next(webdav);
 	});
 }
-
-function getDirectories(srcPath) {
-	return readdirSync(srcPath).filter(file => statSync(join(srcPath, file)).isDirectory())
-};
 
 
 function fileWatcher(config, cartRoot : string) {
