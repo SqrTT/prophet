@@ -8,6 +8,7 @@ export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 	readonly onDidChangeTreeData: vscode.Event<CartridgeItem | undefined> = this._onDidChangeTreeData.event;
 
 	constructor(private workspaceRoot: string) {
+
 	}
 
 	refresh(): void {

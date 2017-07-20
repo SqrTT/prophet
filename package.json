@@ -85,6 +85,14 @@
                 {
                     "command": "extension.prophet.command.disable.upload",
                     "when": "view == cartridgesView"
+                },
+                {
+                    "command": "extension.prophet.command.refresh.cartridges",
+                    "when": "view == cartridgesView"
+                },
+                {
+                    "command": "extension.prophet.command.create.cartridge",
+                    "when": "view == cartridgesView"
                 }
             ]
         },
@@ -103,6 +111,16 @@
                 "command": "extension.prophet.command.clean.upload",
                 "title": "Prophet: Clean Project/Upload all",
                 "description": "Clean Project/Upload all"
+            },
+            {
+                "command": "extension.prophet.command.refresh.cartridges",
+                "title": "Refresh cartridges list",
+                "description": "Refresh cartridges list"
+            },
+            {
+                "command": "extension.prophet.command.create.cartridge",
+                "title": "Create cartridge",
+                "description": "Create cartridge"
             }
         ],
         "jsonValidation": [
