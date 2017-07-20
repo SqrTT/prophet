@@ -79,10 +79,8 @@ export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 			const checkIfCartridge = (projectFile: string): boolean => {
 				let fileContent = fs.readFileSync(projectFile, 'UTF-8');
 
-				// Use a regex check rather than parsing the XML since the file is not that big.
-				var nature = fileContent.match(/<nature>com.demandware.studio.core.beehiveNature<\/nature>/);
-
-				return nature !== null && nature.length > 0;
+				// Check the file for demandware package (since the file is not that big no need for a DOM parser)
+				return fileContent.includes('com.demandware.studio.core.beehiveNature');
 			};
 
 			const toCardridge = (projectFile: string): CartridgeItem => {

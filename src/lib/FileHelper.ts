@@ -9,7 +9,7 @@ export function getDirectories(srcpath) {
 
 export function getFiles(srcpath) {
     return fs.readdirSync(srcpath)
-        .filter(file => !fs.lstatSync(path.join(srcpath, file)).isDirectory())
+        .filter(file => fs.lstatSync(path.join(srcpath, file)).isFile())
 }
 
 export function pathExists(p: string): boolean {
