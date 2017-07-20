@@ -82,7 +82,12 @@ export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 
 				if (!projectName) projectName = 'Unknown project name';
 
-				return new CartridgeItem(projectName, 'cartridge', path.join(projectFileDirectory, 'cartridge'), vscode.TreeItemCollapsibleState.Collapsed);
+				let subFolder = ''
+				if (fs.existsSync(path.join(projectFileDirectory, 'cartridge'))) {
+					subFolder = 'cartridge';
+				}
+
+				return new CartridgeItem(projectName, 'cartridge', path.join(projectFileDirectory, subFolder), vscode.TreeItemCollapsibleState.Collapsed);
 			}
 
 			//let filteredDirectories = directories.filter(checkIfCartridge);
