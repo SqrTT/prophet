@@ -26,11 +26,7 @@ export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 
 		return new Promise(resolve => {
 			if (element) {
-				if (element.type === 'cartridge') {
-					resolve(this.getCartridgeElements(element));
-				} else if (element.type === 'cartridge-item-folder') {
-					resolve(this.getCartridgeItemFilesOrFolders(element));
-				}
+				resolve(this.getCartridgeItemFilesOrFolders(element));
 			} else {
 
 				if (this.pathExists(this.workspaceRoot)) {
@@ -72,30 +68,6 @@ export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 		return [new CartridgeItem('No files', 'cartridge-file', '', vscode.TreeItemCollapsibleState.None)];
 	}
 
-	private getCartridgeElements(element: CartridgeItem): CartridgeItem[] {
-		var standardFolders = ['controllers',
-			'forms',
-			'pipelines',
-			'scripts',
-			'static',
-			'templates',
-			'webreferences',
-			'webreferences2'];
-
-
-		const checkIfCartridgeElementExists = (dir: string): boolean => {
-			return this.pathExists(path.join(this.workspaceRoot, element.name, 'cartridge', dir));
-		};
-		const toCardridgeElement = (type: string): CartridgeItem => {
-			return new CartridgeItem(type, 'cartridge-item-folder', path.join(element.location, 'cartridge', type), vscode.TreeItemCollapsibleState.Collapsed, {
-				command: '',
-				title: '',
-				arguments: [type],
-			});
-		}
-
-		return standardFolders.filter(checkIfCartridgeElementExists).map(toCardridgeElement);
-	}
 
 	private getCartridgesInWorkspace(workspaceRoot: string): CartridgeItem[] {
 
@@ -107,7 +79,7 @@ export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 			};
 
 			const toCardridge = (dir: string): CartridgeItem => {
-				return new CartridgeItem(dir, 'cartridge', path.join(this.workspaceRoot, dir), vscode.TreeItemCollapsibleState.Collapsed, {
+				return new CartridgeItem(dir, 'cartridge', path.join(this.workspaceRoot, dir, 'cartridge'), vscode.TreeItemCollapsibleState.Collapsed, {
 					command: '',
 					title: '',
 					arguments: [dir],
@@ -162,11 +134,11 @@ class CartridgeItem extends vscode.TreeItem {
 			this.fileExtension = path.extname(this.name).replace('.', '');
 		}
 
-		if(this.type !== 'cartridge-item-folder')
-		this.iconPath = {
-			light: path.join(__filename, '..', '..', '..', 'images', 'resources', 'light', ((this.fileExtension) ? this.fileExtension : this.type) + '.svg'),
-			dark: path.join(__filename, '..', '..', '..', 'images', 'resources', 'dark', ((this.fileExtension) ? this.fileExtension : this.type) + '.svg')
-		};
+		if (this.type !== 'cartridge-item-folder')
+			this.iconPath = {
+				light: path.join(__filename, '..', '..', '..', 'images', 'resources', ((this.fileExtension) ? this.fileExtension : this.type) + '.svg'),
+				dark: path.join(__filename, '..', '..', '..', 'images', 'resources', ((this.fileExtension) ? this.fileExtension : this.type) + '.svg')
+			};
 	}
 
 
