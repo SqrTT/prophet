@@ -118,7 +118,7 @@ const uploadCartridges = (webdav : WebDav, outputChannel : OutputChannel, config
 			return webdav
 				.uploadCartridges(dirToUpload, notify, {isCartridge: true});
 		});
-	return Observable.merge(...toUpload, 2).concat(Promise.resolve(1));
+	return Observable.merge(...toUpload, 3).concat(Promise.resolve(1));
 }
 
 
@@ -170,17 +170,18 @@ function uploadAndWatch(webdav : WebDav, outputChannel : OutputChannel, config :
 		})
 }
 export function init(configFilename: string, outputChannel: OutputChannel) {
-
+	let conf;
 	return readConfigFile(configFilename).flatMap(config => {
 		var rootDir = dirname(configFilename);
 		if (config.root) {
 			rootDir = join(rootDir, config.root);
 		}
+		conf = config;
 		outputChannel.appendLine(`Using directory "${rootDir}" as cartridges root`);
 		return getWebDavClient(config, outputChannel, rootDir);
 	}).flatMap(webdav => {
 		var retryCounter = 0;
-		return uploadAndWatch(webdav, outputChannel, webdav.config, webdav.config.root)
+		return uploadAndWatch(webdav, outputChannel, conf, webdav.config.root)
 			.retryWhen(function (errors) {
 				// retry for some errors, end the stream with an error for others
 				return errors.do(function (e) {

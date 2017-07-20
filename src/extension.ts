@@ -55,7 +55,7 @@ export function activate(context: ExtensionContext) {
 		run : { module: serverModule, transport: TransportKind.ipc },
 		debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions }
 	}
-	
+	let htmlConf = workspace.getConfiguration('html.format');
 	// Options to control the language client
 	let clientOptions: LanguageClientOptions = {
 		// Register the server for plain text documents
@@ -68,6 +68,21 @@ export function activate(context: ExtensionContext) {
 			configurationSection: 'ismlLanguageServer',
 			// Notify the server about file changes to '.clientrc files contain in the workspace
 			//fileEvents: workspace.createFileSystemWatcher('**/*.isml')
+		},
+		initializationOptions: {
+			formatParams : {
+				wrapLineLength : htmlConf.get('wrapLineLength'),
+				unformatted : htmlConf.get('unformatted'),
+				contentUnformatted : htmlConf.get('contentUnformatted'),
+				indentInnerHtml : htmlConf.get('indentInnerHtml'),
+				preserveNewLines : htmlConf.get('preserveNewLines'),
+				maxPreserveNewLines : htmlConf.get('maxPreserveNewLines'),
+				indentHandlebars : htmlConf.get('indentHandlebars'),
+				endWithNewline : htmlConf.get('endWithNewline'),
+				extraLiners : htmlConf.get('extraLiners'),
+				wrapAttributes : htmlConf.get('wrapAttributes')
+			}
+
 		}
 	}
 	
