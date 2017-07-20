@@ -57,7 +57,7 @@ export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 			return directories.map(toFolderElement).concat(files.map(toFileElement));
 		}
 
-		return [new CartridgeItem('No files', 'cartridge-file', element.location, vscode.TreeItemCollapsibleState.None)];
+		return [new CartridgeItem('No files', 'cartridge-file', '', vscode.TreeItemCollapsibleState.None)];
 	}
 
 
@@ -73,7 +73,13 @@ export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 				return new CartridgeItem(dir, 'cartridge', path.join(this.workspaceRoot, dir, 'cartridge'), vscode.TreeItemCollapsibleState.Collapsed);
 			}
 
-			return directories.filter(checkIfCartridge).map(toCardridge);
+			let filteredDirectories = directories.filter(checkIfCartridge);
+
+			if (filteredDirectories.length > 0) {
+				return filteredDirectories.map(toCardridge);
+			} else {
+				return [new CartridgeItem('No cartridges found in this workspace.', 'cartridge', this.workspaceRoot, vscode.TreeItemCollapsibleState.None)];
+			}
 		} else {
 			return [];
 		}

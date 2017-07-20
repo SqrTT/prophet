@@ -215,7 +215,7 @@ export function activate(context: ExtensionContext) {
 
 		// add views
 		context.subscriptions.push(
-			window.registerTreeDataProvider("cartridgesView", new CartridgesView(workspace.rootPath))
+			window.registerTreeDataProvider("cartridgesView", new CartridgesView(rootPath))
 		);
 	}
 }
