@@ -58,7 +58,7 @@ function getWebDavClient(config : DavOptions, outputChannel: OutputChannel, root
 }
 
 
-function  fileWatcher(config, cartRoot : string) {
+function fileWatcher(config, cartRoot : string) {
 	return Observable.create(observer => {
 		var cartridges;
 		if (config.cartridge && config.cartridge.length) {
