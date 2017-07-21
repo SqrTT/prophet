@@ -5,7 +5,9 @@ import * as path from 'path';
 export async function getDirectories(srcpath): Promise<string[]> {
     return new Promise<string[]>(resolve => {
         fs.readdir(srcpath, function (err, result: string[]) {
-            resolve(result.filter(file => fs.lstatSync(path.join(srcpath, file)).isDirectory()));
+            if (err) { resolve([err.message]) } else {
+                resolve(result.filter(file => fs.lstatSync(path.join(srcpath, file)).isDirectory()));
+            }
         })
     });
 }
@@ -13,7 +15,9 @@ export async function getDirectories(srcpath): Promise<string[]> {
 export function getFiles(srcpath): Promise<string[]> {
     return new Promise<string[]>(resolve => {
         fs.readdir(srcpath, function (err, result: string[]) {
-            resolve(result.filter(file => fs.lstatSync(path.join(srcpath, file)).isFile()));
+            if (err) { resolve([err.message]) } else {
+                resolve(result.filter(file => fs.lstatSync(path.join(srcpath, file)).isFile()));
+            }
         });
     });
 }
