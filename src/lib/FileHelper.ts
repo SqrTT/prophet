@@ -2,14 +2,20 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-export function getDirectories(srcpath) {
-    return fs.readdirSync(srcpath)
-        .filter(file => fs.lstatSync(path.join(srcpath, file)).isDirectory())
+export async function getDirectories(srcpath): Promise<string[]> {
+    return new Promise<string[]>(resolve => {
+        fs.readdir(srcpath, function (err, result: string[]) {
+            resolve(result.filter(file => fs.lstatSync(path.join(srcpath, file)).isDirectory()));
+        })
+    });
 }
 
-export function getFiles(srcpath) {
-    return fs.readdirSync(srcpath)
-        .filter(file => fs.lstatSync(path.join(srcpath, file)).isFile())
+export function getFiles(srcpath): Promise<string[]> {
+    return new Promise<string[]>(resolve => {
+        fs.readdir(srcpath, function (err, result: string[]) {
+            resolve(result.filter(file => fs.lstatSync(path.join(srcpath, file)).isFile()));
+        });
+    });
 }
 
 export function pathExists(p: string): boolean {

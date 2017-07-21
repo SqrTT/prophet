@@ -41,9 +41,9 @@ export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 		});
 	}
 
-	private getCartridgeItemFilesOrFolders(element: CartridgeItem): CartridgeItem[] {
-		var files = getFiles(element.location);
-		var directories = getDirectories(element.location);
+	private async getCartridgeItemFilesOrFolders(element: CartridgeItem): Promise<CartridgeItem[]> {
+		var files = await getFiles(element.location);
+		var directories = await getDirectories(element.location);
 
 		if (files.length > 0 || directories.length > 0) {
 			const toFileElement = (fileName: string): CartridgeItem => {
