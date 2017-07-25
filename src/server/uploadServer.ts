@@ -8,8 +8,9 @@ import 'rxjs/add/operator/retryWhen';
 
 import {OutputChannel, workspace} from 'vscode';
 import {default as WebDav, DavOptions} from './WebDav';
+import {getDirectoriesSync} from '../lib/FileHelper'
 import {dirname, join} from 'path';
-import {readdirSync, statSync, createReadStream} from 'fs';
+import {createReadStream} from 'fs';
 import * as chokidar from 'chokidar';
 
 
@@ -56,10 +57,6 @@ function getWebDavClient(config : DavOptions, outputChannel: OutputChannel, root
 	});
 }
 
-function getDirectories(srcPath) {
-	return readdirSync(srcPath).filter(file => statSync(join(srcPath, file)).isDirectory())
-};
-
 
 function fileWatcher(config, cartRoot : string) {
 	return Observable.create(observer => {
@@ -67,7 +64,7 @@ function fileWatcher(config, cartRoot : string) {
 		if (config.cartridge && config.cartridge.length) {
 			cartridges = config.cartridge;
 		} else {
-			cartridges = getDirectories(cartRoot)
+			cartridges = getDirectoriesSync(cartRoot)
 		}
 
 		const watcher = chokidar.watch(null, {
@@ -104,7 +101,7 @@ const uploadCartridges = (webdav : WebDav, outputChannel : OutputChannel, config
 	if (config.cartridge && config.cartridge.length) {
 		cartridges = config.cartridge;
 	} else {
-		cartridges = getDirectories(cartRoot)
+		cartridges = getDirectoriesSync(cartRoot)
 	}
 
 	const toUpload = cartridges
