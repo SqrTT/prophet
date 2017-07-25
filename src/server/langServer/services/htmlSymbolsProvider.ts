@@ -54,7 +54,11 @@ function nodeToName(node: Node): string {
 		}
 
 		if (attrName) {
-			name += ` = ${attrName.replace(/[\"\'\$\{\}]/g, '')}`;
+			name += ` ${attrName.replace(/[\"\'\$\{\}]/g, '')}`;
+		}
+
+		if (node.tag === 'isset') {
+			name += ` = ${(node.attributes['value'] || '').replace(/[\"\'\$\{\}]/g, '')}`;
 		}
 	}
 
