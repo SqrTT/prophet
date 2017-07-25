@@ -1,3 +1,9 @@
+### 0.8.0
+
+* Added cartridges overview in explorer. Thanks to [Thomas Theunen](https://github.com/taurgis) Can be enabled/disabled by `extension.prophet.cartridges.view.enabled` (enabled by default)
+* improved symbol navigation
+
+
 ### 0.7.0
 
 * fix upload specified cartridges
@@ -12,7 +18,7 @@
 
 * Added quick open for custom tags
 * Added `extension.prophet.cartridges.path` property that allows quick open don't ask a user to choose the file.
-* Added `extension.prophet.ismlServer.activateOn` property that allow activate isml server for non standatd (isml) files, ex. `html`
+* Added `extension.prophet.ismlServer.activateOn` property that allow activate isml server for non standard (isml) files, ex. `html`
 * small refactoring of uploader (not need reload the whole editor for applying settings from `dw.json`)
 
 
