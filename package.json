@@ -67,7 +67,8 @@
             "explorer": [
                 {
                     "id": "cartridgesView",
-                    "name": "Cartridges"
+                    "name": "Cartridges",
+                    "when": "config.extension.prophet.cartridges.view.enabled"
                 }
             ]
         },
@@ -279,6 +280,11 @@
                     "type": "string",
                     "default": "",
                     "description": "List of cartridges separated by colon. (app_storefront_controllers:app_storefront_core:bc_library)"
+                },
+                "extension.prophet.cartridges.view.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable/Disable cartridges view"
                 }
             }
         }

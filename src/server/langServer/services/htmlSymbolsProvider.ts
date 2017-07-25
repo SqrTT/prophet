@@ -43,6 +43,7 @@ function nodeToName(node: Node): string {
 	if (node.attributes) {
 		let id = node.attributes['id'];
 		let classes = node.attributes['class'];
+		let attrName = node.attributes['name'] || node.attributes['var'] || node.attributes['alias'] || node.attributes['condition'] || node.attributes['template'] ;
 		
 		if (id) {
 			name += `#${id.replace(/[\"\']/g, '')}`;
@@ -50,6 +51,10 @@ function nodeToName(node: Node): string {
 
 		if (classes) {
 			name += classes.replace(/[\"\']/g, '').split(/\s+/).map(className => `.${className}`).join('');
+		}
+
+		if (attrName) {
+			name += ` = ${attrName.replace(/[\"\'\$\{\}]/g, '')}`;
 		}
 	}
 

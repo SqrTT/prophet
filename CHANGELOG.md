@@ -1,3 +1,9 @@
+### 0.8.0
+
+* Added cartridges overview in explorer. Thanks to [Thomas Theunen](https://github.com/taurgis) Can be enabled/disabled by `extension.prophet.cartridges.view.enabled` (enabled by default)
+* improved symbol navigation
+
+
 ### 0.7.0
 
 * fix upload specified cartridges

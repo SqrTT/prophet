@@ -1,13 +1,45 @@
 'use strict';
-import * as vscode from 'vscode';
-import * as fs from 'fs';
-import * as path from 'path';
+import {TreeItemCollapsibleState, EventEmitter, TreeDataProvider, Event, window, TreeItem, Uri, Command} from 'vscode';
+import { exists, readFile } from 'fs';
+import { dirname, sep, join, extname } from 'path';
 import * as glob from 'glob';
 import { getDirectories, getFiles, pathExists } from '../lib/FileHelper';
 
-export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
-	private _onDidChangeTreeData: vscode.EventEmitter<CartridgeItem | undefined> = new vscode.EventEmitter<CartridgeItem | undefined>();
-	readonly onDidChangeTreeData: vscode.Event<CartridgeItem | undefined> = this._onDidChangeTreeData.event;
+const checkIfCartridge = (projectFile: string): Promise<boolean> => {
+	return new Promise((resolve, reject) => {
+		readFile(projectFile, 'UTF-8', (err, data) => {
+			if (err) {
+				reject(err)
+			} else {
+				// Check the file for demandware package (since the file is not that big no need for a DOM parser) 
+				resolve(data.includes('com.demandware.studio.core.beehiveNature'));
+			}
+		});
+	});
+};
+const toCardridge = (projectFile: string): Promise<CartridgeItem> => {
+	return new Promise((resolve, reject) => {
+		let projectFileDirectory = dirname(projectFile);
+		const projectName = projectFileDirectory.split(sep).pop();
+
+		let subFolder = ''
+		exists(join(projectFileDirectory, 'cartridge'), (exists) => {
+			if (exists) {
+				subFolder = 'cartridge';
+			}
+			resolve(new CartridgeItem(projectName || 'Unknown project name', 'cartridge', join(projectFileDirectory, subFolder), TreeItemCollapsibleState.Collapsed));
+		})
+	});
+}
+
+function filterAsync<T>(array: T[], filter) {
+	return Promise.all(array.map(entry => filter(entry)))
+	.then(bits => array.filter(entry => bits.shift()))
+};
+
+export class CartridgesView implements TreeDataProvider<CartridgeItem> {
+	private _onDidChangeTreeData: EventEmitter<CartridgeItem | undefined> = new EventEmitter<CartridgeItem | undefined>();
+	readonly onDidChangeTreeData: Event<CartridgeItem | undefined> = this._onDidChangeTreeData.event;
 
 	constructor(private workspaceRoot: string) {
 
@@ -17,13 +49,13 @@ export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 		this._onDidChangeTreeData.fire();
 	}
 
-	getTreeItem(element: CartridgeItem): vscode.TreeItem {
+	getTreeItem(element: CartridgeItem): TreeItem {
 		return element;
 	}
 
 	getChildren(element?: CartridgeItem): Thenable<CartridgeItem[]> {
 		if (!this.workspaceRoot) {
-			vscode.window.showInformationMessage('No dependency in empty workspace');
+			window.showInformationMessage('No dependency in empty workspace');
 			return Promise.resolve([]);
 		}
 
@@ -31,12 +63,14 @@ export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 			if (element) {
 				resolve(this.getCartridgeItemFilesOrFolders(element));
 			} else {
-				if (pathExists(this.workspaceRoot)) {
-					resolve(this.getCartridgesInWorkspace(this.workspaceRoot));
-				} else {
-					vscode.window.showInformationMessage('No workspace!');
-					resolve([]);
-				}
+				pathExists(this.workspaceRoot).then((exist) => {
+					if (exist) {
+						this.getCartridgesInWorkspace(this.workspaceRoot).then(resolve);
+					} else {
+						window.showInformationMessage('No workspace!');
+						resolve([]);
+					}
+				});
 			}
 		});
 	}
@@ -45,82 +79,72 @@ export class CartridgesView implements vscode.TreeDataProvider<CartridgeItem> {
 		var files = await getFiles(element.location);
 		var directories = await getDirectories(element.location);
 
-		if (files.length > 0 || directories.length > 0) {
+		if (files.length || directories.length) {
 			const toFileElement = (fileName: string): CartridgeItem => {
-				return new CartridgeItem(fileName, 'cartridge-item-file', path.join(element.location, fileName), vscode.TreeItemCollapsibleState.None, {
-					command: 'vscode.open',
+				return new CartridgeItem(fileName, 'cartridge-item-file', join(element.location, fileName), TreeItemCollapsibleState.None, {
+					command: 'open',
 					title: 'Open file',
-					arguments: [vscode.Uri.parse('file://' + path.join(element.location, fileName))],
+					arguments: [Uri.parse('file://' + join(element.location, fileName))],
 				});
 			}
 
 			const toFolderElement = (directory: string): CartridgeItem => {
-				return new CartridgeItem(directory, 'cartridge-item-folder', path.join(element.location, directory), vscode.TreeItemCollapsibleState.Collapsed);
+				return new CartridgeItem(directory, 'cartridge-item-folder', join(element.location, directory), TreeItemCollapsibleState.Collapsed);
 			}
 
 			return directories.map(toFolderElement).concat(files.map(toFileElement));
 		}
 
-		return [new CartridgeItem('No files', 'cartridge-file', '', vscode.TreeItemCollapsibleState.None)];
+		return [new CartridgeItem('No files', 'cartridge-file', '', TreeItemCollapsibleState.None)];
 	}
 
 
-	private getCartridgesInWorkspace(workspaceRoot: string): CartridgeItem[] {
-		if (pathExists(workspaceRoot)) {
-			var projectFiles = glob.sync('**/.project', {
-				cwd: workspaceRoot,
-				root: workspaceRoot,
-				nodir: true,
-				follow: false,
-				absolute: true,
-				ignore: ['**/node_modules/**', '**/.git/**']
-			});
+	private getCartridgesInWorkspace(workspaceRoot: string): Promise<CartridgeItem[]> {
+		return new Promise((resolve, reject) => {
+			pathExists(workspaceRoot).then(exists => {
+				if (exists) {
+					glob('**/.project', {
+						cwd: workspaceRoot,
+						root: workspaceRoot,
+						nodir: true,
+						follow: false,
+						absolute: true,
+						ignore: ['**/node_modules/**', '**/.git/**']
+					}, (error, projectFiles: string[]) => {
 
-			const checkIfCartridge = (projectFile: string): boolean => {
-				let fileContent = fs.readFileSync(projectFile, 'UTF-8');
+						if (error) {
+							return reject(error);
+						}
 
-				// Check the file for demandware package (since the file is not that big no need for a DOM parser)
-				return fileContent.includes('com.demandware.studio.core.beehiveNature');
-			};
+						//let filteredDirectories = directories.filter(checkIfCartridge);
 
-			const toCardridge = (projectFile: string): CartridgeItem => {
-				let projectFileDirectory = path.dirname(projectFile);
-				let projectName = projectFileDirectory.split(path.sep).pop();
+						if (projectFiles.length) {
+							filterAsync(projectFiles, checkIfCartridge).then((filteredProjectFiles) => {
+								Promise.all(filteredProjectFiles.map(toCardridge)).then(resolve);
+							});
+							return projectFiles.filter(checkIfCartridge).map(toCardridge);
+						} else {
+							resolve([new CartridgeItem('No cartridges found in this workspace.', 'cartridge', this.workspaceRoot, TreeItemCollapsibleState.None)]);
+						}
+					});
 
-				if (!projectName) projectName = 'Unknown project name';
-
-				let subFolder = ''
-				if (fs.existsSync(path.join(projectFileDirectory, 'cartridge'))) {
-					subFolder = 'cartridge';
+				} else {
+					resolve([]);
 				}
-
-				return new CartridgeItem(projectName, 'cartridge', path.join(projectFileDirectory, subFolder), vscode.TreeItemCollapsibleState.Collapsed);
-			}
-
-			//let filteredDirectories = directories.filter(checkIfCartridge);
-
-			if (projectFiles.length > 0) {
-				return projectFiles.filter(checkIfCartridge).map(toCardridge);
-			} else {
-				return [new CartridgeItem('No cartridges found in this workspace.', 'cartridge', this.workspaceRoot, vscode.TreeItemCollapsibleState.None)];
-			}
-		} else {
-			return [];
-		}
+			});
+		});
 	}
-
-
 }
 
-class CartridgeItem extends vscode.TreeItem {
+class CartridgeItem extends TreeItem {
 	fileExtension: string;
 
 	constructor(
 		public readonly name: string,
 		public readonly type: string,
 		public readonly location: string,
-		public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-		public readonly command?: vscode.Command
+		public readonly collapsibleState: TreeItemCollapsibleState,
+		public readonly command?: Command
 	) {
 		super(name, collapsibleState);
 
@@ -128,25 +152,23 @@ class CartridgeItem extends vscode.TreeItem {
 		this.type = type;
 
 		if (this.type === 'cartridge-item-file') {
-			this.fileExtension = path.extname(this.name).replace('.', '');
+			this.fileExtension = extname(this.name).replace('.', '');
 
 			this.iconPath = {
-				light: path.join(__filename, '..', '..', '..', 'images', 'resources', this.fileExtension + '.svg'),
-				dark: path.join(__filename, '..', '..', '..', 'images', 'resources', this.fileExtension + '.svg')
+				light: join(__filename, '..', '..', '..', 'images', 'resources', this.fileExtension + '.svg'),
+				dark: join(__filename, '..', '..', '..', 'images', 'resources', this.fileExtension + '.svg')
 			};
 
 			this.contextValue = 'file';
-		}
-		else if (this.type === 'cartridge-item-folder') {
+		} else if (this.type === 'cartridge-item-folder') {
 			this.contextValue = 'folder';
 		} else {
 			this.contextValue = 'cartridge';
 
 			this.iconPath = {
-				light: path.join(__filename, '..', '..', '..', 'images', 'resources', 'cartridge.svg'),
-				dark: path.join(__filename, '..', '..', '..', 'images', 'resources', 'cartridge.svg')
+				light: join(__filename, '..', '..', '..', 'images', 'resources', 'cartridge.svg'),
+				dark: join(__filename, '..', '..', '..', 'images', 'resources', 'cartridge.svg')
 			};
-
 		}
 	}
 }

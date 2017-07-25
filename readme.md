@@ -20,6 +20,9 @@ A VS Code extension to work with Demandware/Salesforce Cloud code on Sandbox tha
 * Console/evaluate code
 * Open files trought Storefront Toolkit
 * Quick open `isinclude` templates and custom tags via Ctrl+Click (as links)
+* Cartridges overview in explorer
+
+> WARNING: Some users had reported that debugger completely halts sandbox. Currently, this issue is not fixed and no known steps to reproduce. If you have some info about it please share. So please, before debugger usage make sure that you have availability to restart sandbox for the case if extension halts yours.
 
 
 

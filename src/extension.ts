@@ -284,15 +284,15 @@ function loadUploaderConfig(rootPath) {
 
 					subscribtion = uploadServer.init(configFilename, outputChannel)
 						.subscribe(
-						() => {
-							// reset counter to zero if success
-						},
-						err => {
-							observer.error(err)
-						},
-						() => {
-							observer.complete();
-						}
+							() => {
+								// reset counter to zero if success
+							},
+							err => {
+								observer.error(err)
+							},
+							() => {
+								observer.complete();
+							}
 						);
 				});
 			} else {
@@ -308,9 +308,7 @@ function loadUploaderConfig(rootPath) {
 			outputChannel.show();
 			outputChannel.appendLine(`Error: ${err}`);
 		}
-		);
-
-
+	);
 }
 
 export function deactivate() {
