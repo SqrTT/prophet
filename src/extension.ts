@@ -5,6 +5,7 @@ import { join } from 'path';
 import { workspace, Disposable, ExtensionContext, commands, window, Uri, OutputChannel } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
 import { CartridgesView } from "./providers/CartridgesView";
+import { LogsView } from "./providers/LogsView";
 import { CartridgeHelper } from "./lib/CartridgeHelper";
 import { existsSync } from 'fs';
 import { createServer } from "http";
@@ -30,7 +31,8 @@ const initialConfigurations = {
 
 var uploaderSubscription;
 var outputChannel: OutputChannel;
-var cartridgesView;
+var cartridgesView : CartridgesView | undefined;
+var logsView : LogsView | undefined;
 
 export function activate(context: ExtensionContext) {
 	const configuration = workspace.getConfiguration('extension.prophet');
@@ -180,7 +182,7 @@ export function activate(context: ExtensionContext) {
 			if (isUploadEnabled !== prevState) {
 				prevState = isUploadEnabled;
 				if (isUploadEnabled) {
-					loadUploaderConfig(rootPath);
+					loadUploaderConfig(rootPath, context);
 				} else {
 					if (uploaderSubscription) {
 						outputChannel.appendLine(`Stopping`);
@@ -193,10 +195,10 @@ export function activate(context: ExtensionContext) {
 		}));
 
 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.enable.upload', () => {
-			loadUploaderConfig(rootPath);
+			loadUploaderConfig(rootPath, context);
 		}));
 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.clean.upload', () => {
-			loadUploaderConfig(rootPath);
+			loadUploaderConfig(rootPath, context);
 		}));
 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.disable.upload', () => {
 			if (uploaderSubscription) {
@@ -233,7 +235,7 @@ export function activate(context: ExtensionContext) {
 						cartridgesView.refresh();
 
 					if (isUploadEnabled) {
-						loadUploaderConfig(rootPath);
+						loadUploaderConfig(rootPath, context);
 					}
 				});
 			});
@@ -243,7 +245,7 @@ export function activate(context: ExtensionContext) {
 		const isUploadEnabled = configuration.get('upload.enabled');
 		prevState = isUploadEnabled;
 		if (isUploadEnabled) {
-			loadUploaderConfig(rootPath);
+			loadUploaderConfig(rootPath, context);
 		} else {
 			outputChannel.appendLine('Uploader disabled in configuration');
 		}
@@ -257,7 +259,7 @@ export function activate(context: ExtensionContext) {
 	}
 }
 
-function loadUploaderConfig(rootPath) {
+function loadUploaderConfig(rootPath : string, context : ExtensionContext) {
 	if (uploaderSubscription) {
 		uploaderSubscription.unsubscribe();
 		uploaderSubscription = null;
@@ -294,7 +296,19 @@ function loadUploaderConfig(rootPath) {
 								observer.complete();
 							}
 						);
+
+						if (!logsView) {
+							uploadServer.readConfigFile(configFilename).flatMap(config => {
+								return uploadServer.getWebDavClient(config, outputChannel, rootPath)
+							}).subscribe(webdav => {
+								logsView = new LogsView(webdav);
+								context.subscriptions.push(
+									window.registerTreeDataProvider("dwLogsView", logsView)
+								);
+							})
+						}
 				});
+
 			} else {
 				observer.error('Unable to find "dw.json". Upload cartridges disabled.');
 			}

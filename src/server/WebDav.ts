@@ -19,6 +19,7 @@ export interface DavOptions {
 export default class WebDav {
 	config:DavOptions;
 	log: (...string) => any;
+	folder : string = 'Cartridges';
 	constructor (config, log = (() => {})) {
 		this.config = Object.assign({}, {
 			hostname: 'some.demandware.net',
@@ -29,7 +30,7 @@ export default class WebDav {
 		}, config);
 		this.log = log;
 	}
-	dirList (filePath = '.', root = this.config.root) {
+	dirList (filePath = '.', root = this.config.root) : Observable<string>{
 		const uriPath = relative(root, filePath);
 
 		return Observable.create(observer => {
@@ -56,8 +57,7 @@ export default class WebDav {
 	}
 	getOptions () {
 		return {
-			baseUrl: 'https://' + this.config.hostname + '/on/demandware.servlet/webdav/Sites/Cartridges/' +
-				this.config.version,
+			baseUrl: `https://${this.config.hostname}/on/demandware.servlet/webdav/Sites/${this.folder}/${this.config.version}`,
 			uri: '/',
 			auth: {
 				user: this.config.username,

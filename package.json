@@ -39,6 +39,7 @@
         "vscode-nls": "^2.0.2",
         "vscode-uri": "^1.0.1",
         "walk": "^2.3.9",
+        "xmldom": "^0.1.27",
         "yazl": "^2.4.2"
     },
     "devDependencies": {
@@ -69,6 +70,10 @@
                     "id": "cartridgesView",
                     "name": "Cartridges",
                     "when": "config.extension.prophet.cartridges.view.enabled"
+                },
+                {
+                    "id": "dwLogsView",
+                    "name": "Logs"
                 }
             ]
         },

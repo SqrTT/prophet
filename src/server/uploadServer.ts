@@ -14,7 +14,7 @@ import {createReadStream} from 'fs';
 import * as chokidar from 'chokidar';
 
 
-function readConfigFile(configFilename: string) : Observable<DavOptions> {
+export function readConfigFile(configFilename: string) : Observable<DavOptions> {
 	return Observable.create(observer => {
 		var stream = createReadStream(configFilename);
 		let chunks : any[] = [];
@@ -41,7 +41,7 @@ function readConfigFile(configFilename: string) : Observable<DavOptions> {
 	});
 }
 
-function getWebDavClient(config : DavOptions, outputChannel: OutputChannel, rootDir: string) : Observable<WebDav>{
+export function getWebDavClient(config : DavOptions, outputChannel: OutputChannel, rootDir: string) : Observable<WebDav>{
 	return Observable.create(observer => {
 		const webdav = new WebDav({
 				hostname: config.hostname,
