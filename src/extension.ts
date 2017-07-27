@@ -305,6 +305,16 @@ function loadUploaderConfig(rootPath : string, context : ExtensionContext) {
 								context.subscriptions.push(
 									window.registerTreeDataProvider("dwLogsView", logsView)
 								);
+								//
+								context.subscriptions.push(commands.registerCommand('extension.prophet.command.refresh.logview', () => {
+									if (logsView)
+										logsView.refresh();
+								}));
+								//
+								context.subscriptions.push(commands.registerCommand('extension.prophet.command.log.open', (filename) => {
+									if (logsView)
+										logsView.openLog(filename);
+								}));
 							})
 						}
 				});

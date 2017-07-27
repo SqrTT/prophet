@@ -144,7 +144,7 @@ export default class WebDav {
 			this.log('unzip-response', data);
 		});
 	}
-	get(filePath, root = this.config.root) {
+	get(filePath, root = this.config.root): Observable<string> {
 		const uriPath = relative(root, filePath);
 
 		this.log('get', uriPath);

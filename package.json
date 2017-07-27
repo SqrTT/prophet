@@ -98,6 +98,10 @@
                 {
                     "command": "extension.prophet.command.create.cartridge",
                     "when": "view == cartridgesView"
+                },
+                {
+                    "command": "extension.prophet.command.refresh.logview",
+                    "when": "view == dwLogsView"
                 }
             ]
         },
@@ -126,6 +130,11 @@
                 "command": "extension.prophet.command.create.cartridge",
                 "title": "Create cartridge",
                 "description": "Create cartridge"
+            },
+            {
+                "command": "extension.prophet.command.refresh.logview",
+                "title": "Refresh",
+                "description": "Refresh log view"
             }
         ],
         "jsonValidation": [
@@ -161,6 +170,15 @@
                     ".ds"
                 ],
                 "configuration": "./syntaxes/dwscript.configuration.json"
+            },
+            {
+                "id": "dwlog",
+                "aliases": [
+                    "DW Log File"
+                ],
+                "extensions": [
+                    ".log"
+                ]
             }
         ],
         "grammars": [
@@ -181,6 +199,11 @@
                 "embeddedLanguages": {
                     "source.js": "javascript"
                 }
+            },
+            {
+                "language": "dwlog",
+                "scopeName": "text.log",
+                "path": "./syntaxes/dwlog.tmLanguage"
             }
         ],
         "breakpoints": [
