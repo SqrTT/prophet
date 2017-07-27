@@ -1,7 +1,7 @@
 {
     "name": "prophet",
     "displayName": "Prophet Debugger",
-    "version": "0.7.2",
+    "version": "0.8.1",
     "publisher": "SqrTT",
     "description": "Debugger and Uploader for Demandware/Salesforce sandbox",
     "author": {
@@ -9,7 +9,7 @@
         "email": "tolik@sqrtt.pro"
     },
     "engines": {
-        "vscode": "^1.11.0",
+        "vscode": "^1.14.0",
         "node": "^7.0.0"
     },
     "icon": "images/mock-debug-icon.ico",
@@ -63,6 +63,39 @@
         "workspaceContains:**/cartridge/*.properties"
     ],
     "contributes": {
+        "views": {
+            "explorer": [
+                {
+                    "id": "cartridgesView",
+                    "name": "Cartridges",
+                    "when": "config.extension.prophet.cartridges.view.enabled"
+                }
+            ]
+        },
+        "menus": {
+            "view/title": [
+                {
+                    "command": "extension.prophet.command.clean.upload",
+                    "when": "view == cartridgesView"
+                },
+                {
+                    "command": "extension.prophet.command.enable.upload",
+                    "when": "view == cartridgesView"
+                },
+                {
+                    "command": "extension.prophet.command.disable.upload",
+                    "when": "view == cartridgesView"
+                },
+                {
+                    "command": "extension.prophet.command.refresh.cartridges",
+                    "when": "view == cartridgesView"
+                },
+                {
+                    "command": "extension.prophet.command.create.cartridge",
+                    "when": "view == cartridgesView"
+                }
+            ]
+        },
         "commands": [
             {
                 "command": "extension.prophet.command.enable.upload",
@@ -78,6 +111,16 @@
                 "command": "extension.prophet.command.clean.upload",
                 "title": "Prophet: Clean Project/Upload all",
                 "description": "Clean Project/Upload all"
+            },
+            {
+                "command": "extension.prophet.command.refresh.cartridges",
+                "title": "Refresh cartridges list",
+                "description": "Refresh cartridges list"
+            },
+            {
+                "command": "extension.prophet.command.create.cartridge",
+                "title": "Create cartridge",
+                "description": "Create cartridge"
             }
         ],
         "jsonValidation": [
@@ -237,6 +280,11 @@
                     "type": "string",
                     "default": "",
                     "description": "List of cartridges separated by colon. (app_storefront_controllers:app_storefront_core:bc_library)"
+                },
+                "extension.prophet.cartridges.view.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable/Disable cartridges view"
                 }
             }
         }
