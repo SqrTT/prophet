@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+	<dict>
+		<key>scopeName</key>
+		<string>text.log</string>
+
+		<key>fileTypes</key>
+		<array>
+			<string>log</string>
+		</array>
+
+		<key>name</key>
+		<string>Log file</string>
+
+		<key>patterns</key>
+		<array>
+		
+			<!-- Log levels -->
+
+			<!-- DEBUG -->
+			<dict>
+				<key>match</key>
+				<string>\b(DEBUG)\b|(?i)\b(debug)\:</string>
+
+				<key>name</key>
+				<string>markup.changed</string>
+			</dict>
+
+			<!-- Serilog DEBUG -->
+			<dict>
+				<key>match</key>
+				<string>(?i)\[(debug|dbug|dbg|de|d)\]</string>
+
+				<key>name</key>
+				<string>markup.changed</string>
+			</dict>
+
+			<!-- INFO -->
+			<dict>
+				<key>match</key>
+				<string>\b(HINT|INFO|INFORMATION)\b|(?i)\b(info|information)\:</string>
+				<key>name</key>
+
+				<string>markup.inserted</string>
+			</dict>
+
+
+			<!-- Serilog INFO -->
+			<dict>
+				<key>match</key>
+				<string>(?i)\[(information|info|inf|in|i)\]</string>
+
+				<key>name</key>
+				<string>markup.inserted</string>
+			</dict>
+
+			<!-- WARN -->
+			<dict>
+				<key>match</key>
+				<string>\b(WARNING|WARN)\b|(?i)\b(warning)\:</string>
+				<key>name</key>
+				<string>markup.deleted</string>
+			</dict>
+
+			<!-- Serilog WARN -->
+			<dict>
+				<key>match</key>
+				<string>(?i)\[(warning|warn|wrn|wn|w)\]</string>
+
+				<key>name</key>
+				<string>markup.deleted</string>
+			</dict>
+
+			<!-- ERROR -->
+			<dict>
+				<key>match</key>
+				<string>\b(ERROR|FAILURE|FAIL)\b|(?i)\b(error)\:</string>
+
+				<key>name</key>
+				<string>string.regexp, strong</string>
+			</dict>
+
+			<!-- Serilog ERROR -->
+			<dict>
+				<key>match</key>
+				<string>(?i)\[(error|eror|err|er|e|fatal|fatl|ftl|fa|f)\]</string>
+
+				<key>name</key>
+				<string>string.regexp, strong</string>
+			</dict>
+
+			<!-- ISO dates ("2016-08-23") -->
+			<dict>
+				<key>match</key>
+				<string>\b\d{4}-\d{2}-\d{2}(T|\b)</string>
+				<key>name</key>
+				<string>comment</string>
+			</dict>
+
+			<dict>
+				<key>match</key>
+				<string>\[.*?\] </string>
+				<key>name</key>
+				<string>string.key, emphasis</string>
+			</dict>
+
+			<!-- Culture specific dates ("23/08/2016", "23.08.2016") -->
+			<dict>
+				<key>match</key>
+				<string>\b\d{2}[^\w\s]\d{2}[^\w\s]\d{4}\b</string>
+				<key>name</key>
+				<string>comment</string>
+			</dict>
+
+			<!-- Clock times with optional timezone ("09:13:16", "09:13:16.323", "09:13:16+01:00") -->
+			<dict>
+				<key>match</key>
+				<string>\d{2}:\d{2}(:\d{2}([.,]\d{3})?)?(Z| ?[+-]\d{2}:\d{2})?\b</string>
+				<key>name</key>
+				<string>comment</string>
+			</dict>
+
+			<!-- Guids -->
+			<dict>
+				<key>match</key>
+				<string>[0-9a-fA-F]{8}[-]?([0-9a-fA-F]{4}[-]?){3}[0-9a-fA-F]{12}</string>
+				<key>name</key>
+				<string>constant.language</string>
+			</dict>
+
+			<!-- Constants -->
+			<dict>
+				<key>match</key>
+				<string>\b([0-9]+|true|false|null)\b</string>
+				<key>name</key>
+				<string>constant.language</string>
+			</dict>
+            
+			<dict>
+				<key>match</key>
+				<string>\[Template\:.*?\:\$</string>
+				<key>name</key>
+				<string>constant.language</string>
+			</dict>
+
+			<!-- String constants -->
+			<dict>
+				<key>match</key>
+				<string>"[^"]*"</string>
+				<key>name</key>
+				<string>string</string>
+			</dict>
+	
+			<dict>
+				<key>match</key>
+				<string>'[^']*'</string>
+				<key>name</key>
+				<string>string</string>
+			</dict>
+
+			<!-- Exception type names -->
+			<dict>
+				<key>match</key>
+				<string>\b([a-zA-Z.]*Exception)\b</string>
+				<key>name</key>
+				<string>string.regexp, emphasis</string>
+			</dict>
+			
+			<!-- Colorize rows of exception call stacks -->
+			<dict>
+				<key>begin</key>
+				<string>^[\t ]*at</string>
+				<key>end</key>
+				<string>$</string>
+				<key>name</key>
+				<string>string.key, emphasis</string>
+			</dict>
+
+			<!-- Match Urls -->
+			<dict>
+				<key>match</key>
+				<string>\b(http|https|ftp|file)://\S+\b</string>
+				<key>name</key>
+
+				<string>constant.language</string>
+			</dict>
+
+
+			<!-- Match character and . sequences (such as namespaces) -->
+			<dict>
+				<key>match</key>
+				<string>\b([\w]+\.)+(\w)+\b</string>
+				<key>name</key>
+
+				<string>constant.language</string>
+			</dict>
+		</array>
+		
+		<key>uuid</key>
+		<string>E81BB6AB-CAC7-4C27-9A79-4137A4693EBD</string>
+	</dict>
+</plist>
