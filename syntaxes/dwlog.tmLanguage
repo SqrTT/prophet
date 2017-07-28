@@ -208,6 +208,13 @@
 				<key>name</key>
 				<string>comment</string>
 			</dict>
+			<dict>
+				<key>match</key>
+				<string>^.*?((: )|=)</string>
+				<key>name</key>
+				<string>constant.language</string>
+			</dict>
+
 		</array>
 		
 		<key>uuid</key>
