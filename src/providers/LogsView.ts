@@ -32,15 +32,17 @@ function parseResponse(data: string): LogStatus[] {
 
 		if (name) {
 			var href = getNodeText(response.getElementsByTagName('href'));
-			var lastmodified = getNodeText(response.getElementsByTagName('getlastmodified'));
-			var contentlength = getNodeText(response.getElementsByTagName('getcontentlength'));
+			if (href && href.endsWith('.log')) {
+				var lastmodified = getNodeText(response.getElementsByTagName('getlastmodified'));
+				var contentlength = getNodeText(response.getElementsByTagName('getcontentlength'));
 
-			logStatus.push(new LogStatus(
-				name.replace(/-blade\d{0,2}-\d{0,2}-appserver/ig, ''),
-				new Date(String(lastmodified)),
-				String(href),
-				Number(contentlength))
-			);
+				logStatus.push(new LogStatus(
+					name.replace(/-blade\d{0,2}-\d{0,2}-appserver/ig, ''),
+					new Date(String(lastmodified)),
+					String(href),
+					Number(contentlength))
+				);
+			}
 		}
 	}
 	return logStatus;
