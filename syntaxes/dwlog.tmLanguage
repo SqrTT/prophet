@@ -195,6 +195,19 @@
 
 				<string>constant.language</string>
 			</dict>
+			<dict>
+				<key>match</key>
+				<string>\|\w+?-\w+?\|</string>
+				<key>name</key>
+				<string>string.regexp, emphasis</string>
+			</dict>
+			
+			<dict>
+				<key>match</key>
+				<string>Sites-.*?-Site</string>
+				<key>name</key>
+				<string>comment</string>
+			</dict>
 		</array>
 		
 		<key>uuid</key>
