@@ -52,13 +52,14 @@ export function format(document: TextDocument, range: Range, options: HTMLFormat
 	} else {
 		range = Range.create(Position.create(0, 0), document.positionAt(value.length));
 	}
+	
 	let htmlOptions: IBeautifyHTMLOptions = {
 		indent_size: options.insertSpaces ? options.tabSize : 1,
 		indent_char: options.insertSpaces ? ' ' : '\t',
 		indent_level: initialIndentLevel,
 		wrap_line_length: getFormatOption(options, 'wrapLineLength', 160),
 		unformatted: getTagsFormatOption(options, 'unformatted', []),
-		content_unformatted: getTagsFormatOption(options, 'contentUnformatted', ['iscomment', 'isscript', 'pre']),
+		content_unformatted: getTagsFormatOption(options, 'contentUnformatted', []),
 		indent_inner_html: getFormatOption(options, 'indentInnerHtml', false),
 		preserve_newlines: getFormatOption(options, 'preserveNewLines', true),
 		max_preserve_newlines: getFormatOption(options, 'maxPreserveNewLines', 32786),
@@ -68,6 +69,16 @@ export function format(document: TextDocument, range: Range, options: HTMLFormat
 		wrap_attributes: getFormatOption(options, 'wrapAttributes', 'force'),
 		eol: '\n'
 	};
+	['iscomment', 'isscript', 'pre', 'script'].forEach(key => {
+		if (htmlOptions.content_unformatted && !htmlOptions.content_unformatted.includes(key)) {
+			htmlOptions.content_unformatted.push(key);
+		}
+	});
+	['iselse'].forEach(key => {
+		if (htmlOptions.unformatted && !htmlOptions.unformatted.includes(key)) {
+			htmlOptions.unformatted.push(key);
+		}
+	});
 
 	let result = html_beautify(value, htmlOptions);
 	if (initialIndentLevel > 0 && range.start.character === 0) {

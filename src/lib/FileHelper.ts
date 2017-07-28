@@ -27,12 +27,10 @@ export function getFiles(srcpath): Promise<string[]> {
     });
 }
 
-export function pathExists(p: string): boolean {
-    try {
-        fs.accessSync(p);
-    } catch (err) {
-        return false;
-    }
-
-    return true;
+export function pathExists(p: string): Promise<boolean> {
+    return new Promise(reslove => {
+        fs.access(p, error => {
+            reslove(!error);
+        })
+    });
 }

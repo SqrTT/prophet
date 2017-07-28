@@ -1,7 +1,7 @@
 {
     "name": "prophet",
     "displayName": "Prophet Debugger",
-    "version": "0.7.2",
+    "version": "0.9.0",
     "publisher": "SqrTT",
     "description": "Debugger and Uploader for Demandware/Salesforce sandbox",
     "author": {
@@ -39,6 +39,7 @@
         "vscode-nls": "^2.0.2",
         "vscode-uri": "^1.0.1",
         "walk": "^2.3.9",
+        "xmldom": "^0.1.27",
         "yazl": "^2.4.2"
     },
     "devDependencies": {
@@ -67,7 +68,12 @@
             "explorer": [
                 {
                     "id": "cartridgesView",
-                    "name": "Cartridges"
+                    "name": "Cartridges",
+                    "when": "config.extension.prophet.cartridges.view.enabled"
+                },
+                {
+                    "id": "dwLogsView",
+                    "name": "Logs"
                 }
             ]
         },
@@ -92,6 +98,10 @@
                 {
                     "command": "extension.prophet.command.create.cartridge",
                     "when": "view == cartridgesView"
+                },
+                {
+                    "command": "extension.prophet.command.refresh.logview",
+                    "when": "view == dwLogsView"
                 }
             ]
         },
@@ -120,6 +130,11 @@
                 "command": "extension.prophet.command.create.cartridge",
                 "title": "Create cartridge",
                 "description": "Create cartridge"
+            },
+            {
+                "command": "extension.prophet.command.refresh.logview",
+                "title": "Refresh",
+                "description": "Refresh log view"
             }
         ],
         "jsonValidation": [
@@ -155,6 +170,15 @@
                     ".ds"
                 ],
                 "configuration": "./syntaxes/dwscript.configuration.json"
+            },
+            {
+                "id": "dwlog",
+                "aliases": [
+                    "DW Log File"
+                ],
+                "extensions": [
+                    ".log"
+                ]
             }
         ],
         "grammars": [
@@ -175,6 +199,11 @@
                 "embeddedLanguages": {
                     "source.js": "javascript"
                 }
+            },
+            {
+                "language": "dwlog",
+                "scopeName": "text.log",
+                "path": "./syntaxes/dwlog.tmLanguage"
             }
         ],
         "breakpoints": [
@@ -279,6 +308,11 @@
                     "type": "string",
                     "default": "",
                     "description": "List of cartridges separated by colon. (app_storefront_controllers:app_storefront_core:bc_library)"
+                },
+                "extension.prophet.cartridges.view.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable/Disable cartridges view"
                 }
             }
         }
