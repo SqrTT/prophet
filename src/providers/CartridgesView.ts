@@ -1,7 +1,7 @@
 'use strict';
 import {TreeItemCollapsibleState, EventEmitter, TreeDataProvider, Event, window, TreeItem, Uri, Command} from 'vscode';
 import { exists, readFile } from 'fs';
-import { dirname, sep, join, extname } from 'path';
+import { dirname, join, extname, basename } from 'path';
 import * as glob from 'glob';
 import { getDirectories, getFiles, pathExists } from '../lib/FileHelper';
 
@@ -20,7 +20,7 @@ const checkIfCartridge = (projectFile: string): Promise<boolean> => {
 const toCardridge = (projectFile: string): Promise<CartridgeItem> => {
 	return new Promise((resolve, reject) => {
 		let projectFileDirectory = dirname(projectFile);
-		const projectName = projectFileDirectory.split(sep).pop();
+		const projectName = basename(projectFileDirectory);
 
 		let subFolder = ''
 		exists(join(projectFileDirectory, 'cartridge'), (exists) => {
@@ -82,9 +82,9 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
 		if (files.length || directories.length) {
 			const toFileElement = (fileName: string): CartridgeItem => {
 				return new CartridgeItem(fileName, 'cartridge-item-file', join(element.location, fileName), TreeItemCollapsibleState.None, {
-					command: 'open',
+					command: 'vscode.open',
 					title: 'Open file',
-					arguments: [Uri.parse('file://' + join(element.location, fileName))],
+					arguments: [Uri.file(join(element.location, fileName))],
 				});
 			}
 

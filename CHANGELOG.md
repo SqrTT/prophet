@@ -1,3 +1,7 @@
+### 0.9.0
+
+* Added log viewer
+
 ### 0.8.0
 
 * Added cartridges overview in explorer. Thanks to [Thomas Theunen](https://github.com/taurgis) Can be enabled/disabled by `extension.prophet.cartridges.view.enabled` (enabled by default)
