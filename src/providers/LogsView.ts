@@ -30,7 +30,7 @@ function parseResponse(data: string): LogStatus[] {
 
 		var name = getNodeText(response.getElementsByTagName('displayname'));
 
-		if (name) {
+		if (name && name.endsWith('.log')) {
 			var href = getNodeText(response.getElementsByTagName('href'));
 			var lastmodified = getNodeText(response.getElementsByTagName('getlastmodified'));
 			var contentlength = getNodeText(response.getElementsByTagName('getcontentlength'));
@@ -163,13 +163,6 @@ class LogItem extends TreeItem {
 		].find(t => name.includes(t)) || '';
 
 		this.iconPath = join(__filename, '..', '..', '..', 'images', 'resources', iconType + '.svg');
-
-		if (this.type === 'cartridge-item-file') {
-			this.contextValue = 'file';
-		} else if (this.type === 'cartridge-item-folder') {
-			this.contextValue = 'folder';
-		} else {
-			this.contextValue = 'cartridge';
-		}
+		this.contextValue = 'dwLogFile';
 	}
 }
