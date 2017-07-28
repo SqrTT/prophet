@@ -84,7 +84,7 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
 				return new CartridgeItem(fileName, 'cartridge-item-file', join(element.location, fileName), TreeItemCollapsibleState.None, {
 					command: 'vscode.open',
 					title: 'Open file',
-					arguments: [Uri.parse('file://' + join(element.location, fileName))],
+					arguments: [Uri.file(join(element.location, fileName))],
 				});
 			}
 
