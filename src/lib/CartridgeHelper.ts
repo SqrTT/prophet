@@ -1,44 +1,58 @@
 'use strict';
 import { TreeItemCollapsibleState } from 'vscode';
-import { exists, readFile, existsSync, mkdirSync, writeFile, mkdir,  } from 'fs';
+import { exists, readFile, existsSync, mkdirSync, writeFile, mkdir, } from 'fs';
 import { dirname, join, basename, sep } from 'path';
-import CartridgeItem from './CartridgeItem';
+import { CartridgeItem, CartridgeItemType } from './CartridgeItem';
 
+/**
+ * Checks whether or not an Eclipse project file is a Salesforce project.
+ * @param projectFile The absolute path to the file location of the Eclipse project file.
+ */
 export const checkIfCartridge = (projectFile: string): Promise<boolean> => {
     return new Promise((resolve, reject) => {
         readFile(projectFile, 'UTF-8', (err, data) => {
             if (err) {
-                reject(err)
+                reject(err);
             } else {
-                // Check the file for demandware package (since the file is not that big no need for a DOM parser) 
+                // Check the file for demandware package (since the file is not that big no need for a DOM parser)
                 resolve(data.includes('com.demandware.studio.core.beehiveNature'));
             }
         });
     });
 };
 
+/**
+ * Creates a CartridgeItem based on the project file.
+ * @param projectFile The absolute path to the file location of the Eclipse project file.
+ * @param activeFile The active file in the current workspace.
+ */
 export const toCardridge = (projectFile: string, activeFile?: string): Promise<CartridgeItem> => {
     return new Promise((resolve, reject) => {
-        let projectFileDirectory = dirname(projectFile);
+        const projectFileDirectory = dirname(projectFile);
         const projectName = basename(projectFileDirectory);
 
-        let subFolder = ''
-        exists(join(projectFileDirectory, 'cartridge'), (exists) => {
-            if (exists) {
+        let subFolder = '';
+        exists(join(projectFileDirectory, 'cartridge'), (existsDirectory) => {
+            if (existsDirectory) {
                 subFolder = 'cartridge';
             }
 
-            let actualCartridgeLocation = join(projectFileDirectory, subFolder);
+            const actualCartridgeLocation = join(projectFileDirectory, subFolder);
 
             resolve(new CartridgeItem(
-                projectName || 'Unknown project name', 'cartridge',
+                projectName || 'Unknown project name', CartridgeItemType.Cartridge,
                 actualCartridgeLocation,
                 (activeFile && activeFile.startsWith(actualCartridgeLocation))
                     ? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.Collapsed));
-        })
+        });
     });
-}
+};
 
+/**
+ * A helper class to create cartridges.
+ *
+ * Note: This is currently a class to make it extensible, could be usefull to do things to a newly created cartridge.
+ */
 export class CartridgeCreator {
     constructor(private workspaceRoot: string) {
 
@@ -52,7 +66,7 @@ export class CartridgeCreator {
     }
 
     createMainDirectory(name, directory) {
-        let pathToCreate = join(this.workspaceRoot, directory, name);
+        const pathToCreate = join(this.workspaceRoot, directory, name);
 
         pathToCreate
             .split(sep)
@@ -66,7 +80,7 @@ export class CartridgeCreator {
     }
 
     createCartridgeDirectories(name, directory) {
-        let directoriesToCreate = ['controllers', 'forms', 'pipelines', 'scripts', 'static', 'templates', 'webreferences', 'webreferences2'];
+        const directoriesToCreate = ['controllers', 'forms', 'pipelines', 'scripts', 'static', 'templates', 'webreferences', 'webreferences2'];
 
         mkdir(join(this.workspaceRoot, directory, name, 'cartridge'));
         for (let i = 0; i < directoriesToCreate.length; i++) {
@@ -77,7 +91,7 @@ export class CartridgeCreator {
 
     createProjectFiles(name, directory) {
         writeFile(join(this.workspaceRoot, directory, name, '.project'),
-            `<?xml version="1.0" encoding="UTF-8"?>
+            `<?xml version='1.0' encoding='UTF-8'?>
 <projectDescription>
     <name>${name}</name>
     <comment></comment>
@@ -96,34 +110,31 @@ export class CartridgeCreator {
 </projectDescription>
 `           , function (err) {
                 if (err) {
-                    return console.log(err);
+                    return err;
                 }
             });
 
         writeFile(join(this.workspaceRoot, directory, name, '.tern-project'),
             `{
-    "ecmaVersion": 5,
-    "plugins": {
-        "guess-types": {
-        
+    'ecmaVersion': 5,
+    'plugins': {
+        'guess-types': {
         },
-        "outline": {
-        
+        'outline': {
         },
-        "demandware": {
-        
+        'demandware': {
         }
     }
 }'
 `      , function (err) {
                 if (err) {
-                    return console.log(err);
+                    return err;
                 }
             });
     }
 
     createPropertiesFile(name, directory) {
-        var day = {
+        const day = {
             1: 'Mon',
             2: 'Tue',
             3: 'Wed',
@@ -133,23 +144,23 @@ export class CartridgeCreator {
             7: 'Sun'
         };
 
-        var month = {
-            1: "Jan",
-            2: "Feb",
-            3: "Mar",
-            4: "Apr",
-            5: "May",
-            6: "Jun",
-            7: "Jul",
-            8: "Aug",
-            9: "Sep",
-            10: "Oct",
-            11: "Nov",
-            12: "Dec",
+        const month = {
+            1: 'Jan',
+            2: 'Feb',
+            3: 'Mar',
+            4: 'Apr',
+            5: 'May',
+            6: 'Jun',
+            7: 'Jul',
+            8: 'Aug',
+            9: 'Sep',
+            10: 'Oct',
+            11: 'Nov',
+            12: 'Dec',
         };
 
-        let currentDateTime = new Date();
-        let timeString = day[currentDateTime.getDay()] + ' '
+        const currentDateTime = new Date();
+        const timeString = day[currentDateTime.getDay()] + ' '
             + month[currentDateTime.getMonth()] + ' '
             + currentDateTime.getDate() + ' '
             + currentDateTime.getHours() + ':'
@@ -163,9 +174,8 @@ demandware.cartridges.${name}.multipleLanguageStorefront=true
 demandware.cartridges.${name}.id=${name}`
             , function (err) {
                 if (err) {
-                    return console.log(err);
+                    return err;
                 }
             });
     }
-}
-
+};

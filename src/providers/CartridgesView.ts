@@ -6,14 +6,14 @@ import * as glob from 'glob';
 
 import { getDirectories, getFiles, pathExists } from '../lib/FileHelper';
 import { checkIfCartridge, toCardridge } from '../lib/CartridgeHelper';
-import CartridgeItem from '../lib/CartridgeItem';
+import { CartridgeItem, CartridgeItemType } from '../lib/CartridgeItem';
 
 
 const toFolderElement = (directory: string, element: CartridgeItem, activeFile?: string): CartridgeItem => {
 	let actualFolderLocation = join(element.location, directory);
 	return new CartridgeItem(
 		directory,
-		'cartridge-item-folder',
+		CartridgeItemType.Folder,
 		actualFolderLocation,
 		(activeFile && activeFile.startsWith(actualFolderLocation))
 			? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.Collapsed);
@@ -74,7 +74,7 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
 
 		if (files.length || directories.length) {
 			const toFileElement = (fileName: string): CartridgeItem => {
-				return new CartridgeItem(fileName, 'cartridge-item-file', join(element.location, fileName), TreeItemCollapsibleState.None, {
+				return new CartridgeItem(fileName, CartridgeItemType.File, join(element.location, fileName), TreeItemCollapsibleState.None, {
 					command: 'vscode.open',
 					title: 'Open file',
 					arguments: [Uri.file(join(element.location, fileName))],
@@ -85,7 +85,7 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
 			return directories.map(function (dir) { return toFolderElement(dir, element, activeFile); }).concat(files.map(toFileElement));
 		}
 
-		return [new CartridgeItem('No files', 'cartridge-file', '', TreeItemCollapsibleState.None)];
+		return [new CartridgeItem('No files', CartridgeItemType.File, '', TreeItemCollapsibleState.None)];
 	}
 
 
@@ -118,7 +118,7 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
 							});
 							return projectFiles.filter(checkIfCartridge).map(function (projectFile) { return toCardridge(projectFile, activeFile) });
 						} else {
-							resolve([new CartridgeItem('No cartridges found in this workspace.', 'cartridge', this.workspaceRoot, TreeItemCollapsibleState.None)]);
+							resolve([new CartridgeItem('No cartridges found in this workspace.', CartridgeItemType.Cartridge, this.workspaceRoot, TreeItemCollapsibleState.None)]);
 						}
 					});
 
