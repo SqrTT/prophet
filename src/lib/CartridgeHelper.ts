@@ -80,7 +80,14 @@ export class CartridgeCreator {
     }
 
     createCartridgeDirectories(name, directory) {
-        const directoriesToCreate = ['controllers', 'forms', 'pipelines', 'scripts', 'static', 'templates', 'webreferences', 'webreferences2'];
+        const directoriesToCreate = ['controllers',
+            'forms',
+            'pipelines',
+            'scripts',
+            'static',
+            'templates',
+            'webreferences',
+            'webreferences2'];
 
         mkdir(join(this.workspaceRoot, directory, name, 'cartridge'));
         for (let i = 0; i < directoriesToCreate.length; i++) {

@@ -7,7 +7,7 @@ import { join, extname } from 'path';
  * @prop {string} name The display name of the TreeItem (shown to the end-user)
  * @prop {CartridgeItemType} type The CartridgeItem type
  * @prop {string} location The absolute location of the folder/file
- * @prop {TreeItemCollapsibleState} collapsibleState Whether or not the TreeItem is collapseable and if its expanded orn not.
+ * @prop {TreeItemCollapsibleState} collapsibleState Whether or not the TreeItem is collapseable and if its expanded.
  * @prop {Command} command The command to execute when the TreeItem is clicked
  */
 export class CartridgeItem extends TreeItem {
