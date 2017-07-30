@@ -18,7 +18,7 @@ const toFolderElement = (directory: string, element: CartridgeItem, activeFile?:
     const actualFolderLocation = join(element.location, directory);
     return new CartridgeItem(
         directory,
-        CartridgeItemType.Folder,
+        CartridgeItemType.Directory,
         actualFolderLocation,
         (activeFile && activeFile.startsWith(actualFolderLocation))
             ? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.Collapsed);

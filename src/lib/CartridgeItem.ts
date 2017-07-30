@@ -25,17 +25,15 @@ export class CartridgeItem extends TreeItem {
         this.location = location;
         this.type = type;
 
+        if (this.type) {
+            this.contextValue = this.type;
+        }
+
         if (this.type === CartridgeItemType.File) {
             this.fileExtension = extname(this.name).replace('.', '');
             this.iconPath = join(__filename, '..', '..', '..', 'images', 'resources', this.fileExtension + '.svg');
-            this.contextValue = 'file';
-        } else if (this.type === CartridgeItemType.Folder) {
-            this.contextValue = 'folder';
         } else if (this.type === CartridgeItemType.Cartridge) {
-            this.contextValue = 'cartridge';
             this.iconPath = join(__filename, '..', '..', '..', 'images', 'resources', 'cartridge.svg');
-        } else {
-            this.contextValue = 'uknown';
         }
     }
 }
@@ -47,11 +45,11 @@ export enum CartridgeItemType {
     /**
      * The CartridgeItem is a file of a cartridge
      */
-    File = 'cartridge-item-file',
+    File = 'cartridgeFile',
     /**
-     * The CartridgeItem is a subfolder of a cartridge
+     * The CartridgeItem is a subdirectory of a cartridge
      */
-    Folder = 'cartridge-item-folder',
+    Directory = 'cartridgeDirectory',
     /**
      * The CartridgeItem is a cartridge folder (project folder)
      */

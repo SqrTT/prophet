@@ -103,6 +103,16 @@
                     "command": "extension.prophet.command.refresh.logview",
                     "when": "view == dwLogsView"
                 }
+            ],
+            "view/item/context": [
+                {
+                    "command": "extension.prophet.command.create.folder",
+                    "when": "viewItem == cartridgeDirectory"
+                },
+                {
+                    "command": "extension.prophet.command.create.file",
+                    "when": "viewItem == cartridgeDirectory"
+                }
             ]
         },
         "commands": [
@@ -130,6 +140,16 @@
                 "command": "extension.prophet.command.create.cartridge",
                 "title": "Create cartridge",
                 "description": "Create cartridge"
+            },
+            {
+                "command": "extension.prophet.command.create.folder",
+                "title": "New folder",
+                "description": "New folder"
+            },
+            {
+                "command": "extension.prophet.command.create.file",
+                "title": "New file",
+                "description": "New file"
             },
             {
                 "command": "extension.prophet.command.refresh.logview",
