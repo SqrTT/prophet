@@ -178,4 +178,4 @@ demandware.cartridges.${name}.id=${name}`
                 }
             });
     }
-};
+}
