@@ -6,7 +6,7 @@ import { workspace, Disposable, ExtensionContext, commands, window, Uri, OutputC
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
 import { CartridgesView } from "./providers/CartridgesView";
 import { LogsView } from "./providers/LogsView";
-import { CartridgeHelper } from "./lib/CartridgeHelper";
+import { CartridgeCreator } from "./lib/CartridgeHelper";
 import { existsSync } from 'fs';
 import { createServer } from "http";
 import * as glob from 'glob';
@@ -31,8 +31,8 @@ const initialConfigurations = {
 
 var uploaderSubscription;
 var outputChannel: OutputChannel;
-var cartridgesView : CartridgesView | undefined;
-var logsView : LogsView | undefined;
+var cartridgesView: CartridgesView | undefined;
+var logsView: LogsView | undefined;
 
 export function activate(context: ExtensionContext) {
 	const configuration = workspace.getConfiguration('extension.prophet');
@@ -210,7 +210,7 @@ export function activate(context: ExtensionContext) {
 
 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.refresh.cartridges', () => {
 			if (cartridgesView)
-				cartridgesView.refresh();
+				cartridgesView.refresh((window.activeTextEditor) ? window.activeTextEditor.document.fileName : undefined);
 		}));
 
 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.create.cartridge', () => {
@@ -229,10 +229,10 @@ export function activate(context: ExtensionContext) {
 					if (!value) return;
 					if (!folderValue) { folderValue = ''; }
 
-					new CartridgeHelper(rootPath).createCartridge(value.trim().replace(' ', '_'), folderValue.trim());
+					new CartridgeCreator(rootPath).createCartridge(value.trim().replace(' ', '_'), folderValue.trim());
 
 					if (cartridgesView)
-						cartridgesView.refresh();
+						cartridgesView.refresh((window.activeTextEditor) ? window.activeTextEditor.document.fileName : undefined);
 
 					if (isUploadEnabled) {
 						loadUploaderConfig(rootPath, context);
@@ -251,7 +251,7 @@ export function activate(context: ExtensionContext) {
 		}
 
 		// add views
-		cartridgesView = new CartridgesView(rootPath);
+		cartridgesView = new CartridgesView(rootPath, (window.activeTextEditor) ? window.activeTextEditor.document.fileName : undefined);
 
 		context.subscriptions.push(
 			window.registerTreeDataProvider("cartridgesView", cartridgesView)
@@ -259,7 +259,7 @@ export function activate(context: ExtensionContext) {
 	}
 }
 
-function loadUploaderConfig(rootPath : string, context : ExtensionContext) {
+function loadUploaderConfig(rootPath: string, context: ExtensionContext) {
 	if (uploaderSubscription) {
 		uploaderSubscription.unsubscribe();
 		uploaderSubscription = null;
@@ -286,37 +286,37 @@ function loadUploaderConfig(rootPath : string, context : ExtensionContext) {
 
 					subscribtion = uploadServer.init(configFilename, outputChannel)
 						.subscribe(
-							() => {
-								// reset counter to zero if success
-							},
-							err => {
-								observer.error(err)
-							},
-							() => {
-								observer.complete();
-							}
+						() => {
+							// reset counter to zero if success
+						},
+						err => {
+							observer.error(err)
+						},
+						() => {
+							observer.complete();
+						}
 						);
 
-						if (!logsView) {
-							uploadServer.readConfigFile(configFilename).flatMap(config => {
-								return uploadServer.getWebDavClient(config, outputChannel, rootPath)
-							}).subscribe(webdav => {
-								logsView = new LogsView(webdav);
-								context.subscriptions.push(
-									window.registerTreeDataProvider("dwLogsView", logsView)
-								);
-								//
-								context.subscriptions.push(commands.registerCommand('extension.prophet.command.refresh.logview', () => {
-									if (logsView)
-										logsView.refresh();
-								}));
-								//
-								context.subscriptions.push(commands.registerCommand('extension.prophet.command.log.open', (filename) => {
-									if (logsView)
-										logsView.openLog(filename);
-								}));
-							})
-						}
+					if (!logsView) {
+						uploadServer.readConfigFile(configFilename).flatMap(config => {
+							return uploadServer.getWebDavClient(config, outputChannel, rootPath)
+						}).subscribe(webdav => {
+							logsView = new LogsView(webdav);
+							context.subscriptions.push(
+								window.registerTreeDataProvider("dwLogsView", logsView)
+							);
+							//
+							context.subscriptions.push(commands.registerCommand('extension.prophet.command.refresh.logview', () => {
+								if (logsView)
+									logsView.refresh();
+							}));
+							//
+							context.subscriptions.push(commands.registerCommand('extension.prophet.command.log.open', (filename) => {
+								if (logsView)
+									logsView.openLog(filename);
+							}));
+						})
+					}
 				});
 
 			} else {
@@ -332,7 +332,7 @@ function loadUploaderConfig(rootPath : string, context : ExtensionContext) {
 			outputChannel.show();
 			outputChannel.appendLine(`Error: ${err}`);
 		}
-	);
+		);
 }
 
 export function deactivate() {

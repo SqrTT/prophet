@@ -1,8 +1,45 @@
 'use strict';
-import * as fs from 'fs';
-import * as path from 'path';
+import { TreeItemCollapsibleState } from 'vscode';
+import { exists, readFile, existsSync, mkdirSync, writeFile, mkdir,  } from 'fs';
+import { dirname, join, basename, sep } from 'path';
+import CartridgeItem from './CartridgeItem';
 
-export class CartridgeHelper {
+export const checkIfCartridge = (projectFile: string): Promise<boolean> => {
+    return new Promise((resolve, reject) => {
+        readFile(projectFile, 'UTF-8', (err, data) => {
+            if (err) {
+                reject(err)
+            } else {
+                // Check the file for demandware package (since the file is not that big no need for a DOM parser) 
+                resolve(data.includes('com.demandware.studio.core.beehiveNature'));
+            }
+        });
+    });
+};
+
+export const toCardridge = (projectFile: string, activeFile?: string): Promise<CartridgeItem> => {
+    return new Promise((resolve, reject) => {
+        let projectFileDirectory = dirname(projectFile);
+        const projectName = basename(projectFileDirectory);
+
+        let subFolder = ''
+        exists(join(projectFileDirectory, 'cartridge'), (exists) => {
+            if (exists) {
+                subFolder = 'cartridge';
+            }
+
+            let actualCartridgeLocation = join(projectFileDirectory, subFolder);
+
+            resolve(new CartridgeItem(
+                projectName || 'Unknown project name', 'cartridge',
+                actualCartridgeLocation,
+                (activeFile && activeFile.startsWith(actualCartridgeLocation))
+                    ? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.Collapsed));
+        })
+    });
+}
+
+export class CartridgeCreator {
     constructor(private workspaceRoot: string) {
 
     }
@@ -15,14 +52,14 @@ export class CartridgeHelper {
     }
 
     createMainDirectory(name, directory) {
-        let pathToCreate = path.join(this.workspaceRoot, directory, name);
+        let pathToCreate = join(this.workspaceRoot, directory, name);
 
         pathToCreate
-            .split(path.sep)
+            .split(sep)
             .reduce((currentPath, folder) => {
-                currentPath += folder + path.sep;
-                if (!fs.existsSync(currentPath)) {
-                    fs.mkdirSync(currentPath);
+                currentPath += folder + sep;
+                if (!existsSync(currentPath)) {
+                    mkdirSync(currentPath);
                 }
                 return currentPath;
             }, '');
@@ -31,15 +68,15 @@ export class CartridgeHelper {
     createCartridgeDirectories(name, directory) {
         let directoriesToCreate = ['controllers', 'forms', 'pipelines', 'scripts', 'static', 'templates', 'webreferences', 'webreferences2'];
 
-        fs.mkdir(path.join(this.workspaceRoot, directory, name, 'cartridge'));
+        mkdir(join(this.workspaceRoot, directory, name, 'cartridge'));
         for (let i = 0; i < directoriesToCreate.length; i++) {
-            fs.mkdir(path.join(this.workspaceRoot, directory, name, 'cartridge', directoriesToCreate[i]));
+            mkdir(join(this.workspaceRoot, directory, name, 'cartridge', directoriesToCreate[i]));
         }
 
     }
 
     createProjectFiles(name, directory) {
-        fs.writeFile(path.join(this.workspaceRoot, directory, name, '.project'),
+        writeFile(join(this.workspaceRoot, directory, name, '.project'),
             `<?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
     <name>${name}</name>
@@ -63,7 +100,7 @@ export class CartridgeHelper {
                 }
             });
 
-        fs.writeFile(path.join(this.workspaceRoot, directory, name, '.tern-project'),
+        writeFile(join(this.workspaceRoot, directory, name, '.tern-project'),
             `{
     "ecmaVersion": 5,
     "plugins": {
@@ -119,7 +156,7 @@ export class CartridgeHelper {
             + currentDateTime.getMinutes() + ':'
             + currentDateTime.getSeconds() + ' CEST ' + currentDateTime.getFullYear();
 
-        fs.writeFile(path.join(this.workspaceRoot, directory, name, 'cartridge', name + '.properties'),
+        writeFile(join(this.workspaceRoot, directory, name, 'cartridge', name + '.properties'),
             `## cartridge.properties for cartridge ${name}
 #${timeString}
 demandware.cartridges.${name}.multipleLanguageStorefront=true
@@ -131,3 +168,4 @@ demandware.cartridges.${name}.id=${name}`
             });
     }
 }
+

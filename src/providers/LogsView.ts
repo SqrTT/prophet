@@ -160,7 +160,7 @@ class LogItem extends TreeItem {
 			'warn',
 			'info',
 			'debug'
-		].find(t => name.includes(t)) || '';
+		].find(t => name.includes(t)) || 'log';
 
 		this.iconPath = join(__filename, '..', '..', '..', 'images', 'resources', iconType + '.svg');
 		this.contextValue = 'dwLogFile';
