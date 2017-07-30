@@ -8,6 +8,12 @@ import { getDirectories, getFiles, pathExists } from '../lib/FileHelper';
 import { checkIfCartridge, toCardridge } from '../lib/CartridgeHelper';
 import { CartridgeItem, CartridgeItemType } from '../lib/CartridgeItem';
 
+/**
+ * Creates a folder CartridgeItem.
+ * @param {string} directory The directory name
+ * @param {CartridgeItem} element  The parent element
+ * @param {string} activeFile The path to the currently active file in the workspace
+ */
 const toFolderElement = (directory: string, element: CartridgeItem, activeFile?: string): CartridgeItem => {
     const actualFolderLocation = join(element.location, directory);
     return new CartridgeItem(
@@ -16,6 +22,22 @@ const toFolderElement = (directory: string, element: CartridgeItem, activeFile?:
         actualFolderLocation,
         (activeFile && activeFile.startsWith(actualFolderLocation))
             ? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.Collapsed);
+};
+
+/**
+ * Creates a file CartridgeItem
+ * @param {string} fileName The file name
+ * @param {CartridgeItem} element The parent element
+ */
+const toFileElement = (fileName: string, element: CartridgeItem): CartridgeItem => {
+    return new CartridgeItem(fileName,
+        CartridgeItemType.File,
+        join(element.location, fileName),
+        TreeItemCollapsibleState.None, {
+            command: 'vscode.open',
+            title: 'Open file',
+            arguments: [Uri.file(join(element.location, fileName))],
+        });
 };
 
 function filterAsync<T>(array: T[], filter) {
@@ -78,29 +100,33 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
         });
     }
 
+    /**
+     * Fetches all folders and files that are children of the passed element. This function can be used recursively.
+     * @param {CartridgeItem} element The parent element
+     */
     private async getCartridgeItemFilesOrFolders(element: CartridgeItem): Promise<CartridgeItem[]> {
         const files = await getFiles(element.location);
         const directories = await getDirectories(element.location);
         const activeFile = this.activeFile;
 
         if (files.length || directories.length) {
-            const toFileElement = (fileName: string): CartridgeItem => {
-                return new CartridgeItem(fileName,
-                    CartridgeItemType.File,
-                    join(element.location, fileName),
-                    TreeItemCollapsibleState.None, {
-                        command: 'vscode.open',
-                        title: 'Open file',
-                        arguments: [Uri.file(join(element.location, fileName))],
-                    });
-            };
-
-            return directories.map(function (dir) { return toFolderElement(dir, element, activeFile); }).concat(files.map(toFileElement));
+            return directories.map(
+                function (dir) {
+                    return toFolderElement(dir, element, activeFile);
+                }).concat(files.map(
+                    function (file) {
+                        return toFileElement(file, element);
+                    }
+                ));
         }
 
         return [new CartridgeItem('No files', CartridgeItemType.File, '', TreeItemCollapsibleState.None)];
     }
 
+    /**
+     * Fetches all cartridges within the given path (should be the workspace root)
+     * @param workspaceRoot The absolute path to the workspace root
+     */
     private getCartridgesInWorkspace(workspaceRoot: string): Promise<CartridgeItem[]> {
         return new Promise((resolve, reject) => {
             const activeFile = this.activeFile;
