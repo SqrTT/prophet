@@ -2,12 +2,12 @@
 'use strict';
 import { Observable } from 'rxjs/Observable';
 import { join } from 'path';
-import { workspace, Disposable, ExtensionContext, commands, window, Uri, OutputChannel, ViewColumn } from 'vscode';
+import { workspace, Disposable, ExtensionContext, commands, window, Uri, OutputChannel } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
 import { CartridgesView } from './providers/CartridgesView';
 import { LogsView } from './providers/LogsView';
 import { CartridgeCreator } from './lib/CartridgeHelper';
-import { existsSync, mkdir, open, close } from 'fs';
+import { existsSync } from 'fs';
 import { createServer } from 'http';
 import * as glob from 'glob';
 
@@ -246,51 +246,15 @@ export function activate(context: ExtensionContext) {
         }));
 
         context.subscriptions.push(commands.registerCommand('extension.prophet.command.create.folder', (cartridgeDirectoryItem) => {
-            const folderCreationOptions = {
-                prompt: 'Name: '
-            };
-
-            window.showInputBox(folderCreationOptions).then(folderValue => {
-                if (folderValue) {
-                    mkdir(join(cartridgeDirectoryItem.location, folderValue), function (err) {
-                        if (!err) {
-                            if (cartridgesView) {
-                                cartridgesView.refresh((window.activeTextEditor) ? window.activeTextEditor.document.fileName : undefined);
-                            }
-                        } else {
-                            window.showErrorMessage(`Exception while creating directory! ( ${err} )`);
-                        }
-                    });
-                }
-            });
+            if (cartridgesView) {
+                cartridgesView.createDirectory(cartridgeDirectoryItem);
+            }
         }));
 
         context.subscriptions.push(commands.registerCommand('extension.prophet.command.create.file', (cartridgeFileItem) => {
-            const fileCreationOptions = {
-                prompt: 'Name: '
-            };
-
-            window.showInputBox(fileCreationOptions).then(fileValue => {
-                if (fileValue) {
-                    open(join(cartridgeFileItem.location, fileValue), 'wx', function (err, fd) {
-                        if (!err) {
-                            close(fd, function (closingErr) {
-                                if (closingErr) {
-                                    window.showErrorMessage(`Exception while creating file! ( ${closingErr} )`);
-                                } else {
-                                    workspace.openTextDocument(Uri.file(join(cartridgeFileItem.location, fileValue))).then(document => {
-                                        return window.showTextDocument(document,
-                                            { viewColumn: ViewColumn.One, preserveFocus: false, preview: true });
-                                    });
-                                }
-
-                            });
-                        } else {
-                            window.showErrorMessage(`Exception while creating file! ( ${err} )`);
-                        }
-                    });
-                }
-            });
+            if (cartridgesView) {
+                cartridgesView.createFile(cartridgeFileItem);
+            }
         }));
 
         const isUploadEnabled = configuration.get('upload.enabled');

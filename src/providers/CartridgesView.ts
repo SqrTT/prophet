@@ -1,8 +1,9 @@
 'use strict';
-import { TreeItemCollapsibleState, EventEmitter, TreeDataProvider, Event, window, TreeItem, Uri, workspace } from 'vscode';
+import { TreeItemCollapsibleState, EventEmitter, TreeDataProvider, Event, window, TreeItem, Uri, workspace, ViewColumn } from 'vscode';
 
 import { join } from 'path';
 import * as glob from 'glob';
+import { mkdirSync, open, close } from 'fs';
 
 import { getDirectories, getFiles, pathExists } from '../lib/FileHelper';
 import { checkIfCartridge, toCardridge } from '../lib/CartridgeHelper';
@@ -168,6 +169,47 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
                     resolve([]);
                 }
             });
+        });
+    }
+
+    public createFile(cartridgeFileItem: CartridgeItem) {
+        const fileCreationOptions = {
+            prompt: 'Name: '
+        };
+
+        window.showInputBox(fileCreationOptions).then(fileValue => {
+            if (fileValue) {
+                open(join(cartridgeFileItem.location, fileValue), 'wx', function (err, fd) {
+                    if (!err) {
+                        close(fd, function (closingErr) {
+                            if (closingErr) {
+                                window.showErrorMessage(`Exception while creating file! ( ${closingErr} )`);
+                            } else {
+                                workspace.openTextDocument(Uri.file(join(cartridgeFileItem.location, fileValue))).then(document => {
+                                    return window.showTextDocument(document,
+                                        { viewColumn: ViewColumn.One, preserveFocus: false, preview: true });
+                                });
+                            }
+
+                        });
+                    } else {
+                        window.showErrorMessage(`Exception while creating file! ( ${err} )`);
+                    }
+                });
+            }
+        });
+    }
+
+    public createDirectory(cartridgeDirectoryItem: CartridgeItem) {
+        const folderCreationOptions = {
+            prompt: 'Name: '
+        };
+
+        window.showInputBox(folderCreationOptions).then(folderValue => {
+            if (folderValue) {
+                mkdirSync(join(cartridgeDirectoryItem.location, folderValue));
+                this.refresh();
+            }
         });
     }
 }
