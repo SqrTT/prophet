@@ -2,6 +2,24 @@
 import { TreeItemCollapsibleState, TreeItem, Command } from 'vscode';
 import { join, extname } from 'path';
 
+/*
+    The type of the CartridgeItem
+*/
+export enum CartridgeItemType {
+    /**
+     * The CartridgeItem is a file of a cartridge
+     */
+    File = 'cartridgeFile',
+    /**
+     * The CartridgeItem is a subdirectory of a cartridge
+     */
+    Directory = 'cartridgeDirectory',
+    /**
+     * The CartridgeItem is a cartridge folder (project folder)
+     */
+    Cartridge = 'cartridge'
+}
+
 /**
  * A TreeItem to show cartridge elements in the explorer view.
  * @prop {string} name The display name of the TreeItem (shown to the end-user)
@@ -11,7 +29,10 @@ import { join, extname } from 'path';
  * @prop {Command} command The command to execute when the TreeItem is clicked
  */
 export class CartridgeItem extends TreeItem {
-    fileExtension: string;
+    public static NoFiles = new CartridgeItem('No files', CartridgeItemType.File, '', TreeItemCollapsibleState.None);
+    public static NoCartridges = new CartridgeItem('No Cartridges', CartridgeItemType.Cartridge, '', TreeItemCollapsibleState.None);
+
+    private fileExtension: string;
 
     constructor(
         public readonly name: string,
@@ -38,22 +59,5 @@ export class CartridgeItem extends TreeItem {
     }
 }
 
-/*
-    The type of the CartridgeItem
-*/
-export enum CartridgeItemType {
-    /**
-     * The CartridgeItem is a file of a cartridge
-     */
-    File = 'cartridgeFile',
-    /**
-     * The CartridgeItem is a subdirectory of a cartridge
-     */
-    Directory = 'cartridgeDirectory',
-    /**
-     * The CartridgeItem is a cartridge folder (project folder)
-     */
-    Cartridge = 'cartridge'
-}
 
 export default CartridgeItem;

@@ -7,6 +7,7 @@ import { mkdirSync, open, close } from 'fs';
 
 import { getDirectories, getFiles, pathExists } from '../lib/FileHelper';
 import { checkIfCartridge, toCardridge } from '../lib/CartridgeHelper';
+import { filterAsync } from '../lib/CollectionUtil';
 import { CartridgeItem, CartridgeItemType } from '../lib/CartridgeItem';
 
 /**
@@ -40,11 +41,6 @@ const toFileElement = (fileName: string, element: CartridgeItem): CartridgeItem 
             arguments: [Uri.file(join(element.location, fileName))],
         });
 };
-
-function filterAsync<T>(array: T[], filter) {
-    return Promise.all(array.map(entry => filter(entry)))
-        .then(bits => array.filter(entry => bits.shift()));
-}
 
 /**
  * A TreeDataProvider that shows all cartridge projects within the current workspace.
@@ -81,7 +77,7 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
 
     getChildren(element?: CartridgeItem): Thenable<CartridgeItem[]> {
         if (!this.workspaceRoot) {
-            window.showInformationMessage('No dependency in empty workspace');
+            window.showInformationMessage('No dependency in empty workspace.');
             return Promise.resolve([]);
         }
 
@@ -121,7 +117,7 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
                 ));
         }
 
-        return [new CartridgeItem('No files', CartridgeItemType.File, '', TreeItemCollapsibleState.None)];
+        return [CartridgeItem.NoFiles];
     }
 
     /**
@@ -154,10 +150,6 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
                                         return toCardridge(projectFile, activeFile);
                                     })).then(resolve);
                             });
-                            return projectFiles.filter(checkIfCartridge).map(
-                                function (projectFile) {
-                                    return toCardridge(projectFile, activeFile);
-                                });
                         } else {
                             resolve([new CartridgeItem('No cartridges found in this workspace.',
                                 CartridgeItemType.Cartridge,
@@ -166,7 +158,7 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
                         }
                     });
                 } else {
-                    resolve([]);
+                    resolve([CartridgeItem.NoCartridges]);
                 }
             });
         });
