@@ -9,16 +9,16 @@ import { CartridgeItem, CartridgeItemType } from './CartridgeItem';
  * @param projectFile The absolute path to the file location of the Eclipse project file.
  */
 export const checkIfCartridge = (projectFile: string): Promise<boolean> => {
-    return new Promise((resolve, reject) => {
-        readFile(projectFile, 'UTF-8', (err, data) => {
-            if (err) {
-                reject(err);
-            } else {
-                // Check the file for demandware package (since the file is not that big no need for a DOM parser)
-                resolve(data.includes('com.demandware.studio.core.beehiveNature'));
-            }
-        });
-    });
+	return new Promise((resolve, reject) => {
+		readFile(projectFile, 'UTF-8', (err, data) => {
+			if (err) {
+				reject(err);
+			} else {
+				// Check the file for demandware package (since the file is not that big no need for a DOM parser)
+				resolve(data.includes('com.demandware.studio.core.beehiveNature'));
+			}
+		});
+	});
 };
 
 /**
@@ -27,25 +27,25 @@ export const checkIfCartridge = (projectFile: string): Promise<boolean> => {
  * @param activeFile The active file in the current workspace.
  */
 export const toCardridge = (projectFile: string, activeFile?: string): Promise<CartridgeItem> => {
-    return new Promise((resolve, reject) => {
-        const projectFileDirectory = dirname(projectFile);
-        const projectName = basename(projectFileDirectory);
+	return new Promise((resolve, reject) => {
+		const projectFileDirectory = dirname(projectFile);
+		const projectName = basename(projectFileDirectory);
 
-        let subFolder = '';
-        exists(join(projectFileDirectory, 'cartridge'), (existsDirectory) => {
-            if (existsDirectory) {
-                subFolder = 'cartridge';
-            }
+		let subFolder = '';
+		exists(join(projectFileDirectory, 'cartridge'), (existsDirectory) => {
+			if (existsDirectory) {
+				subFolder = 'cartridge';
+			}
 
-            const actualCartridgeLocation = join(projectFileDirectory, subFolder);
+			const actualCartridgeLocation = join(projectFileDirectory, subFolder);
 
-            resolve(new CartridgeItem(
-                projectName || 'Unknown project name', CartridgeItemType.Cartridge,
-                actualCartridgeLocation,
-                (activeFile && activeFile.startsWith(actualCartridgeLocation))
-                    ? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.Collapsed));
-        });
-    });
+			resolve(new CartridgeItem(
+				projectName || 'Unknown project name', CartridgeItemType.Cartridge,
+				actualCartridgeLocation,
+				(activeFile && activeFile.startsWith(actualCartridgeLocation))
+					? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.Collapsed));
+		});
+	});
 };
 
 /**
@@ -54,51 +54,51 @@ export const toCardridge = (projectFile: string, activeFile?: string): Promise<C
  * Note: This is currently a class to make it extensible, could be usefull to do things to a newly created cartridge.
  */
 export class CartridgeCreator {
-    constructor(private workspaceRoot: string) {
+	constructor(private workspaceRoot: string) {
 
-    }
+	}
 
-    createCartridge(name, directory) {
-        this.createMainDirectory(name, directory);
-        this.createProjectFiles(name, directory);
-        this.createCartridgeDirectories(name, directory);
-        this.createPropertiesFile(name, directory);
-    }
+	createCartridge(name, directory) {
+		this.createMainDirectory(name, directory);
+		this.createProjectFiles(name, directory);
+		this.createCartridgeDirectories(name, directory);
+		this.createPropertiesFile(name, directory);
+	}
 
-    createMainDirectory(name, directory) {
-        const pathToCreate = join(this.workspaceRoot, directory, name);
+	createMainDirectory(name, directory) {
+		const pathToCreate = join(this.workspaceRoot, directory, name);
 
-        pathToCreate
-            .split(sep)
-            .reduce((currentPath, folder) => {
-                currentPath += folder + sep;
-                if (!existsSync(currentPath)) {
-                    mkdirSync(currentPath);
-                }
-                return currentPath;
-            }, '');
-    }
+		pathToCreate
+			.split(sep)
+			.reduce((currentPath, folder) => {
+				currentPath += folder + sep;
+				if (!existsSync(currentPath)) {
+					mkdirSync(currentPath);
+				}
+				return currentPath;
+			}, '');
+	}
 
-    createCartridgeDirectories(name, directory) {
-        const directoriesToCreate = ['controllers',
-            'forms',
-            'pipelines',
-            'scripts',
-            'static',
-            'templates',
-            'webreferences',
-            'webreferences2'];
+	createCartridgeDirectories(name, directory) {
+		const directoriesToCreate = ['controllers',
+			'forms',
+			'pipelines',
+			'scripts',
+			'static',
+			'templates',
+			'webreferences',
+			'webreferences2'];
 
-        mkdir(join(this.workspaceRoot, directory, name, 'cartridge'));
-        for (let i = 0; i < directoriesToCreate.length; i++) {
-            mkdir(join(this.workspaceRoot, directory, name, 'cartridge', directoriesToCreate[i]));
-        }
+		mkdir(join(this.workspaceRoot, directory, name, 'cartridge'));
+		for (let i = 0; i < directoriesToCreate.length; i++) {
+			mkdir(join(this.workspaceRoot, directory, name, 'cartridge', directoriesToCreate[i]));
+		}
 
-    }
+	}
 
-    createProjectFiles(name, directory) {
-        writeFile(join(this.workspaceRoot, directory, name, '.project'),
-            `<?xml version='1.0' encoding='UTF-8'?>
+	createProjectFiles(name, directory) {
+		writeFile(join(this.workspaceRoot, directory, name, '.project'),
+			`<?xml version='1.0' encoding='UTF-8'?>
 <projectDescription>
     <name>${name}</name>
     <comment></comment>
@@ -116,13 +116,13 @@ export class CartridgeCreator {
     </natures>
 </projectDescription>
 `           , function (err) {
-                if (err) {
-                    return err;
-                }
-            });
+				if (err) {
+					return err;
+				}
+			});
 
-        writeFile(join(this.workspaceRoot, directory, name, '.tern-project'),
-            `{
+		writeFile(join(this.workspaceRoot, directory, name, '.tern-project'),
+			`{
     'ecmaVersion': 5,
     'plugins': {
         'guess-types': {
@@ -134,55 +134,55 @@ export class CartridgeCreator {
     }
 }'
 `      , function (err) {
-                if (err) {
-                    return err;
-                }
-            });
-    }
+				if (err) {
+					return err;
+				}
+			});
+	}
 
-    createPropertiesFile(name, directory) {
-        const day = {
-            1: 'Mon',
-            2: 'Tue',
-            3: 'Wed',
-            4: 'Thu',
-            5: 'Fri',
-            6: 'Sat',
-            7: 'Sun'
-        };
+	createPropertiesFile(name, directory) {
+		const day = {
+			1: 'Mon',
+			2: 'Tue',
+			3: 'Wed',
+			4: 'Thu',
+			5: 'Fri',
+			6: 'Sat',
+			7: 'Sun'
+		};
 
-        const month = {
-            1: 'Jan',
-            2: 'Feb',
-            3: 'Mar',
-            4: 'Apr',
-            5: 'May',
-            6: 'Jun',
-            7: 'Jul',
-            8: 'Aug',
-            9: 'Sep',
-            10: 'Oct',
-            11: 'Nov',
-            12: 'Dec',
-        };
+		const month = {
+			1: 'Jan',
+			2: 'Feb',
+			3: 'Mar',
+			4: 'Apr',
+			5: 'May',
+			6: 'Jun',
+			7: 'Jul',
+			8: 'Aug',
+			9: 'Sep',
+			10: 'Oct',
+			11: 'Nov',
+			12: 'Dec',
+		};
 
-        const currentDateTime = new Date();
-        const timeString = day[currentDateTime.getDay()] + ' '
-            + month[currentDateTime.getMonth()] + ' '
-            + currentDateTime.getDate() + ' '
-            + currentDateTime.getHours() + ':'
-            + currentDateTime.getMinutes() + ':'
-            + currentDateTime.getSeconds() + ' CEST ' + currentDateTime.getFullYear();
+		const currentDateTime = new Date();
+		const timeString = day[currentDateTime.getDay()] + ' '
+			+ month[currentDateTime.getMonth()] + ' '
+			+ currentDateTime.getDate() + ' '
+			+ currentDateTime.getHours() + ':'
+			+ currentDateTime.getMinutes() + ':'
+			+ currentDateTime.getSeconds() + ' CEST ' + currentDateTime.getFullYear();
 
-        writeFile(join(this.workspaceRoot, directory, name, 'cartridge', name + '.properties'),
-            `## cartridge.properties for cartridge ${name}
+		writeFile(join(this.workspaceRoot, directory, name, 'cartridge', name + '.properties'),
+			`## cartridge.properties for cartridge ${name}
 #${timeString}
 demandware.cartridges.${name}.multipleLanguageStorefront=true
 demandware.cartridges.${name}.id=${name}`
-            , function (err) {
-                if (err) {
-                    return err;
-                }
-            });
-    }
+			, function (err) {
+				if (err) {
+					return err;
+				}
+			});
+	}
 }

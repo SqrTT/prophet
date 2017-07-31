@@ -9,7 +9,7 @@ import * as path from 'path';
  * @param srcpath The path to look in for directories
  */
 export function getDirectoriesSync(srcpath: string): string[] {
-    return fs.readdirSync(srcpath).filter(file => fs.lstatSync(path.join(srcpath, file)).isDirectory());
+	return fs.readdirSync(srcpath).filter(file => fs.lstatSync(path.join(srcpath, file)).isDirectory());
 }
 
 /**
@@ -17,13 +17,13 @@ export function getDirectoriesSync(srcpath: string): string[] {
  * @param srcpath The path to look in for directories
  */
 export async function getDirectories(srcpath: string): Promise<string[]> {
-    return new Promise<string[]>(resolve => {
-        fs.readdir(srcpath, function (err, result: string[]) {
-            if (err) { resolve([err.message]); } else {
-                resolve(result.filter(file => fs.lstatSync(path.join(srcpath, file)).isDirectory()));
-            }
-        });
-    });
+	return new Promise<string[]>(resolve => {
+		fs.readdir(srcpath, function (err, result: string[]) {
+			if (err) { resolve([err.message]); } else {
+				resolve(result.filter(file => fs.lstatSync(path.join(srcpath, file)).isDirectory()));
+			}
+		});
+	});
 }
 
 /**
@@ -31,13 +31,13 @@ export async function getDirectories(srcpath: string): Promise<string[]> {
  * @param srcpath The path to look in for files
  */
 export function getFiles(srcpath: string): Promise<string[]> {
-    return new Promise<string[]>(resolve => {
-        fs.readdir(srcpath, function (err, result: string[]) {
-            if (err) { resolve([err.message]); } else {
-                resolve(result.filter(file => fs.lstatSync(path.join(srcpath, file)).isFile()));
-            }
-        });
-    });
+	return new Promise<string[]>(resolve => {
+		fs.readdir(srcpath, function (err, result: string[]) {
+			if (err) { resolve([err.message]); } else {
+				resolve(result.filter(file => fs.lstatSync(path.join(srcpath, file)).isFile()));
+			}
+		});
+	});
 }
 
 /**
@@ -45,9 +45,9 @@ export function getFiles(srcpath: string): Promise<string[]> {
  * @param location The path to the file/directory to check
  */
 export function pathExists(location: string): Promise<boolean> {
-    return new Promise(resolve => {
-        fs.access(location, error => {
-            resolve(!error);
-        });
-    });
+	return new Promise(resolve => {
+		fs.access(location, error => {
+			resolve(!error);
+		});
+	});
 }
