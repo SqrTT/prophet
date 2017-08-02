@@ -4,35 +4,34 @@ import { Observable } from 'rxjs/Observable';
 import { join } from 'path';
 import { workspace, Disposable, ExtensionContext, commands, window, Uri, OutputChannel } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
-import { CartridgesView } from "./providers/CartridgesView";
-import { LogsView } from "./providers/LogsView";
-import { CartridgeHelper } from "./lib/CartridgeHelper";
+import { CartridgesView } from './providers/CartridgesView';
+import { LogsView } from './providers/LogsView';
+import { CartridgeCreator } from './lib/CartridgeHelper';
 import { existsSync } from 'fs';
-import { createServer } from "http";
+import { createServer } from 'http';
 import * as glob from 'glob';
-
 
 const initialConfigurations = {
 	version: '0.1.0',
 	configurations: [
 		{
-			"type": "prophet",
-			"request": "launch",
-			"name": "Attach to Sandbox",
-			"hostname": "*.demandware.net",
-			"username": "<username>",
-			"password": "<password>",
-			"codeversion": "version1",
-			"cartridgeroot": "auto",
-			"workspaceroot": "${workspaceRoot}"
+			'type': 'prophet',
+			'request': 'launch',
+			'name': 'Attach to Sandbox',
+			'hostname': '*.demandware.net',
+			'username': '<username>',
+			'password': '<password>',
+			'codeversion': 'version1',
+			'cartridgeroot': 'auto',
+			'workspaceroot': '${workspaceRoot}'
 		}
 	]
 };
 
-var uploaderSubscription;
-var outputChannel: OutputChannel;
-var cartridgesView : CartridgesView | undefined;
-var logsView : LogsView | undefined;
+let uploaderSubscription;
+let outputChannel: OutputChannel;
+let cartridgesView: CartridgesView | undefined;
+let logsView: LogsView | undefined;
 
 export function activate(context: ExtensionContext) {
 	const configuration = workspace.getConfiguration('extension.prophet');
@@ -49,19 +48,19 @@ export function activate(context: ExtensionContext) {
 	context.subscriptions.push(outputChannel);
 
 	// The server is implemented in node
-	let serverModule = context.asAbsolutePath(join('out', 'server', 'ismlServer.js'));
+	const serverModule = context.asAbsolutePath(join('out', 'server', 'ismlServer.js'));
 	// The debug options for the server
-	let debugOptions = { execArgv: ["--nolazy", "--debug=6004"] };
+	const debugOptions = { execArgv: ['--nolazy', '--debug=6004'] };
 
 	// If the extension is launched in debug mode then the debug server options are used
 	// Otherwise the run options are used
-	let serverOptions: ServerOptions = {
+	const serverOptions: ServerOptions = {
 		run: { module: serverModule, transport: TransportKind.ipc },
 		debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions }
-	}
-	let htmlConf = workspace.getConfiguration('html.format');
+	};
+	const htmlConf = workspace.getConfiguration('html.format');
 	// Options to control the language client
-	let clientOptions: LanguageClientOptions = {
+	const clientOptions: LanguageClientOptions = {
 		// Register the server for plain text documents
 		documentSelector: (configuration.get('ismlServer.activateOn') as string[] || ['isml']).map(type => ({
 			language: type,
@@ -71,7 +70,7 @@ export function activate(context: ExtensionContext) {
 			// Synchronize the setting section 'languageServerExample' to the server
 			configurationSection: 'ismlLanguageServer',
 			// Notify the server about file changes to '.clientrc files contain in the workspace
-			//fileEvents: workspace.createFileSystemWatcher('**/*.isml')
+			// fileEvents: workspace.createFileSystemWatcher('**/*.isml')
 		},
 		initializationOptions: {
 			formatParams: {
@@ -88,23 +87,22 @@ export function activate(context: ExtensionContext) {
 			}
 
 		}
-	}
+	};
 
 	// Create the language client and start the client.
-	let ismlLanguageServer = new LanguageClient('ismlLanguageServer', 'ISML Language Server', serverOptions, clientOptions);
-	let disposable = ismlLanguageServer.start();
-
+	const ismlLanguageServer = new LanguageClient('ismlLanguageServer', 'ISML Language Server', serverOptions, clientOptions);
+	const disposable = ismlLanguageServer.start();
 
 	ismlLanguageServer.onReady().then(() => {
 		ismlLanguageServer.onNotification('isml:selectfiles', (test) => {
-			const configuration = workspace.getConfiguration('extension.prophet');
-			const cartPath = String(configuration.get('cartridges.path'));
+			const prophetConfiguration = workspace.getConfiguration('extension.prophet');
+			const cartPath = String(prophetConfiguration.get('cartridges.path'));
 
 			if (cartPath.trim().length) {
 				const cartridges = cartPath.split(':');
 
-				const cartridge = cartridges.find(cartridge =>
-					(test.data || []).some(filename => filename.includes(cartridge)));
+				const cartridge = cartridges.find(cartridgeItem =>
+					(test.data || []).some(filename => filename.includes(cartridgeItem)));
 
 				if (cartridge) {
 					ismlLanguageServer.sendNotification('isml:selectedfile', test.data.find(
@@ -120,68 +118,71 @@ export function activate(context: ExtensionContext) {
 				ismlLanguageServer.sendNotification('isml:selectedfile', undefined);
 			});
 		});
-	})
+	});
 
-
-	// Push the disposable to the context's subscriptions so that the 
+	// Push the disposable to the context's subscriptions so that the
 	// client can be deactivated on extension deactivation
 	context.subscriptions.push(disposable);
 
 	if (workspace.rootPath) {
 		/// open files from browser
-		var server = createServer(function (req, res) {
+		const server = createServer(function (req, res) {
 			res.writeHead(200, { 'Content-Type': 'text/plain' });
 			res.end('ok');
 
 			if (req.url && req.url.includes('/target') && workspace.rootPath) {
-				var reqUrl = req.url.split('/target=')[1].split('&')[0]; // fixme
+				const reqUrl = req.url.split('/target=')[1].split('&')[0]; // fixme
 
-				var filePaths = [
+				const filePaths = [
 					join(workspace.rootPath, ...reqUrl.split('/')),
 					join(workspace.rootPath, 'cartridges', ...reqUrl.split('/')),
 					join(workspace.rootPath, ...reqUrl.split('/')).replace('.js', '.ds'),
 					join(workspace.rootPath, 'cartridges', ...reqUrl.split('/')).replace('.js', '.ds')
 				];
 
-				var filePath = filePaths.find(existsSync);
+				const filePath = filePaths.find(existsSync);
 
 				if (filePath) {
 					commands.executeCommand('vscode.open', Uri.file(filePath)).then(() => {
-
+						// DO NOTHING
 					}, err => {
 						window.showErrorMessage(err);
 					});
 				} else {
-					window.showWarningMessage(`Unable to find "${reqUrl}"`);
+					window.showWarningMessage(`Unable to find '${reqUrl}'`);
 				}
 			}
 
 		});
 		server.once('error', err => {
 			if (err instanceof Error) {
-				window.showWarningMessage(`Unable open port for browsers files, probably other instance or Digital Studio is opened. Error: ${err.message}`);
+				window.showWarningMessage(
+					`Unable open port for browsers files, probably other instance or Digital Studio is opened. Error: ${err.message}`
+				);
+
 				server.close();
 			}
 		});
+
 		server.once('listening', () => {
 			context.subscriptions.push(
 				new Disposable(() => {
 					server.close();
 				})
 			);
-		})
+		});
 
 		server.listen(60606);
 		const rootPath = workspace.rootPath;
 
-		var prevState;
+		let prevState;
 		context.subscriptions.push(workspace.onDidChangeConfiguration(() => {
-			const configuration = workspace.getConfiguration('extension.prophet');
-			const isUploadEnabled = configuration.get('upload.enabled');
+			const prophetConfiguration = workspace.getConfiguration('extension.prophet');
+			const isProphetUploadEnabled = prophetConfiguration.get('upload.enabled');
 
-			if (isUploadEnabled !== prevState) {
-				prevState = isUploadEnabled;
-				if (isUploadEnabled) {
+			if (isProphetUploadEnabled !== prevState) {
+				prevState = isProphetUploadEnabled;
+				if (isProphetUploadEnabled) {
 					loadUploaderConfig(rootPath, context);
 				} else {
 					if (uploaderSubscription) {
@@ -209,30 +210,33 @@ export function activate(context: ExtensionContext) {
 		}));
 
 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.refresh.cartridges', () => {
-			if (cartridgesView)
-				cartridgesView.refresh();
+			if (cartridgesView) {
+				cartridgesView.refresh(
+					((window.activeTextEditor) ? window.activeTextEditor.document.fileName : undefined));
+			}
 		}));
 
 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.create.cartridge', () => {
-			let folderOptions = {
-				prompt: "Folder: ",
-				placeHolder: "Folder to create cartridge in (leave empty if none)"
-			}
+			const folderOptions = {
+				prompt: 'Folder: ',
+				placeHolder: 'Folder to create cartridge in (leave empty if none)'
+			};
 
-			let cartridgeOptions = {
-				prompt: "Cartridgename: ",
-				placeHolder: "your_cartridge_id"
-			}
+			const cartridgeOptions = {
+				prompt: 'Cartridgename: ',
+				placeHolder: 'your_cartridge_id'
+			};
 
 			window.showInputBox(folderOptions).then(folderValue => {
 				window.showInputBox(cartridgeOptions).then(value => {
-					if (!value) return;
+					if (!value) { return; }
 					if (!folderValue) { folderValue = ''; }
 
-					new CartridgeHelper(rootPath).createCartridge(value.trim().replace(' ', '_'), folderValue.trim());
+					new CartridgeCreator(rootPath).createCartridge(value.trim().replace(' ', '_'), folderValue.trim());
 
-					if (cartridgesView)
-						cartridgesView.refresh();
+					if (cartridgesView) {
+						cartridgesView.refresh((window.activeTextEditor) ? window.activeTextEditor.document.fileName : undefined);
+					}
 
 					if (isUploadEnabled) {
 						loadUploaderConfig(rootPath, context);
@@ -241,6 +245,17 @@ export function activate(context: ExtensionContext) {
 			});
 		}));
 
+		context.subscriptions.push(commands.registerCommand('extension.prophet.command.create.folder', (cartridgeDirectoryItem) => {
+			if (cartridgesView) {
+				cartridgesView.createDirectory(cartridgeDirectoryItem);
+			}
+		}));
+
+		context.subscriptions.push(commands.registerCommand('extension.prophet.command.create.file', (cartridgeFileItem) => {
+			if (cartridgesView) {
+				cartridgesView.createFile(cartridgeFileItem);
+			}
+		}));
 
 		const isUploadEnabled = configuration.get('upload.enabled');
 		prevState = isUploadEnabled;
@@ -251,15 +266,15 @@ export function activate(context: ExtensionContext) {
 		}
 
 		// add views
-		cartridgesView = new CartridgesView(rootPath);
+		cartridgesView = new CartridgesView(rootPath, (window.activeTextEditor) ? window.activeTextEditor.document.fileName : undefined);
 
 		context.subscriptions.push(
-			window.registerTreeDataProvider("cartridgesView", cartridgesView)
+			window.registerTreeDataProvider('cartridgesView', cartridgesView)
 		);
 	}
 }
 
-function loadUploaderConfig(rootPath : string, context : ExtensionContext) {
+function loadUploaderConfig(rootPath: string, context: ExtensionContext) {
 	if (uploaderSubscription) {
 		uploaderSubscription.unsubscribe();
 		uploaderSubscription = null;
@@ -269,7 +284,8 @@ function loadUploaderConfig(rootPath : string, context : ExtensionContext) {
 	}
 
 	uploaderSubscription = Observable.create(observer => {
-		var subscribtion;
+		let subscribtion;
+
 		glob('**/dw.json', {
 			cwd: rootPath,
 			root: rootPath,
@@ -282,41 +298,43 @@ function loadUploaderConfig(rootPath : string, context : ExtensionContext) {
 			} else if (files.length && workspace.rootPath) {
 				import('./server/uploadServer').then(function (uploadServer) {
 					const configFilename = join(rootPath, files.shift() || '');
-					outputChannel.appendLine(`Using config file "${configFilename}"`);
+					outputChannel.appendLine(`Using config file '${configFilename}'`);
 
 					subscribtion = uploadServer.init(configFilename, outputChannel)
 						.subscribe(
-							() => {
-								// reset counter to zero if success
-							},
-							err => {
-								observer.error(err)
-							},
-							() => {
-								observer.complete();
-							}
+						() => {
+							// reset counter to zero if success
+						},
+						err => {
+							observer.error(err);
+						},
+						() => {
+							observer.complete();
+						}
 						);
 
-						if (!logsView) {
-							uploadServer.readConfigFile(configFilename).flatMap(config => {
-								return uploadServer.getWebDavClient(config, outputChannel, rootPath)
-							}).subscribe(webdav => {
-								logsView = new LogsView(webdav);
-								context.subscriptions.push(
-									window.registerTreeDataProvider("dwLogsView", logsView)
-								);
-								//
-								context.subscriptions.push(commands.registerCommand('extension.prophet.command.refresh.logview', () => {
-									if (logsView)
-										logsView.refresh();
-								}));
-								//
-								context.subscriptions.push(commands.registerCommand('extension.prophet.command.log.open', (filename) => {
-									if (logsView)
-										logsView.openLog(filename);
-								}));
-							})
-						}
+					if (!logsView) {
+						uploadServer.readConfigFile(configFilename).flatMap(config => {
+							return uploadServer.getWebDavClient(config, outputChannel, rootPath);
+						}).subscribe(webdav => {
+							logsView = new LogsView(webdav);
+							context.subscriptions.push(
+								window.registerTreeDataProvider('dwLogsView', logsView)
+							);
+
+							context.subscriptions.push(commands.registerCommand('extension.prophet.command.refresh.logview', () => {
+								if (logsView) {
+									logsView.refresh();
+								}
+							}));
+
+							context.subscriptions.push(commands.registerCommand('extension.prophet.command.log.open', (filename) => {
+								if (logsView) {
+									logsView.openLog(filename);
+								}
+							}));
+						});
+					}
 				});
 
 			} else {
@@ -325,14 +343,16 @@ function loadUploaderConfig(rootPath : string, context : ExtensionContext) {
 		});
 		return () => {
 			subscribtion.unsubscribe();
-		}
+		};
 	}).subscribe(
-		() => { },
+		() => {
+			// DO NOTHING
+		},
 		err => {
 			outputChannel.show();
 			outputChannel.appendLine(`Error: ${err}`);
 		}
-	);
+		);
 }
 
 export function deactivate() {

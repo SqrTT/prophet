@@ -1,4 +1,17 @@
-import { TreeItemCollapsibleState, TreeDataProvider, TreeItem, Command, EventEmitter, Event, window, ProgressLocation, workspace, ViewColumn, Position, Range } from 'vscode';
+import {
+	TreeItemCollapsibleState,
+	TreeDataProvider,
+	TreeItem,
+	Command,
+	EventEmitter,
+	Event,
+	window,
+	ProgressLocation,
+	workspace,
+	ViewColumn,
+	Position,
+	Range
+} from 'vscode';
 
 import { join, basename } from 'path';
 import WebDav from '../server/WebDav';
@@ -9,7 +22,7 @@ const domParser = new DOMParser();
 
 function getNodeText(node): string | undefined {
 	if (node && node.length && node.item(0).childNodes.length) {
-		var value = node.item(0).childNodes['0'].nodeValue;
+		const value = node.item(0).childNodes['0'].nodeValue;
 		if (value) {
 			return value;
 		} else {
@@ -21,19 +34,19 @@ function getNodeText(node): string | undefined {
 }
 
 function parseResponse(data: string): LogStatus[] {
-	var xmlResponse = domParser.parseFromString(data);
+	const xmlResponse = domParser.parseFromString(data);
 	const logStatus: LogStatus[] = [];
 
 	const responses = xmlResponse.getElementsByTagName('response');
-	for (var i = 0, length = responses.length; i < length; i++) {
-		var response = responses.item(i);
+	for (let i = 0, length = responses.length; i < length; i++) {
+		const response = responses.item(i);
 
-		var name = getNodeText(response.getElementsByTagName('displayname'));
+		const name = getNodeText(response.getElementsByTagName('displayname'));
 
 		if (name && name.endsWith('.log')) {
-			var href = getNodeText(response.getElementsByTagName('href'));
-			var lastmodified = getNodeText(response.getElementsByTagName('getlastmodified'));
-			var contentlength = getNodeText(response.getElementsByTagName('getcontentlength'));
+			const href = getNodeText(response.getElementsByTagName('href'));
+			const lastmodified = getNodeText(response.getElementsByTagName('getlastmodified'));
+			const contentlength = getNodeText(response.getElementsByTagName('getcontentlength'));
 
 			logStatus.push(new LogStatus(
 				name.replace(/-blade\d{0,2}-\d{0,2}-appserver/ig, ''),
@@ -49,14 +62,13 @@ function parseResponse(data: string): LogStatus[] {
 function observable2promise<T>(observable: Observable<T>): Promise<T> {
 	return new Promise((resolve, reject) => {
 		observable.subscribe(resolve, reject, reject);
-	})
+	});
 }
-
 
 export class LogsView implements TreeDataProvider<LogItem> {
 	constructor(private webdavClient: WebDav) {
 		this.webdavClient.config.version = '';
-		this.webdavClient.folder = 'Logs'
+		this.webdavClient.folder = 'Logs';
 		// this.webdavClient.dirList('.', '.').subscribe(
 		// 	(data) => {
 		// 		var test = parseResponse(data)
@@ -70,7 +82,6 @@ export class LogsView implements TreeDataProvider<LogItem> {
 	}
 	private _onDidChangeTreeData: EventEmitter<LogItem | undefined> = new EventEmitter<LogItem | undefined>();
 	readonly onDidChangeTreeData: Event<LogItem | undefined> = this._onDidChangeTreeData.event;
-
 
 	refresh(): void {
 		this._onDidChangeTreeData.fire();
@@ -154,13 +165,13 @@ class LogItem extends TreeItem {
 			arguments: [location]
 		};
 
-		var iconType = [
+		const iconType = [
 			'fatal',
 			'error',
 			'warn',
 			'info',
 			'debug'
-		].find(t => name.includes(t)) || '';
+		].find(t => name.includes(t)) || 'log';
 
 		this.iconPath = join(__filename, '..', '..', '..', 'images', 'resources', iconType + '.svg');
 		this.contextValue = 'dwLogFile';
