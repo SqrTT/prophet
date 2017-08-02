@@ -1,46 +1,104 @@
 'use strict';
-import * as fs from 'fs';
-import * as path from 'path';
+import { TreeItemCollapsibleState } from 'vscode';
+import { exists, readFile, existsSync, mkdirSync, writeFile, mkdir, } from 'fs';
+import { dirname, join, basename, sep } from 'path';
+import { CartridgeItem, CartridgeItemType } from './CartridgeItem';
 
-export class CartridgeHelper {
-    constructor(private workspaceRoot: string) {
+/**
+ * Checks whether or not an Eclipse project file is a Salesforce project.
+ * @param projectFile The absolute path to the file location of the Eclipse project file.
+ */
+export const checkIfCartridge = (projectFile: string): Promise<boolean> => {
+	return new Promise((resolve, reject) => {
+		readFile(projectFile, 'UTF-8', (err, data) => {
+			if (err) {
+				reject(err);
+			} else {
+				// Check the file for demandware package (since the file is not that big no need for a DOM parser)
+				resolve(data.includes('com.demandware.studio.core.beehiveNature'));
+			}
+		});
+	});
+};
 
-    }
+/**
+ * Creates a CartridgeItem based on the project file.
+ * @param projectFile The absolute path to the file location of the Eclipse project file.
+ * @param activeFile The active file in the current workspace.
+ */
+export const toCardridge = (projectFile: string, activeFile?: string): Promise<CartridgeItem> => {
+	return new Promise((resolve, reject) => {
+		const projectFileDirectory = dirname(projectFile);
+		const projectName = basename(projectFileDirectory);
 
-    createCartridge(name, directory) {
-        this.createMainDirectory(name, directory);
-        this.createProjectFiles(name, directory);
-        this.createCartridgeDirectories(name, directory);
-        this.createPropertiesFile(name, directory);
-    }
+		let subFolder = '';
+		exists(join(projectFileDirectory, 'cartridge'), (existsDirectory) => {
+			if (existsDirectory) {
+				subFolder = 'cartridge';
+			}
 
-    createMainDirectory(name, directory) {
-        let pathToCreate = path.join(this.workspaceRoot, directory, name);
+			const actualCartridgeLocation = join(projectFileDirectory, subFolder);
 
-        pathToCreate
-            .split(path.sep)
-            .reduce((currentPath, folder) => {
-                currentPath += folder + path.sep;
-                if (!fs.existsSync(currentPath)) {
-                    fs.mkdirSync(currentPath);
-                }
-                return currentPath;
-            }, '');
-    }
+			resolve(new CartridgeItem(
+				projectName || 'Unknown project name', CartridgeItemType.Cartridge,
+				actualCartridgeLocation,
+				(activeFile && activeFile.startsWith(actualCartridgeLocation))
+					? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.Collapsed));
+		});
+	});
+};
 
-    createCartridgeDirectories(name, directory) {
-        let directoriesToCreate = ['controllers', 'forms', 'pipelines', 'scripts', 'static', 'templates', 'webreferences', 'webreferences2'];
+/**
+ * A helper class to create cartridges.
+ *
+ * Note: This is currently a class to make it extensible, could be usefull to do things to a newly created cartridge.
+ */
+export class CartridgeCreator {
+	constructor(private workspaceRoot: string) {
 
-        fs.mkdir(path.join(this.workspaceRoot, directory, name, 'cartridge'));
-        for (let i = 0; i < directoriesToCreate.length; i++) {
-            fs.mkdir(path.join(this.workspaceRoot, directory, name, 'cartridge', directoriesToCreate[i]));
-        }
+	}
 
-    }
+	createCartridge(name, directory) {
+		this.createMainDirectory(name, directory);
+		this.createProjectFiles(name, directory);
+		this.createCartridgeDirectories(name, directory);
+		this.createPropertiesFile(name, directory);
+	}
 
-    createProjectFiles(name, directory) {
-        fs.writeFile(path.join(this.workspaceRoot, directory, name, '.project'),
-            `<?xml version="1.0" encoding="UTF-8"?>
+	createMainDirectory(name, directory) {
+		const pathToCreate = join(this.workspaceRoot, directory, name);
+
+		pathToCreate
+			.split(sep)
+			.reduce((currentPath, folder) => {
+				currentPath += folder + sep;
+				if (!existsSync(currentPath)) {
+					mkdirSync(currentPath);
+				}
+				return currentPath;
+			}, '');
+	}
+
+	createCartridgeDirectories(name, directory) {
+		const directoriesToCreate = ['controllers',
+			'forms',
+			'pipelines',
+			'scripts',
+			'static',
+			'templates',
+			'webreferences',
+			'webreferences2'];
+
+		mkdir(join(this.workspaceRoot, directory, name, 'cartridge'));
+		for (let i = 0; i < directoriesToCreate.length; i++) {
+			mkdir(join(this.workspaceRoot, directory, name, 'cartridge', directoriesToCreate[i]));
+		}
+
+	}
+
+	createProjectFiles(name, directory) {
+		writeFile(join(this.workspaceRoot, directory, name, '.project'),
+			`<?xml version='1.0' encoding='UTF-8'?>
 <projectDescription>
     <name>${name}</name>
     <comment></comment>
@@ -58,76 +116,73 @@ export class CartridgeHelper {
     </natures>
 </projectDescription>
 `           , function (err) {
-                if (err) {
-                    return console.log(err);
-                }
-            });
+				if (err) {
+					return err;
+				}
+			});
 
-        fs.writeFile(path.join(this.workspaceRoot, directory, name, '.tern-project'),
-            `{
-    "ecmaVersion": 5,
-    "plugins": {
-        "guess-types": {
-        
+		writeFile(join(this.workspaceRoot, directory, name, '.tern-project'),
+			`{
+    'ecmaVersion': 5,
+    'plugins': {
+        'guess-types': {
         },
-        "outline": {
-        
+        'outline': {
         },
-        "demandware": {
-        
+        'demandware': {
         }
     }
 }'
 `      , function (err) {
-                if (err) {
-                    return console.log(err);
-                }
-            });
-    }
+				if (err) {
+					return err;
+				}
+			});
+	}
 
-    createPropertiesFile(name, directory) {
-        var day = {
-            1: 'Mon',
-            2: 'Tue',
-            3: 'Wed',
-            4: 'Thu',
-            5: 'Fri',
-            6: 'Sat',
-            7: 'Sun'
-        };
+	createPropertiesFile(name, directory) {
+		const day = {
+			1: 'Mon',
+			2: 'Tue',
+			3: 'Wed',
+			4: 'Thu',
+			5: 'Fri',
+			6: 'Sat',
+			7: 'Sun'
+		};
 
-        var month = {
-            1: "Jan",
-            2: "Feb",
-            3: "Mar",
-            4: "Apr",
-            5: "May",
-            6: "Jun",
-            7: "Jul",
-            8: "Aug",
-            9: "Sep",
-            10: "Oct",
-            11: "Nov",
-            12: "Dec",
-        };
+		const month = {
+			1: 'Jan',
+			2: 'Feb',
+			3: 'Mar',
+			4: 'Apr',
+			5: 'May',
+			6: 'Jun',
+			7: 'Jul',
+			8: 'Aug',
+			9: 'Sep',
+			10: 'Oct',
+			11: 'Nov',
+			12: 'Dec',
+		};
 
-        let currentDateTime = new Date();
-        let timeString = day[currentDateTime.getDay()] + ' '
-            + month[currentDateTime.getMonth()] + ' '
-            + currentDateTime.getDate() + ' '
-            + currentDateTime.getHours() + ':'
-            + currentDateTime.getMinutes() + ':'
-            + currentDateTime.getSeconds() + ' CEST ' + currentDateTime.getFullYear();
+		const currentDateTime = new Date();
+		const timeString = day[currentDateTime.getDay()] + ' '
+			+ month[currentDateTime.getMonth()] + ' '
+			+ currentDateTime.getDate() + ' '
+			+ currentDateTime.getHours() + ':'
+			+ currentDateTime.getMinutes() + ':'
+			+ currentDateTime.getSeconds() + ' CEST ' + currentDateTime.getFullYear();
 
-        fs.writeFile(path.join(this.workspaceRoot, directory, name, 'cartridge', name + '.properties'),
-            `## cartridge.properties for cartridge ${name}
+		writeFile(join(this.workspaceRoot, directory, name, 'cartridge', name + '.properties'),
+			`## cartridge.properties for cartridge ${name}
 #${timeString}
 demandware.cartridges.${name}.multipleLanguageStorefront=true
 demandware.cartridges.${name}.id=${name}`
-            , function (err) {
-                if (err) {
-                    return console.log(err);
-                }
-            });
-    }
+			, function (err) {
+				if (err) {
+					return err;
+				}
+			});
+	}
 }
