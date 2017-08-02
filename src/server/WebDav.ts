@@ -1,7 +1,7 @@
 
 import * as request from 'request';
-import {relative, sep, resolve, join} from 'path';
-import {Observable} from 'rxjs/Observable';
+import { relative, sep, resolve, join } from 'path';
+import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/operator/mergeMap';
 import 'rxjs/add/operator/do';
 import 'rxjs/add/operator/map';
@@ -13,14 +13,14 @@ export interface DavOptions {
 	password: string,
 	version: string,
 	root: string,
-	debug? : boolean
+	debug?: boolean
 }
 
 export default class WebDav {
-	config:DavOptions;
+	config: DavOptions;
 	log: (...string) => any;
-	folder : string = 'Cartridges';
-	constructor (config, log = (() => {})) {
+	folder: string = 'Cartridges';
+	constructor(config, log = (() => { })) {
 		this.config = Object.assign({}, {
 			hostname: 'some.demandware.net',
 			username: 'username',
@@ -30,11 +30,11 @@ export default class WebDav {
 		}, config);
 		this.log = log;
 	}
-	dirList (filePath = '.', root = this.config.root) : Observable<string>{
+	dirList(filePath = '.', root = this.config.root): Observable<string> {
 		const uriPath = relative(root, filePath);
 
 		return Observable.create(observer => {
-			const req = request(Object.assign(this.getOptions(), {
+			let req = request(Object.assign(this.getOptions(), {
 				uri: '/' + uriPath,
 				headers: {
 					Depth: 1
@@ -52,10 +52,13 @@ export default class WebDav {
 				observer.complete();
 			});
 
-			return () => req.destroy();
+			return () => {
+				req.destroy();
+				req = null;
+			};
 		});
 	}
-	getOptions () {
+	getOptions() {
 		return {
 			baseUrl: `https://${this.config.hostname}/on/demandware.servlet/webdav/Sites/${this.folder}/${this.config.version}`,
 			uri: '/',
@@ -66,11 +69,11 @@ export default class WebDav {
 			strictSSL: false
 		};
 	}
-	makeRequest (options) {
+	makeRequest(options) {
 		return Observable.create(observer => {
 			this.log('request', options, this.getOptions());
 
-			const req = request(
+			let req = request(
 				Object.assign(this.getOptions(), options),
 				(err, res, body) => {
 					this.log('response', body);
@@ -87,16 +90,43 @@ export default class WebDav {
 			);
 			return () => {
 				req.destroy();
+				req = null;
 			};
 		});
 	}
-	post (filePath, root = this.config.root) {
+	postBody(uriPath : string, bodyOfFile: string) {
+		this.log('postBody', uriPath);
+
+		return Observable.create(observer => {
+			let req = request(Object.assign(this.getOptions(), {
+				uri: '/' + uriPath,
+				method: 'PUT',
+				form: bodyOfFile
+			}), (err, res, body) => {
+				this.log('postBody-response', uriPath, body);
+				if (err) {
+					observer.error(err);
+				} else if (res.statusCode >= 400) {
+					observer.error(new Error(res.statusMessage));
+				} else {
+					observer.next(body);
+				}
+
+				observer.complete();
+			});
+			return () => {
+				req.destroy()
+				req = null;
+			};
+		});
+	}
+	post(filePath, root = this.config.root) {
 		const uriPath = relative(root, filePath),
 			fs = require('fs');
 
 		this.log('post', uriPath);
 		return Observable.create(observer => {
-		   const req = request(Object.assign(this.getOptions(), {
+			let req = request(Object.assign(this.getOptions(), {
 				uri: '/' + uriPath,
 				method: 'PUT'
 			}), (err, res, body) => {
@@ -112,7 +142,7 @@ export default class WebDav {
 				observer.complete();
 			});
 
-			const outputStream = fs.createReadStream(filePath);
+			let outputStream = fs.createReadStream(filePath);
 
 			outputStream.once('error', error => {
 				observer.error(error);
@@ -127,10 +157,12 @@ export default class WebDav {
 					req.end();
 				}
 				req.destroy()
+				req = null;
+				outputStream = null;
 			};
 		});
 	}
-	unzip (filePath, root = this.config.root) {
+	unzip(filePath, root = this.config.root) {
 		const uriPath = relative(root, filePath);
 
 		this.log('unzip', uriPath);
@@ -194,7 +226,7 @@ export default class WebDav {
 			return activeVersion;
 		});
 	}
-	postAndUnzip (filePath) {
+	postAndUnzip(filePath) {
 		return this.post(filePath).flatMap(() => this.unzip(filePath));
 	}
 	delete(filePath, optionalRoot) {
@@ -202,7 +234,7 @@ export default class WebDav {
 
 		return Observable.create(observer => {
 			this.log('delete', uriPath);
-			const req = request(Object.assign(this.getOptions(), {
+			let req = request(Object.assign(this.getOptions(), {
 				uri: '/' + uriPath,
 				method: 'DELETE'
 			}), (err, res, body) => {
@@ -219,14 +251,17 @@ export default class WebDav {
 				observer.complete();
 			});
 
-			return () => req.destroy();
+			return () => {
+				req.destroy()
+				req = null;
+			};
 		});
 	}
 	getFileList(pathToCartridgesDir, options) {
 		const walk = require('walk');
-		const {isCartridge = false} = options;
-		const {isDirectory = false} = options;
-		const {ignoreList = ['node_modules', '\\.git']} = options;
+		const { isCartridge = false } = options;
+		const { isDirectory = false } = options;
+		const { ignoreList = ['node_modules', '\\.git'] } = options;
 		const processingFolder = pathToCartridgesDir.split(sep).pop();
 
 		return Observable.create(observer => {
@@ -279,11 +314,11 @@ export default class WebDav {
 				observer.complete();
 			});
 
-			walker.on('nodeError', (__, {error}) => {
+			walker.on('nodeError', (__, { error }) => {
 				observer.error(error);
 				dispose();
 			});
-			walker.on('directoryError', (__, {error}) => {
+			walker.on('directoryError', (__, { error }) => {
 				observer.error(error);
 				dispose();
 			});
@@ -309,7 +344,7 @@ export default class WebDav {
 			// });
 
 
-			return () => {isCanceled = true}
+			return () => { isCanceled = true }
 		});
 	}
 	zipFiles(pathToCartridgesDir, cartridgesPackagePath, options) {
@@ -317,10 +352,10 @@ export default class WebDav {
 		const fs = require('fs');
 
 		return Observable.create(observer => {
-			const zipFile = new yazl.ZipFile();
+			let zipFile = new yazl.ZipFile();
 			var inputStream, outputStream;
 
-			const subscription = this.getFileList(pathToCartridgesDir, options).subscribe(
+			let subscription = this.getFileList(pathToCartridgesDir, options).subscribe(
 				// next
 				files => {
 					if (files.length === 1) {
@@ -343,7 +378,7 @@ export default class WebDav {
 
 					zipFile.outputStream
 						.pipe(inputStream)
-						.once('close', () => {observer.next(); observer.complete()})
+						.once('close', () => { observer.next(); observer.complete() })
 						.once('error', err => observer.error(err));
 				}
 			);
@@ -353,14 +388,16 @@ export default class WebDav {
 					outputStream.unpipe(inputStream);
 					inputStream.end();
 				}
+				zipFile = null;
 
 				subscription.unsubscribe()
+				subscription = null;
 			}
 		});
 	}
-	uploadCartridges (
+	uploadCartridges(
 		pathToCartridgesDir,
-		notify = (string) => {},
+		notify = (string) => { },
 		options = {}
 	) {
 

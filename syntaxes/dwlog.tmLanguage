@@ -97,10 +97,10 @@
 				<key>name</key>
 				<string>comment</string>
 			</dict>
-
+			<!-- DW log date -->
 			<dict>
 				<key>match</key>
-				<string>\[.*?\] </string>
+				<string>^\[.*?\]$</string>
 				<key>name</key>
 				<string>string.key, emphasis</string>
 			</dict>
@@ -124,7 +124,7 @@
 			<!-- Guids -->
 			<dict>
 				<key>match</key>
-				<string>[0-9a-fA-F]{8}[-]?([0-9a-fA-F]{4}[-]?){3}[0-9a-fA-F]{12}</string>
+				<string>[0-9a-fA-F]{8}[-]?([0-9a-fA-F]{4}[-]?){3}[0-9a-fA-F]{14}</string>
 				<key>name</key>
 				<string>constant.language</string>
 			</dict>
