@@ -1,4 +1,4 @@
-import {Observable} from 'rxjs/Observable';
+import { Observable } from 'rxjs/Observable';
 
 import 'rxjs/add/operator/mergeMap';
 import 'rxjs/add/observable/merge';
@@ -6,18 +6,18 @@ import 'rxjs/add/operator/concat';
 import 'rxjs/add/operator/retryWhen';
 
 
-import {OutputChannel, workspace} from 'vscode';
-import {default as WebDav, DavOptions} from './WebDav';
-import {getDirectoriesSync} from '../lib/FileHelper'
-import {dirname, join} from 'path';
-import {createReadStream} from 'fs';
+import { OutputChannel, workspace } from 'vscode';
+import { default as WebDav, DavOptions } from './WebDav';
+import { getDirectoriesSync } from '../lib/FileHelper'
+import { dirname, join } from 'path';
+import { createReadStream } from 'fs';
 import * as chokidar from 'chokidar';
 
 
-export function readConfigFile(configFilename: string) : Observable<DavOptions> {
+export function readConfigFile(configFilename: string): Observable<DavOptions> {
 	return Observable.create(observer => {
 		var stream = createReadStream(configFilename);
-		let chunks : any[] = [];
+		let chunks: any[] = [];
 
 		// Listen for data
 		stream.on('data', chunk => {
@@ -37,28 +37,31 @@ export function readConfigFile(configFilename: string) : Observable<DavOptions> 
 			}
 		});
 
-		return () => stream.close()
+		return () => {
+			chunks = <any>null;
+			stream.close()
+		}
 	});
 }
 
-export function getWebDavClient(config : DavOptions, outputChannel: OutputChannel, rootDir: string) : Observable<WebDav>{
+export function getWebDavClient(config: DavOptions, outputChannel: OutputChannel, rootDir: string): Observable<WebDav> {
 	return Observable.create(observer => {
 		const webdav = new WebDav({
-				hostname: config.hostname,
-				username: config.username,
-				password: config.password,
-				version: config['code-version'] || config.version,
-				root: rootDir
-				}, config.debug ?
-					(...msgs) => {outputChannel.appendLine(`${msgs.join(' ')}`)} :
-					() => {}
-			);
+			hostname: config.hostname,
+			username: config.username,
+			password: config.password,
+			version: config['code-version'] || config.version,
+			root: rootDir
+		}, config.debug ?
+				(...msgs) => { outputChannel.appendLine(`${msgs.join(' ')}`) } :
+				() => { }
+		);
 		observer.next(webdav);
 	});
 }
 
 
-function fileWatcher(config, cartRoot : string) {
+function fileWatcher(config, cartRoot: string) {
 	return Observable.create(observer => {
 		var cartridges;
 		if (config.cartridge && config.cartridge.length) {
@@ -67,7 +70,7 @@ function fileWatcher(config, cartRoot : string) {
 			cartridges = getDirectoriesSync(cartRoot)
 		}
 
-		const watcher = chokidar.watch(null, {
+		let watcher = chokidar.watch(null, {
 			ignored: [
 				'**/node_modules/**',
 				'**/.git/**',
@@ -92,11 +95,13 @@ function fileWatcher(config, cartRoot : string) {
 
 		return () => {
 			watcher.close();
+			watcher = null;
+			cartridges = null;
 		}
 	});
 }
 
-const uploadCartridges = (webdav : WebDav, outputChannel : OutputChannel, config : any, cartRoot: string) => {
+const uploadCartridges = (webdav: WebDav, outputChannel: OutputChannel, config: any, cartRoot: string) => {
 	var cartridges;
 	if (config.cartridge && config.cartridge.length) {
 		cartridges = config.cartridge;
@@ -113,13 +118,13 @@ const uploadCartridges = (webdav : WebDav, outputChannel : OutputChannel, config
 			};
 			const dirToUpload = join(cartRoot, cartridge);
 			return webdav
-				.uploadCartridges(dirToUpload, notify, {isCartridge: true});
+				.uploadCartridges(dirToUpload, notify, { isCartridge: true });
 		});
 	return Observable.merge(...toUpload, 3).concat(Promise.resolve(1));
 }
 
 
-function uploadAndWatch(webdav : WebDav, outputChannel : OutputChannel, config : any, rootDir: string) {
+function uploadAndWatch(webdav: WebDav, outputChannel: OutputChannel, config: any, rootDir: string) {
 	return webdav.dirList(rootDir)
 		.do(() => {
 			outputChannel.appendLine(`Connection validated successfully`);
@@ -152,12 +157,15 @@ function uploadAndWatch(webdav : WebDav, outputChannel : OutputChannel, config :
 			outputChannel.appendLine(`Watching files`);
 			return fileWatcher(config, rootDir)
 				.mergeMap(([action, fileName]) => {
+					const time = new Date();
 					if (action === 'upload') {
-						outputChannel.appendLine(`[U]: "${fileName}"`);
+						outputChannel.appendLine(
+							`[U ${time.getHours()}:${time.getMinutes()}:${time.getSeconds()}]: "${fileName}"`
+						);
 
 						return webdav.post(fileName, rootDir);
 					} else if (action === 'delete') {
-						outputChannel.appendLine(`[D]: "${fileName}"`);
+						outputChannel.appendLine(`[D ${time.getHours()}:${time.getMinutes()}:${time.getSeconds()}]: "${fileName}"`);
 
 						return webdav.delete(fileName, rootDir);
 					} else {
@@ -193,6 +201,7 @@ export function init(configFilename: string, outputChannel: OutputChannel) {
 				});
 			}).do(() => {
 				retryCounter = 0;
+				conf = null;
 			});
 	})
 }

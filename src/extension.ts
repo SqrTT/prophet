@@ -333,6 +333,12 @@ function loadUploaderConfig(rootPath: string, context: ExtensionContext) {
 									logsView.openLog(filename);
 								}
 							}));
+
+							context.subscriptions.push(commands.registerCommand('extension.prophet.command.clean.log', (logItem) => {
+								if (logsView) {
+									logsView.cleanLog(logItem);
+								}
+							}));
 						});
 					}
 				});
