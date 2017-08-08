@@ -80,7 +80,7 @@ function fileWatcher(config, cartRoot: string) {
 			ignoreInitial: true,
 			followSymlinks: false,
 			awaitWriteFinish: {
-				stabilityThreshold: 1000,
+				stabilityThreshold: 300,
 				pollInterval: 100
 			}
 		});
