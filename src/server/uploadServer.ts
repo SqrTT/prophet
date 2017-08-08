@@ -79,7 +79,10 @@ function fileWatcher(config, cartRoot: string) {
 			persistent: true,
 			ignoreInitial: true,
 			followSymlinks: false,
-			awaitWriteFinish: true
+			awaitWriteFinish: {
+				stabilityThreshold: 1000,
+				pollInterval: 100
+			}
 		});
 
 		watcher.on('change', path => observer.next(['upload', path]));
