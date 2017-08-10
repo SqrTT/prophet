@@ -60,7 +60,6 @@ export function getWebDavClient(config: DavOptions, outputChannel: OutputChannel
 	});
 }
 
-
 function fileWatcher(config, cartRoot: string) {
 	return Observable.create(observer => {
 		var cartridges;
@@ -79,7 +78,11 @@ function fileWatcher(config, cartRoot: string) {
 			],
 			persistent: true,
 			ignoreInitial: true,
-			followSymlinks: false
+			followSymlinks: false,
+			awaitWriteFinish: {
+				stabilityThreshold: 300,
+				pollInterval: 100
+			}
 		});
 
 		watcher.on('change', path => observer.next(['upload', path]));
