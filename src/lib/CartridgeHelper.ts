@@ -1,8 +1,10 @@
 'use strict';
+import * as glob from 'glob';
 import { TreeItemCollapsibleState } from 'vscode';
 import { exists, readFile, existsSync, mkdirSync, writeFile, mkdir, } from 'fs';
 import { dirname, join, basename, sep } from 'path';
 import { CartridgeItem, CartridgeItemType } from './CartridgeItem';
+import { pathExists } from '../lib/FileHelper';
 
 /**
  * Checks whether or not an Eclipse project file is a Salesforce project.
@@ -44,6 +46,70 @@ export const toCardridge = (projectFile: string, activeFile?: string): Promise<C
 				actualCartridgeLocation,
 				(activeFile && activeFile.startsWith(actualCartridgeLocation))
 					? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.Collapsed));
+		});
+	});
+};
+
+/**
+ * Checks for cartridges in the paths variable. (References to other cartridges)
+ * @param workspaceRoot The current workspaceroot
+ * @param packageFile The path to the package file.
+ */
+export const getPathsCartridges = (workspaceRoot, packageFile): Promise<string[]> => {
+	return new Promise((resolve) => {
+		pathExists(packageFile).then(packageExists => {
+			if (packageExists) {
+				readFile(packageFile, 'UTF-8', (error, data) => {
+					if (error) {
+						resolve();
+					}
+
+					const packageFileObject = JSON.parse(data);
+
+					if (packageFileObject.paths) {
+						const promises: Promise<string[]>[] = [];
+						const paths = Object.values(packageFileObject.paths);
+
+						paths.forEach(function (path) {
+							if (typeof path === 'string') {
+								promises.push(new Promise((resolvePathProjects) => {
+									exists(join(workspaceRoot, path), packagePathExists => {
+										if (packagePathExists) {
+											glob('**/.project', {
+												cwd: join(workspaceRoot, path),
+												root: join(workspaceRoot, path),
+												nodir: true,
+												follow: false,
+												absolute: true,
+												ignore: ['**/node_modules/**', '**/.git/**']
+											}, (globError, projectFiles: string[]) => {
+												resolvePathProjects(projectFiles);
+											});
+										} else {
+											resolve([]);
+										}
+									});
+								}));
+							}
+
+						});
+
+						Promise.all(promises).then(result => {
+							let conjoinedArray: string[] = [];
+
+							for (let i = 0; i < result.length; i++) {
+								conjoinedArray = conjoinedArray.concat(result[i]);
+							}
+
+							resolve(conjoinedArray);
+						});
+					} else {
+						resolve([]);
+					}
+				});
+			} else {
+				resolve([]);
+			}
 		});
 	});
 };

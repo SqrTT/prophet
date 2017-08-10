@@ -6,7 +6,7 @@ import * as glob from 'glob';
 import { mkdirSync, open, close } from 'fs';
 
 import { getDirectories, getFiles, pathExists } from '../lib/FileHelper';
-import { checkIfCartridge, toCardridge } from '../lib/CartridgeHelper';
+import { checkIfCartridge, toCardridge, getPathsCartridges } from '../lib/CartridgeHelper';
 import { filterAsync } from '../lib/CollectionUtil';
 import { CartridgeItem, CartridgeItemType } from '../lib/CartridgeItem';
 
@@ -128,34 +128,39 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
 		return new Promise((resolve, reject) => {
 			const activeFile = this.activeFile;
 
-			pathExists(workspaceRoot).then(exists => {
-				if (exists) {
-					glob('**/.project', {
-						cwd: workspaceRoot,
-						root: workspaceRoot,
-						nodir: true,
-						follow: false,
-						absolute: true,
-						ignore: ['**/node_modules/**', '**/.git/**']
-					}, (error, projectFiles: string[]) => {
+			pathExists(workspaceRoot).then(workspaceExists => {
+				if (workspaceExists) {
+					const packagePath = join(workspaceRoot, 'package.json');
 
-						if (error) {
-							return reject(error);
-						}
+					getPathsCartridges(workspaceRoot, packagePath).then(function (paths) {
+						glob('**/.project', {
+							cwd: workspaceRoot,
+							root: workspaceRoot,
+							nodir: true,
+							follow: false,
+							absolute: true,
+							ignore: ['**/node_modules/**', '**/.git/**']
+						}, (error, projectFiles: string[]) => {
 
-						if (projectFiles.length) {
-							filterAsync(projectFiles, checkIfCartridge).then((filteredProjectFiles) => {
-								Promise.all(filteredProjectFiles.map(
-									function (projectFile) {
-										return toCardridge(projectFile, activeFile);
-									})).then(resolve);
-							});
-						} else {
-							resolve([new CartridgeItem('No cartridges found in this workspace.',
-								CartridgeItemType.Cartridge,
-								this.workspaceRoot,
-								TreeItemCollapsibleState.None)]);
-						}
+							if (error) {
+								return reject(error);
+							}
+
+							if (projectFiles.length) {
+								projectFiles = [...new Set(projectFiles.concat(paths))];
+								filterAsync(projectFiles, checkIfCartridge).then((filteredProjectFiles) => {
+									Promise.all(filteredProjectFiles.map(
+										function (projectFile) {
+											return toCardridge(projectFile, activeFile);
+										})).then(resolve);
+								});
+							} else {
+								resolve([new CartridgeItem('No cartridges found in this workspace.',
+									CartridgeItemType.Cartridge,
+									this.workspaceRoot,
+									TreeItemCollapsibleState.None)]);
+							}
+						});
 					});
 				} else {
 					resolve([CartridgeItem.NoCartridges]);
