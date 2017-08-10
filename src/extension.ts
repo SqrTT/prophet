@@ -357,8 +357,12 @@ function loadUploaderConfig(rootPath: string, context: ExtensionContext) {
 		err => {
 			outputChannel.show();
 			outputChannel.appendLine(`Error: ${err}`);
+		},
+		() => {
+			outputChannel.show();
+			outputChannel.appendLine(`Error: completed!`);
 		}
-		);
+	);
 }
 
 export function deactivate() {

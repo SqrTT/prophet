@@ -98,10 +98,21 @@ export class LogsView implements TreeDataProvider<LogItem> {
 			location: ProgressLocation.Window
 		}, () => observable2promise(this.webdavClient.get(basename(filename), '.')).then(
 				(filedata) => {
-					filedata = filedata.replace(/\[(.+? GMT)\]/ig, ($0, $1) => {
+					// replace timestamp
+					filedata = filedata.replace(/\[(.+? GMT)\] /ig, ($0, $1) => {
 						const date = new Date($1);
-						return `\n[${timeago().format(date)}/${date}]\n`;
+						return `\n\n[${timeago().format(date)}/${date}]\n`;
 					});
+
+					// replace paths
+					// 
+					const root = this.webdavClient.config.root;
+					filedata = filedata.replace(/\tat (.*?):(.*?) \(/ig, ($0, $1, $2) => {
+						return `\tat file://${join(root, ...$1.split('/'))}#${$2} (`;
+					});
+
+					// add new line before message message
+					filedata = filedata.replace(/  /ig, '\n');
 
 					return workspace.openTextDocument({ 'language': 'dwlog', 'content': filedata })
 						.then(document => {

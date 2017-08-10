@@ -110,22 +110,61 @@ You can temporarily disable watching or force upload cartridges (i.e. clean proj
 
 ### Improve experience
 
-Experience can be improved by using follow `jsconfig.json` in the folder with cartridges. It allows resolve absolute paths in scripts correctly, (except it starts with `~`).
+Experience can be improved by using follow `jsconfig.json` in the folder with cartridges. It allows resolve absolute paths in scripts correctly, (except it starts with `~` or `*`).
+
+> Note: client side JS files must have it's own `jsconfig.json` file.
+
+Code assistance can be improved even more by adding `d.ts` definition for the project. Definitions for Commerce Cloud objects can be downloaded from [repo](https://bitbucket.org/demandware/dw-api-types/overview)
 
 ```json
 {
     "compilerOptions": {
+        "noLib": true,
         "target": "es5",
         "baseUrl": "./",
         "paths": {
-            "*" : ["./*", "modules/*"]
+            "*" : ["./*", "modules/*", "../types/*"]
         }
     },
     "typeAcquisition": {
         "enable": true
-    }
+    },
+    "include": [
+        "../types/*.d.ts",
+        "../types/**/*.d.ts",
+        "./cartridge1/**/*.js",
+        "./cartridge2/**/*.js",
+        "./cartridgeN/**/*.js"
+    ]
 }
 ```
+> * Replace cartridge1...cartridgeN for your real cartriges
+> * Replace ../types/ to path where you are unpacked type definitions
+
+To help VSCode determinate type of variable/argument JSDoc can be used. For instance:
+
+```javascript
+// local variable
+
+/**
+/ @type {dw.catalog.Product}
+/*
+var product = someMethod();
+
+// arguments types
+
+/**
+/ @param {dw.util.Iterator.<dw.catalog.Product>} products
+/ @param {dw.order.Basket} basket
+/ @returns {Array.<dw.catalog.Product>}
+/*
+function doSomething(product, basket) {
+...
+}
+
+```
+
+
 ### Reporting a bug
 
 To report a bug simply create a new [GitHub Issue](https://github.com/SqrTT/prophet/issues/new) and describe your problem or suggestion. All kinds of feedback are welcome regarding extention including but not limited to:

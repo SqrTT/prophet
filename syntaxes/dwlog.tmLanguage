@@ -137,12 +137,7 @@
 				<string>constant.language</string>
 			</dict>
             
-			<dict>
-				<key>match</key>
-				<string>\[Template\:.*?\:\$</string>
-				<key>name</key>
-				<string>constant.language</string>
-			</dict>
+
 
 			<!-- String constants -->
 			<dict>
@@ -177,6 +172,15 @@
 				<string>string.key, emphasis</string>
 			</dict>
 
+			<!-- [Template:product/components/product:$ -->
+			<dict>
+				<key>begin</key>
+				<string>\[Template\:</string>
+				<key>end</key>
+				<string>\:\$</string>
+				<key>name</key>
+				<string>constant.language</string>
+			</dict>
 			<!-- Match Urls -->
 			<dict>
 				<key>match</key>

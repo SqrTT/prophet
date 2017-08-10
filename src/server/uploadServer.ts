@@ -60,7 +60,6 @@ export function getWebDavClient(config: DavOptions, outputChannel: OutputChannel
 	});
 }
 
-
 function fileWatcher(config, cartRoot: string) {
 	return Observable.create(observer => {
 		var cartridges;
@@ -79,7 +78,11 @@ function fileWatcher(config, cartRoot: string) {
 			],
 			persistent: true,
 			ignoreInitial: true,
-			followSymlinks: false
+			followSymlinks: false,
+			awaitWriteFinish: {
+				stabilityThreshold: 300,
+				pollInterval: 100
+			}
 		});
 
 		watcher.on('change', path => observer.next(['upload', path]));
@@ -143,9 +146,9 @@ function uploadAndWatch(webdav: WebDav, outputChannel: OutputChannel, config: an
 		}).flatMap(() => {
 			return webdav.getActiveCodeVersion();
 		}).do((version) => {
-			if (version !== config.version) {
+			if (version !== webdav.config.version) {
 				outputChannel.show();
-				outputChannel.appendLine(`\nWarn: Current code version is "${version}" while uploading is processed into "${config.version}"\n`);
+				outputChannel.appendLine(`\nWarn: Current code version is "${version}" while uploading is processed into "${webdav.config.version}"\n`);
 			}
 			outputChannel.appendLine(`Current active version is: ${version}`);
 		}).flatMap(() => {
@@ -157,15 +160,15 @@ function uploadAndWatch(webdav: WebDav, outputChannel: OutputChannel, config: an
 			outputChannel.appendLine(`Watching files`);
 			return fileWatcher(config, rootDir)
 				.mergeMap(([action, fileName]) => {
-					const time = new Date();
+					const date = new Date();
 					if (action === 'upload') {
 						outputChannel.appendLine(
-							`[U ${time.getHours()}:${time.getMinutes()}:${time.getSeconds()}]: "${fileName}"`
+							`[U ${date.toTimeString().split(' ').shift()}] ${fileName}`
 						);
 
 						return webdav.post(fileName, rootDir);
 					} else if (action === 'delete') {
-						outputChannel.appendLine(`[D ${time.getHours()}:${time.getMinutes()}:${time.getSeconds()}]: "${fileName}"`);
+						outputChannel.appendLine(`[D ${date.toTimeString().split(' ').shift()}] ${fileName}`);
 
 						return webdav.delete(fileName, rootDir);
 					} else {
