@@ -146,9 +146,9 @@ function uploadAndWatch(webdav: WebDav, outputChannel: OutputChannel, config: ({
 		}).flatMap(() => {
 			return webdav.getActiveCodeVersion();
 		}).do((version) => {
-			if (version !== config.version) {
+			if (version !== webdav.config.version) {
 				outputChannel.show();
-				outputChannel.appendLine(`\nWarn: Current code version is "${version}" while uploading is processed into "${config.version}"\n`);
+				outputChannel.appendLine(`\nWarn: Current code version is "${version}" while uploading is processed into "${webdav.config.version}"\n`);
 			}
 			outputChannel.appendLine(`Current active version is: ${version}`);
 		}).flatMap(() => {
@@ -160,15 +160,15 @@ function uploadAndWatch(webdav: WebDav, outputChannel: OutputChannel, config: ({
 			outputChannel.appendLine(`Watching files`);
 			return fileWatcher(config, rootDir)
 				.mergeMap(([action, fileName]) => {
-					const time = new Date();
+					const date = new Date();
 					if (action === 'upload') {
 						outputChannel.appendLine(
-							`[U ${time.getHours()}:${time.getMinutes()}:${time.getSeconds()}]: "${fileName}"`
+							`[U ${date.toTimeString().split(' ').shift()}] ${fileName}`
 						);
 
 						return webdav.post(fileName, rootDir);
 					} else if (action === 'delete') {
-						outputChannel.appendLine(`[D ${time.getHours()}:${time.getMinutes()}:${time.getSeconds()}]: "${fileName}"`);
+						outputChannel.appendLine(`[D ${date.toTimeString().split(' ').shift()}] ${fileName}`);
 
 						return webdav.delete(fileName, rootDir);
 					} else {
