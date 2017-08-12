@@ -36,7 +36,7 @@ export function readConfigFile(configFilename: string): Observable<DavOptions> {
 		});
 
 		return () => {
-			chunks = [];
+			chunks = <any>null;
 			stream.close();
 		};
 	});
