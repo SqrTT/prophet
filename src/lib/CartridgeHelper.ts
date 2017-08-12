@@ -91,17 +91,10 @@ export const getPathsCartridges = (workspaceRoot, packageFile): Promise<string[]
 									});
 								}));
 							}
-
 						});
 
 						Promise.all(promises).then(result => {
-							let conjoinedArray: string[] = [];
-
-							for (let i = 0; i < result.length; i++) {
-								conjoinedArray = conjoinedArray.concat(result[i]);
-							}
-
-							resolve(conjoinedArray);
+							resolve([].concat(result.concat.apply([], result)));
 						});
 					} else {
 						resolve([]);
