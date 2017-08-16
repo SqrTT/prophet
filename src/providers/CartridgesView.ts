@@ -180,6 +180,8 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
 				} else {
 					resolve([CartridgeItem.NoCartridges]);
 				}
+			}, error => {
+				cartridgeViewOutputChannel.appendLine('Exception when trying to fetch workspace cartridges: ' + error);
 			});
 		});
 	}

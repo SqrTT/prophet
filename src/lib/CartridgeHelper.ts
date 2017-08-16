@@ -56,12 +56,12 @@ export const toCardridge = (projectFile: string, activeFile?: string): Promise<C
  * @param packageFile The path to the package file.
  */
 export const getPathsCartridges = (workspaceRoot, packageFile): Promise<string[]> => {
-	return new Promise((resolve) => {
+	return new Promise((resolve, reject) => {
 		pathExists(packageFile).then(packageExists => {
 			if (packageExists) {
 				readFile(packageFile, 'UTF-8', (error, data) => {
 					if (error) {
-						resolve();
+						reject('Error reading package file.')
 					}
 
 					const packageFileObject = JSON.parse(data);
@@ -83,10 +83,11 @@ export const getPathsCartridges = (workspaceRoot, packageFile): Promise<string[]
 												absolute: true,
 												ignore: ['**/node_modules/**', '**/.git/**']
 											}, (globError, projectFiles: string[]) => {
+												if (globError) { reject(globError); };
 												resolvePathProjects(projectFiles);
 											});
 										} else {
-											resolve([]);
+											resolvePathProjects([]);
 										}
 									});
 								}));
