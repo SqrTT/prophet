@@ -72,7 +72,7 @@ export const getPathsCartridges = (workspaceRoot, packageFile): Promise<string[]
 
 						paths.forEach(function (path) {
 							if (typeof path === 'string') {
-								promises.push(new Promise((resolvePathProjects) => {
+								promises.push(new Promise((resolvePathProjects, rejectPathProjects) => {
 									exists(join(workspaceRoot, path), packagePathExists => {
 										if (packagePathExists) {
 											glob('**/.project', {
@@ -83,7 +83,7 @@ export const getPathsCartridges = (workspaceRoot, packageFile): Promise<string[]
 												absolute: true,
 												ignore: ['**/node_modules/**', '**/.git/**']
 											}, (globError, projectFiles: string[]) => {
-												if (globError) { reject(globError); };
+												if (globError) { rejectPathProjects(globError); };
 												resolvePathProjects(projectFiles);
 											});
 										} else {
@@ -96,6 +96,8 @@ export const getPathsCartridges = (workspaceRoot, packageFile): Promise<string[]
 
 						Promise.all(promises).then(result => {
 							resolve([].concat(result.concat.apply([], result)));
+						}, error => {
+							reject('Exception processing package paths: ' + error);
 						});
 					} else {
 						resolve([]);
