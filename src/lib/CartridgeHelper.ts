@@ -1,8 +1,10 @@
 'use strict';
+import * as glob from 'glob';
 import { TreeItemCollapsibleState } from 'vscode';
 import { exists, readFile, existsSync, mkdirSync, writeFile, mkdir, } from 'fs';
 import { dirname, join, basename, sep } from 'path';
 import { CartridgeItem, CartridgeItemType } from './CartridgeItem';
+import { pathExists } from '../lib/FileHelper';
 
 /**
  * Checks whether or not an Eclipse project file is a Salesforce project.
@@ -44,6 +46,66 @@ export const toCardridge = (projectFile: string, activeFile?: string): Promise<C
 				actualCartridgeLocation,
 				(activeFile && activeFile.startsWith(actualCartridgeLocation))
 					? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.Collapsed));
+		});
+	});
+};
+
+/**
+ * Checks for cartridges in the paths variable. (References to other cartridges)
+ * @param workspaceRoot The current workspaceroot
+ * @param packageFile The path to the package file.
+ */
+export const getPathsCartridges = (workspaceRoot, packageFile): Promise<string[]> => {
+	return new Promise((resolve, reject) => {
+		pathExists(packageFile).then(packageExists => {
+			if (packageExists) {
+				readFile(packageFile, 'UTF-8', (error, data) => {
+					if (error) {
+						reject('Error reading package file.')
+					}
+
+					const packageFileObject = JSON.parse(data);
+
+					if (packageFileObject.paths) {
+						const promises: Promise<string[]>[] = [];
+						const paths = Object.values(packageFileObject.paths);
+
+						paths.forEach(function (path) {
+							if (typeof path === 'string') {
+								promises.push(new Promise((resolvePathProjects, rejectPathProjects) => {
+									exists(join(workspaceRoot, path), packagePathExists => {
+										if (packagePathExists) {
+											glob('**/.project', {
+												cwd: join(workspaceRoot, path),
+												root: join(workspaceRoot, path),
+												nodir: true,
+												follow: false,
+												absolute: true,
+												ignore: ['**/node_modules/**', '**/.git/**']
+											}, (globError, projectFiles: string[]) => {
+												if (globError) { rejectPathProjects(globError); };
+												resolvePathProjects(projectFiles);
+											});
+										} else {
+											resolvePathProjects([]);
+										}
+									});
+								}));
+							}
+						});
+
+						Promise.all(promises).then(result => {
+							resolve([].concat(result.concat.apply([], result)));
+						}, error => {
+							reject('Exception processing package paths: ' + error);
+						});
+					} else {
+						resolve([]);
+					}
+				});
+			} else {
+				resolve([]);
+			}
 		});
 	});
 };

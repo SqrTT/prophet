@@ -6,9 +6,12 @@ import * as glob from 'glob';
 import { mkdirSync, open, close } from 'fs';
 
 import { getDirectories, getFiles, pathExists } from '../lib/FileHelper';
-import { checkIfCartridge, toCardridge } from '../lib/CartridgeHelper';
+import { checkIfCartridge, toCardridge, getPathsCartridges } from '../lib/CartridgeHelper';
 import { filterAsync } from '../lib/CollectionUtil';
 import { CartridgeItem, CartridgeItemType } from '../lib/CartridgeItem';
+
+
+const cartridgeViewOutputChannel = window.createOutputChannel('Cartridges List (Prophet)');
 
 /**
  * Creates a folder CartridgeItem.
@@ -48,7 +51,7 @@ const toFileElement = (fileName: string, element: CartridgeItem): CartridgeItem 
 export class CartridgesView implements TreeDataProvider<CartridgeItem> {
 	private _onDidChangeTreeData: EventEmitter<CartridgeItem | undefined> = new EventEmitter<CartridgeItem | undefined>();
 	readonly onDidChangeTreeData: Event<CartridgeItem | undefined> = this._onDidChangeTreeData.event;
-
+	private lastFileOpened = 'NO_FILE';
     /**
      * Load the cartridges within the curren workspace
      * @param {string} workspaceRoot The absolute path of the workspace
@@ -56,7 +59,11 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
      */
 	constructor(private workspaceRoot: string, private activeFile?: string) {
 		workspace.onDidOpenTextDocument((e) => {
-			this.refresh(e.fileName);
+			// Use startswith since editor for some reason also send the .git file.
+			if (!e.fileName.startsWith(this.lastFileOpened)) {
+				this.lastFileOpened = e.fileName;
+				this.refresh(e.fileName);
+			}
 		});
 	}
 
@@ -66,6 +73,7 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
      */
 	refresh(file?: string): void {
 		if (file) {
+			cartridgeViewOutputChannel.appendLine('\nRefreshing workspace with active file: ' + file);
 			this.activeFile = file;
 		}
 		this._onDidChangeTreeData.fire();
@@ -128,38 +136,52 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
 		return new Promise((resolve, reject) => {
 			const activeFile = this.activeFile;
 
-			pathExists(workspaceRoot).then(exists => {
-				if (exists) {
-					glob('**/.project', {
-						cwd: workspaceRoot,
-						root: workspaceRoot,
-						nodir: true,
-						follow: false,
-						absolute: true,
-						ignore: ['**/node_modules/**', '**/.git/**']
-					}, (error, projectFiles: string[]) => {
+			pathExists(workspaceRoot).then(workspaceExists => {
+				if (workspaceExists) {
+					cartridgeViewOutputChannel.appendLine('Found workspace.');
 
-						if (error) {
-							return reject(error);
+					const packagePath = join(workspaceRoot, 'package.json');
+
+					getPathsCartridges(workspaceRoot, packagePath).then(function (paths) {
+						if (paths && paths.length > 0) {
+							cartridgeViewOutputChannel.appendLine('Found extra cartridges in package file paths:\n\t*' + paths.join('\n\t*'));
 						}
 
-						if (projectFiles.length) {
-							filterAsync(projectFiles, checkIfCartridge).then((filteredProjectFiles) => {
-								Promise.all(filteredProjectFiles.map(
-									function (projectFile) {
-										return toCardridge(projectFile, activeFile);
-									})).then(resolve);
-							});
-						} else {
-							resolve([new CartridgeItem('No cartridges found in this workspace.',
-								CartridgeItemType.Cartridge,
-								this.workspaceRoot,
-								TreeItemCollapsibleState.None)]);
-						}
+						glob('**/.project', {
+							cwd: workspaceRoot,
+							root: workspaceRoot,
+							nodir: true,
+							follow: false,
+							absolute: true,
+							ignore: ['**/node_modules/**', '**/.git/**']
+						}, (error, projectFiles: string[]) => {
+							if (error) {
+								return reject(error);
+							}
+
+							cartridgeViewOutputChannel.appendLine('Found catridges in workspace:\n\t*' + projectFiles.join('\n\t*'));
+
+							if (projectFiles.length) {
+								projectFiles = [...new Set(projectFiles.concat(paths))];
+								filterAsync(projectFiles, checkIfCartridge).then((filteredProjectFiles) => {
+									Promise.all(filteredProjectFiles.map(
+										function (projectFile) {
+											return toCardridge(projectFile, activeFile);
+										})).then(resolve);
+								});
+							} else {
+								resolve([new CartridgeItem('No cartridges found in this workspace.',
+									CartridgeItemType.Cartridge,
+									this.workspaceRoot,
+									TreeItemCollapsibleState.None)]);
+							}
+						});
 					});
 				} else {
 					resolve([CartridgeItem.NoCartridges]);
 				}
+			}, error => {
+				cartridgeViewOutputChannel.appendLine('Exception when trying to fetch workspace cartridges: ' + error);
 			});
 		});
 	}

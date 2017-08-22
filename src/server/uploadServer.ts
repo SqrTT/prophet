@@ -5,19 +5,17 @@ import 'rxjs/add/observable/merge';
 import 'rxjs/add/operator/concat';
 import 'rxjs/add/operator/retryWhen';
 
-
 import { OutputChannel, workspace } from 'vscode';
 import { default as WebDav, DavOptions } from './WebDav';
-import { getDirectoriesSync } from '../lib/FileHelper'
+import { getDirectoriesSync } from '../lib/FileHelper';
 import { dirname, join } from 'path';
 import { createReadStream } from 'fs';
 import * as chokidar from 'chokidar';
 
-
 export function readConfigFile(configFilename: string): Observable<DavOptions> {
 	return Observable.create(observer => {
-		var stream = createReadStream(configFilename);
-		let chunks: any[] = [];
+		const stream = createReadStream(configFilename);
+		let chunks: Buffer[] = [];
 
 		// Listen for data
 		stream.on('data', chunk => {
@@ -39,8 +37,8 @@ export function readConfigFile(configFilename: string): Observable<DavOptions> {
 
 		return () => {
 			chunks = <any>null;
-			stream.close()
-		}
+			stream.close();
+		};
 	});
 }
 
@@ -53,8 +51,10 @@ export function getWebDavClient(config: DavOptions, outputChannel: OutputChannel
 			version: config['code-version'] || config.version,
 			root: rootDir
 		}, config.debug ?
-				(...msgs) => { outputChannel.appendLine(`${msgs.join(' ')}`) } :
-				() => { }
+				(...msgs) => { outputChannel.appendLine(`${msgs.join(' ')}`); } :
+				() => {
+					// DO NOTHING
+				}
 		);
 		observer.next(webdav);
 	});
@@ -62,11 +62,12 @@ export function getWebDavClient(config: DavOptions, outputChannel: OutputChannel
 
 function fileWatcher(config, cartRoot: string) {
 	return Observable.create(observer => {
-		var cartridges;
+		let cartridges;
+
 		if (config.cartridge && config.cartridge.length) {
 			cartridges = config.cartridge;
 		} else {
-			cartridges = getDirectoriesSync(cartRoot)
+			cartridges = getDirectoriesSync(cartRoot);
 		}
 
 		let watcher = chokidar.watch(null, {
@@ -100,16 +101,16 @@ function fileWatcher(config, cartRoot: string) {
 			watcher.close();
 			watcher = null;
 			cartridges = null;
-		}
+		};
 	});
 }
 
-const uploadCartridges = (webdav: WebDav, outputChannel: OutputChannel, config: any, cartRoot: string) => {
-	var cartridges;
+const uploadCartridges = (webdav: WebDav, outputChannel: OutputChannel, config: ({ cartridge }), cartRoot: string) => {
+	let cartridges;
 	if (config.cartridge && config.cartridge.length) {
 		cartridges = config.cartridge;
 	} else {
-		cartridges = getDirectoriesSync(cartRoot)
+		cartridges = getDirectoriesSync(cartRoot);
 	}
 
 	const toUpload = cartridges
@@ -124,10 +125,9 @@ const uploadCartridges = (webdav: WebDav, outputChannel: OutputChannel, config: 
 				.uploadCartridges(dirToUpload, notify, { isCartridge: true });
 		});
 	return Observable.merge(...toUpload, 3).concat(Promise.resolve(1));
-}
+};
 
-
-function uploadAndWatch(webdav: WebDav, outputChannel: OutputChannel, config: any, rootDir: string) {
+function uploadAndWatch(webdav: WebDav, outputChannel: OutputChannel, config: ({ cartridge, version }), rootDir: string) {
 	return webdav.dirList(rootDir)
 		.do(() => {
 			outputChannel.appendLine(`Connection validated successfully`);
@@ -174,13 +174,14 @@ function uploadAndWatch(webdav: WebDav, outputChannel: OutputChannel, config: an
 					} else {
 						throw Error('Unknown action');
 					}
-				}, 5)
-		})
+				}, 5);
+		});
 }
+
 export function init(configFilename: string, outputChannel: OutputChannel) {
 	let conf;
 	return readConfigFile(configFilename).flatMap(config => {
-		var rootDir = dirname(configFilename);
+		let rootDir = dirname(configFilename);
 		if (config.root) {
 			rootDir = join(rootDir, config.root);
 		}
@@ -188,7 +189,7 @@ export function init(configFilename: string, outputChannel: OutputChannel) {
 		outputChannel.appendLine(`Using directory "${rootDir}" as cartridges root`);
 		return getWebDavClient(config, outputChannel, rootDir);
 	}).flatMap(webdav => {
-		var retryCounter = 0;
+		let retryCounter = 0;
 		return uploadAndWatch(webdav, outputChannel, conf, webdav.config.root)
 			.retryWhen(function (errors) {
 				// retry for some errors, end the stream with an error for others
@@ -206,5 +207,5 @@ export function init(configFilename: string, outputChannel: OutputChannel) {
 				retryCounter = 0;
 				conf = null;
 			});
-	})
+	});
 }
