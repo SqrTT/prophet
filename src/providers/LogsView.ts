@@ -1,15 +1,29 @@
-import { TreeItemCollapsibleState, TreeDataProvider, TreeItem, Command, EventEmitter, Event, window, ProgressLocation, workspace, ViewColumn, Position, Range } from 'vscode';
+import {
+	TreeItemCollapsibleState,
+	TreeDataProvider,
+	TreeItem,
+	Command,
+	EventEmitter,
+	Event,
+	window,
+	ProgressLocation,
+	workspace,
+	ViewColumn,
+	Position,
+	Range
+} from 'vscode';
 
 import { join, basename } from 'path';
 import WebDav from '../server/WebDav';
 import { DOMParser } from 'xmldom';
 import { Observable } from 'rxjs';
+import timeago from 'timeago.js';
 
 const domParser = new DOMParser();
 
 function getNodeText(node): string | undefined {
 	if (node && node.length && node.item(0).childNodes.length) {
-		var value = node.item(0).childNodes['0'].nodeValue;
+		const value = node.item(0).childNodes['0'].nodeValue;
 		if (value) {
 			return value;
 		} else {
@@ -21,19 +35,19 @@ function getNodeText(node): string | undefined {
 }
 
 function parseResponse(data: string): LogStatus[] {
-	var xmlResponse = domParser.parseFromString(data);
+	const xmlResponse = domParser.parseFromString(data);
 	const logStatus: LogStatus[] = [];
 
 	const responses = xmlResponse.getElementsByTagName('response');
-	for (var i = 0, length = responses.length; i < length; i++) {
-		var response = responses.item(i);
+	for (let i = 0, length = responses.length; i < length; i++) {
+		const response = responses.item(i);
 
-		var name = getNodeText(response.getElementsByTagName('displayname'));
+		const name = getNodeText(response.getElementsByTagName('displayname'));
 
 		if (name && name.endsWith('.log')) {
-			var href = getNodeText(response.getElementsByTagName('href'));
-			var lastmodified = getNodeText(response.getElementsByTagName('getlastmodified'));
-			var contentlength = getNodeText(response.getElementsByTagName('getcontentlength'));
+			const href = getNodeText(response.getElementsByTagName('href'));
+			const lastmodified = getNodeText(response.getElementsByTagName('getlastmodified'));
+			const contentlength = getNodeText(response.getElementsByTagName('getcontentlength'));
 
 			logStatus.push(new LogStatus(
 				name.replace(/-blade\d{0,2}-\d{0,2}-appserver/ig, ''),
@@ -49,28 +63,16 @@ function parseResponse(data: string): LogStatus[] {
 function observable2promise<T>(observable: Observable<T>): Promise<T> {
 	return new Promise((resolve, reject) => {
 		observable.subscribe(resolve, reject, reject);
-	})
+	});
 }
-
 
 export class LogsView implements TreeDataProvider<LogItem> {
 	constructor(private webdavClient: WebDav) {
 		this.webdavClient.config.version = '';
-		this.webdavClient.folder = 'Logs'
-		// this.webdavClient.dirList('.', '.').subscribe(
-		// 	(data) => {
-		// 		var test = parseResponse(data)
-		// 		debugger;
-		// 	},
-		// 	err => {
-		// 		debugger;
-		// 	}
-		// );
-
+		this.webdavClient.folder = 'Logs';
 	}
 	private _onDidChangeTreeData: EventEmitter<LogItem | undefined> = new EventEmitter<LogItem | undefined>();
 	readonly onDidChangeTreeData: Event<LogItem | undefined> = this._onDidChangeTreeData.event;
-
 
 	refresh(): void {
 		this._onDidChangeTreeData.fire();
@@ -78,16 +80,39 @@ export class LogsView implements TreeDataProvider<LogItem> {
 	getTreeItem(element: LogItem): TreeItem {
 		return element;
 	}
+	cleanLog(logItem : LogItem) {
+		window.withProgress({
+			title: 'Cleaning log file',
+			location: ProgressLocation.Window
+		}, () => observable2promise(
+				this.webdavClient.postBody(
+					logItem.location.replace('/on/demandware.servlet/webdav/Sites/Logs/', ''),
+					`log cleaned by prophet - ${new Date()}\n`
+				)
+			)
+		)
+	}
 	openLog(filename: string) {
 		window.withProgress({
 			title: 'Opening log file',
 			location: ProgressLocation.Window
-		}, () => {
-			return observable2promise(this.webdavClient.get(basename(filename), '.')).then(
+		}, () => observable2promise(this.webdavClient.get(basename(filename), '.')).then(
 				(filedata) => {
-					filedata = filedata.replace(/\[(.+? GMT)\]/ig, ($0, $1) => {
-						return `\n[${new Date($1)}]`;
+					// replace timestamp
+					filedata = filedata.replace(/\[(.+? GMT)\] /ig, ($0, $1) => {
+						const date = new Date($1);
+						return `\n\n[${timeago().format(date)}/${date}]\n`;
 					});
+
+					// replace paths
+					// 
+					const root = this.webdavClient.config.root;
+					filedata = filedata.replace(/\tat (.*?):(.*?) \(/ig, ($0, $1, $2) => {
+						return `\tat file://${join(root, ...$1.split('/'))}#${$2} (`;
+					});
+
+					// add new line before message message
+					filedata = filedata.replace(/  /ig, '\n');
 
 					return workspace.openTextDocument({ 'language': 'dwlog', 'content': filedata })
 						.then(document => {
@@ -104,13 +129,12 @@ export class LogsView implements TreeDataProvider<LogItem> {
 				err => {
 					window.showErrorMessage(err);
 				}
-			);
-		});
+			)
+		)
 
 	}
 
 	getChildren(element?: LogItem): Thenable<LogItem[]> {
-
 		return observable2promise(this.webdavClient.dirList('.', '.').map(data => {
 			const statuses = parseResponse(data);
 			const sortedStauses = statuses.sort((a, b) => b.lastmodifed.getTime() - a.lastmodifed.getTime());
@@ -154,13 +178,13 @@ class LogItem extends TreeItem {
 			arguments: [location]
 		};
 
-		var iconType = [
+		const iconType = [
 			'fatal',
 			'error',
 			'warn',
 			'info',
 			'debug'
-		].find(t => name.includes(t)) || '';
+		].find(t => name.includes(t)) || 'log';
 
 		this.iconPath = join(__filename, '..', '..', '..', 'images', 'resources', iconType + '.svg');
 		this.contextValue = 'dwLogFile';
