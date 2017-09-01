@@ -1,15 +1,13 @@
 
 'use strict';
-import { Observable } from 'rxjs/Observable';
 import { join } from 'path';
-import { workspace, Disposable, ExtensionContext, commands, window, Uri, OutputChannel } from 'vscode';
+import { workspace, Disposable, ExtensionContext, commands, window, Uri, WorkspaceConfiguration } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
 import { CartridgesView } from './providers/CartridgesView';
-import { LogsView } from './providers/LogsView';
 import { CartridgeCreator } from './lib/CartridgeHelper';
 import { existsSync } from 'fs';
 import { createServer } from 'http';
-import * as glob from 'glob';
+import Uploader from "./providers/Uploader";
 
 const initialConfigurations = {
 	version: '0.1.0',
@@ -28,10 +26,7 @@ const initialConfigurations = {
 	]
 };
 
-let uploaderSubscription;
-let outputChannel: OutputChannel;
 let cartridgesView: CartridgesView | undefined;
-let logsView: LogsView | undefined;
 
 export function activate(context: ExtensionContext) {
 	const configuration = workspace.getConfiguration('extension.prophet');
@@ -43,88 +38,15 @@ export function activate(context: ExtensionContext) {
 		].join('\n');
 	}));
 
-	outputChannel = window.createOutputChannel('Prophet Uploader');
-
-	context.subscriptions.push(outputChannel);
-
-	// The server is implemented in node
-	const serverModule = context.asAbsolutePath(join('out', 'server', 'ismlServer.js'));
-	// The debug options for the server
-	const debugOptions = { execArgv: ['--nolazy', '--debug=6004'] };
-
-	// If the extension is launched in debug mode then the debug server options are used
-	// Otherwise the run options are used
-	const serverOptions: ServerOptions = {
-		run: { module: serverModule, transport: TransportKind.ipc },
-		debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions }
-	};
-	const htmlConf = workspace.getConfiguration('html.format');
-	// Options to control the language client
-	const clientOptions: LanguageClientOptions = {
-		// Register the server for plain text documents
-		documentSelector: (configuration.get('ismlServer.activateOn') as string[] || ['isml']).map(type => ({
-			language: type,
-			scheme: 'file'
-		})),
-		synchronize: {
-			// Synchronize the setting section 'languageServerExample' to the server
-			configurationSection: 'ismlLanguageServer',
-			// Notify the server about file changes to '.clientrc files contain in the workspace
-			// fileEvents: workspace.createFileSystemWatcher('**/*.isml')
-		},
-		initializationOptions: {
-			formatParams: {
-				wrapLineLength: htmlConf.get('wrapLineLength'),
-				unformatted: htmlConf.get('unformatted'),
-				contentUnformatted: htmlConf.get('contentUnformatted'),
-				indentInnerHtml: htmlConf.get('indentInnerHtml'),
-				preserveNewLines: htmlConf.get('preserveNewLines'),
-				maxPreserveNewLines: htmlConf.get('maxPreserveNewLines'),
-				indentHandlebars: htmlConf.get('indentHandlebars'),
-				endWithNewline: htmlConf.get('endWithNewline'),
-				extraLiners: htmlConf.get('extraLiners'),
-				wrapAttributes: htmlConf.get('wrapAttributes')
-			}
-
-		}
-	};
-
-	// Create the language client and start the client.
-	const ismlLanguageServer = new LanguageClient('ismlLanguageServer', 'ISML Language Server', serverOptions, clientOptions);
+	var ismlLanguageServer = createIsmlLanguageServer(context, configuration);
 	const disposable = ismlLanguageServer.start();
-
-	ismlLanguageServer.onReady().then(() => {
-		ismlLanguageServer.onNotification('isml:selectfiles', (test) => {
-			const prophetConfiguration = workspace.getConfiguration('extension.prophet');
-			const cartPath = String(prophetConfiguration.get('cartridges.path'));
-
-			if (cartPath.trim().length) {
-				const cartridges = cartPath.split(':');
-
-				const cartridge = cartridges.find(cartridgeItem =>
-					(test.data || []).some(filename => filename.includes(cartridgeItem)));
-
-				if (cartridge) {
-					ismlLanguageServer.sendNotification('isml:selectedfile', test.data.find(
-						filename => filename.includes(cartridge)
-					));
-					return;
-				}
-
-			}
-			window.showQuickPick(test.data).then(selected => {
-				ismlLanguageServer.sendNotification('isml:selectedfile', selected);
-			}, err => {
-				ismlLanguageServer.sendNotification('isml:selectedfile', undefined);
-			});
-		});
-	});
 
 	// Push the disposable to the context's subscriptions so that the
 	// client can be deactivated on extension deactivation
 	context.subscriptions.push(disposable);
 
-	if (workspace.rootPath) {
+	const rootPath = workspace.rootPath;
+	if (rootPath) {
 		/// open files from browser
 		const server = createServer(function (req, res) {
 			res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -173,42 +95,11 @@ export function activate(context: ExtensionContext) {
 		});
 
 		server.listen(60606);
-		const rootPath = workspace.rootPath;
 
-		let prevState;
-		context.subscriptions.push(workspace.onDidChangeConfiguration(() => {
-			const prophetConfiguration = workspace.getConfiguration('extension.prophet');
-			const isProphetUploadEnabled = prophetConfiguration.get('upload.enabled');
+		var uploader = new Uploader(configuration);
+		uploader.start(context);
 
-			if (isProphetUploadEnabled !== prevState) {
-				prevState = isProphetUploadEnabled;
-				if (isProphetUploadEnabled) {
-					loadUploaderConfig(rootPath, context);
-				} else {
-					if (uploaderSubscription) {
-						outputChannel.appendLine(`Stopping`);
-						uploaderSubscription.unsubscribe();
-						uploaderSubscription = null;
-					}
-				}
-			}
-
-		}));
-
-		context.subscriptions.push(commands.registerCommand('extension.prophet.command.enable.upload', () => {
-			loadUploaderConfig(rootPath, context);
-		}));
-		context.subscriptions.push(commands.registerCommand('extension.prophet.command.clean.upload', () => {
-			loadUploaderConfig(rootPath, context);
-		}));
-		context.subscriptions.push(commands.registerCommand('extension.prophet.command.disable.upload', () => {
-			if (uploaderSubscription) {
-				outputChannel.appendLine(`Stopping`);
-				uploaderSubscription.unsubscribe();
-				uploaderSubscription = null;
-			}
-		}));
-
+		// setup cartridge commands
 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.refresh.cartridges', () => {
 			if (cartridgesView) {
 				cartridgesView.refresh(
@@ -238,8 +129,8 @@ export function activate(context: ExtensionContext) {
 						cartridgesView.refresh((window.activeTextEditor) ? window.activeTextEditor.document.fileName : undefined);
 					}
 
-					if (isUploadEnabled) {
-						loadUploaderConfig(rootPath, context);
+					if (uploader.isUploadEnabled()) {
+						uploader.loadUploaderConfig(rootPath, context);
 					}
 				});
 			});
@@ -257,15 +148,7 @@ export function activate(context: ExtensionContext) {
 			}
 		}));
 
-		const isUploadEnabled = configuration.get('upload.enabled');
-		prevState = isUploadEnabled;
-		if (isUploadEnabled) {
-			loadUploaderConfig(rootPath, context);
-		} else {
-			outputChannel.appendLine('Uploader disabled in configuration');
-		}
-
-		// add views
+		// add CartridgesView
 		cartridgesView = new CartridgesView(rootPath, (window.activeTextEditor) ? window.activeTextEditor.document.fileName : undefined);
 
 		context.subscriptions.push(
@@ -274,95 +157,87 @@ export function activate(context: ExtensionContext) {
 	}
 }
 
-function loadUploaderConfig(rootPath: string, context: ExtensionContext) {
-	if (uploaderSubscription) {
-		uploaderSubscription.unsubscribe();
-		uploaderSubscription = null;
-		outputChannel.appendLine(`Restarting`);
-	} else {
-		outputChannel.appendLine(`Starting...`);
-	}
+/**
+ * Create the ISML language server with the proper parameters
+ * 
+ * @param context the extension context
+ * @param configuration the extension configuration
+ */
+function createIsmlLanguageServer(context : ExtensionContext, configuration : WorkspaceConfiguration) {
+	// The server is implemented in node
+	const serverModule = context.asAbsolutePath(join('out', 'server', 'ismlServer.js'));
+	// The debug options for the server
+	const debugOptions = { execArgv: ['--nolazy', '--debug=6004'] };
 
-	uploaderSubscription = Observable.create(observer => {
-		let subscribtion;
-
-		glob('**/dw.json', {
-			cwd: rootPath,
-			root: rootPath,
-			nodir: true,
-			follow: false,
-			ignore: ['**/node_modules/**', '**/.git/**']
-		}, (error, files: string[]) => {
-			if (error) {
-				observer.error(error);
-			} else if (files.length && workspace.rootPath) {
-				import('./server/uploadServer').then(function (uploadServer) {
-					const configFilename = join(rootPath, files.shift() || '');
-					outputChannel.appendLine(`Using config file '${configFilename}'`);
-
-					subscribtion = uploadServer.init(configFilename, outputChannel)
-						.subscribe(
-						() => {
-							// reset counter to zero if success
-						},
-						err => {
-							observer.error(err);
-						},
-						() => {
-							observer.complete();
-						}
-						);
-
-					if (!logsView) {
-						uploadServer.readConfigFile(configFilename).flatMap(config => {
-							return uploadServer.getWebDavClient(config, outputChannel, rootPath);
-						}).subscribe(webdav => {
-							logsView = new LogsView(webdav);
-							context.subscriptions.push(
-								window.registerTreeDataProvider('dwLogsView', logsView)
-							);
-
-							context.subscriptions.push(commands.registerCommand('extension.prophet.command.refresh.logview', () => {
-								if (logsView) {
-									logsView.refresh();
-								}
-							}));
-
-							context.subscriptions.push(commands.registerCommand('extension.prophet.command.log.open', (filename) => {
-								if (logsView) {
-									logsView.openLog(filename);
-								}
-							}));
-
-							context.subscriptions.push(commands.registerCommand('extension.prophet.command.clean.log', (logItem) => {
-								if (logsView) {
-									logsView.cleanLog(logItem);
-								}
-							}));
-						});
-					}
-				});
-
-			} else {
-				observer.error('Unable to find "dw.json". Upload cartridges disabled.');
+	// If the extension is launched in debug mode then the debug server options are used
+	// Otherwise the run options are used
+	const serverOptions: ServerOptions = {
+		run: { module: serverModule, transport: TransportKind.ipc },
+		debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions }
+	};
+	const htmlConf = workspace.getConfiguration('html.format');
+	// Options to control the language client
+	const clientOptions: LanguageClientOptions = {
+		// Register the server for plain text documents
+		documentSelector: (configuration.get('ismlServer.activateOn') as string[] || ['isml']).map(type => ({
+			language: type,
+			scheme: 'file'
+		})),
+		synchronize: {
+			// Synchronize the setting section 'languageServerExample' to the server
+			configurationSection: 'ismlLanguageServer',
+			// Notify the server about file changes to '.clientrc files contain in the workspace
+			// fileEvents: workspace.createFileSystemWatcher('**/*.isml')
+		},
+		initializationOptions: {
+			formatParams: {
+				wrapLineLength: htmlConf.get('wrapLineLength'),
+				unformatted: htmlConf.get('unformatted'),
+				contentUnformatted: htmlConf.get('contentUnformatted'),
+				indentInnerHtml: htmlConf.get('indentInnerHtml'),
+				preserveNewLines: htmlConf.get('preserveNewLines'),
+				maxPreserveNewLines: htmlConf.get('maxPreserveNewLines'),
+				indentHandlebars: htmlConf.get('indentHandlebars'),
+				endWithNewline: htmlConf.get('endWithNewline'),
+				extraLiners: htmlConf.get('extraLiners'),
+				wrapAttributes: htmlConf.get('wrapAttributes')
 			}
-		});
-		return () => {
-			subscribtion.unsubscribe();
-		};
-	}).subscribe(
-		() => {
-			// DO NOTHING
-		},
-		err => {
-			outputChannel.show();
-			outputChannel.appendLine(`Error: ${err}`);
-		},
-		() => {
-			outputChannel.show();
-			outputChannel.appendLine(`Error: completed!`);
+
 		}
-	);
+	};
+
+	// Create the language client and start the client.
+	const ismlLanguageServer = new LanguageClient('ismlLanguageServer', 'ISML Language Server', serverOptions, clientOptions);
+
+	ismlLanguageServer.onReady().then(() => {
+		ismlLanguageServer.onNotification('isml:selectfiles', (test) => {
+			const prophetConfiguration = workspace.getConfiguration('extension.prophet');
+			const cartPath = String(prophetConfiguration.get('cartridges.path'));
+
+			if (cartPath.trim().length) {
+				const cartridges = cartPath.split(':');
+
+				const cartridge = cartridges.find(cartridgeItem =>
+					(test.data || []).some(filename => filename.includes(cartridgeItem)));
+
+				if (cartridge) {
+					ismlLanguageServer.sendNotification('isml:selectedfile', test.data.find(
+						filename => filename.includes(cartridge)
+					));
+					return;
+				}
+
+			}
+			window.showQuickPick(test.data).then(selected => {
+				ismlLanguageServer.sendNotification('isml:selectedfile', selected);
+			}, err => {
+				ismlLanguageServer.sendNotification('isml:selectedfile', undefined);
+			});
+		});
+	});
+
+	return ismlLanguageServer;	
+
 }
 
 export function deactivate() {
