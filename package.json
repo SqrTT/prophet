@@ -94,7 +94,8 @@
                 },
                 {
                     "command": "extension.prophet.command.refresh.cartridges",
-                    "when": "view == cartridgesView"
+                    "when": "view == cartridgesView",
+                    "group": "navigation"
                 },
                 {
                     "command": "extension.prophet.command.create.cartridge",
@@ -102,7 +103,8 @@
                 },
                 {
                     "command": "extension.prophet.command.refresh.logview",
-                    "when": "view == dwLogsView"
+                    "when": "view == dwLogsView",
+                    "group": "navigation"
                 }
             ],
             "view/item/context": [
@@ -139,7 +141,11 @@
             {
                 "command": "extension.prophet.command.refresh.cartridges",
                 "title": "Refresh cartridges list",
-                "description": "Refresh cartridges list"
+                "description": "Refresh cartridges list",
+                "icon": {
+                    "light": "resources/light/refresh.svg",
+                    "dark": "resources/dark/refresh.svg"
+                }
             },
             {
                 "command": "extension.prophet.command.create.cartridge",
@@ -159,7 +165,11 @@
             {
                 "command": "extension.prophet.command.refresh.logview",
                 "title": "Refresh",
-                "description": "Refresh log view"
+                "description": "Refresh log view",
+                "icon": {
+                    "light": "resources/light/refresh.svg",
+                    "dark": "resources/dark/refresh.svg"
+                }
             },
             {
                 "command": "extension.prophet.command.clean.log",
