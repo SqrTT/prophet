@@ -6,12 +6,11 @@ import 'rxjs/add/operator/concat';
 import 'rxjs/add/operator/retryWhen';
 
 
-import { OutputChannel, workspace } from 'vscode';
+import { OutputChannel, workspace, FileSystemWatcher } from 'vscode';
 import { default as WebDav, DavOptions } from './WebDav';
 import { getDirectoriesSync } from '../lib/FileHelper'
 import { dirname, join } from 'path';
 import { createReadStream } from 'fs';
-import * as chokidar from 'chokidar';
 
 
 export function readConfigFile(configFilename: string): Observable<DavOptions> {
@@ -69,36 +68,40 @@ function fileWatcher(config, cartRoot: string) {
 			cartridges = getDirectoriesSync(cartRoot)
 		}
 
-		let watcher = chokidar.watch(null, {
-			ignored: [
-				'**/node_modules/**',
-				'**/.git/**',
-				`**/cartridge/js/**`,
-				`**/cartridge/client/**`
-			],
-			persistent: true,
-			ignoreInitial: true,
-			followSymlinks: false,
-			awaitWriteFinish: {
-				stabilityThreshold: 300,
-				pollInterval: 100
-			}
-		});
-
-		watcher.on('change', path => observer.next(['upload', path]));
-		watcher.on('add', path => observer.next(['upload', path]));
-		watcher.on('unlink', path => observer.next(['delete', path]));
-		watcher.on('error', err => observer.error(err));
-
+		// Unfortunately workspace.createFileSystemWatcher() does
+		// only support single paths and no excludes
+		// it is however very CPU friendly compared to fs.watch()
+		// or chokidar
+		var excludeGlobPattern = [
+			'node_modules/',
+			'.git/',
+			`cartridge/js/`,
+			`cartridge/client/`
+		];
+		// ... we create an array of watchers
+		var watchers : FileSystemWatcher[] = [];
 		cartridges.forEach(cartridge => {
 			if (workspace.rootPath) {
-				watcher.add(join(cartRoot, cartridge) + '/**/*.*');
+				watchers.push(workspace.createFileSystemWatcher( '**/' + cartridge + '/**/*.*'));
 			}
 		});
 
+		// manually check for the excludes in the callback
+		var callback = method => (uri => {
+			if(!excludeGlobPattern.some(pattern => uri.fsPath.indexOf(pattern) > -1)){
+				observer.next([method, uri.fsPath])				
+			}
+		});
+		// add the listerners to all watchers
+		watchers.forEach(watcher => {
+			watcher.onDidChange(callback('upload'));
+			watcher.onDidCreate(callback('upload'));
+			watcher.onDidDelete(callback('delete'));
+		})
+
 		return () => {
-			watcher.close();
-			watcher = null;
+			// and dispose them all in the end
+			watchers.forEach(watcher => watcher.dispose());
 			cartridges = null;
 		}
 	});
