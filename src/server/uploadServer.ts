@@ -10,7 +10,7 @@ import { OutputChannel, workspace, FileSystemWatcher } from 'vscode';
 import { default as WebDav, DavOptions } from './WebDav';
 import { getDirectoriesSync } from '../lib/FileHelper'
 import { dirname, join } from 'path';
-import { createReadStream } from 'fs';
+import { createReadStream, statSync } from 'fs';
 
 
 export function readConfigFile(configFilename: string): Observable<DavOptions> {
@@ -82,7 +82,8 @@ function fileWatcher(config, cartRoot: string) {
 		var watchers : FileSystemWatcher[] = [];
 		cartridges.forEach(cartridge => {
 			if (workspace.rootPath) {
-				watchers.push(workspace.createFileSystemWatcher( '**/' + cartridge + '/**/*.*'));
+				// looks a bit odd but matches all files & directories
+				watchers.push(workspace.createFileSystemWatcher( '**/' + cartridge + '/**/'));
 			}
 		});
 
@@ -163,20 +164,29 @@ function uploadAndWatch(webdav: WebDav, outputChannel: OutputChannel, config: an
 			outputChannel.appendLine(`Watching files`);
 			return fileWatcher(config, rootDir)
 				.mergeMap(([action, fileName]) => {
-					const date = new Date();
+					const date = new Date().toTimeString().split(' ').shift();
+					var davAction, actionChar;
 					if (action === 'upload') {
-						outputChannel.appendLine(
-							`[U ${date.toTimeString().split(' ').shift()}] ${fileName}`
-						);
-
-						return webdav.post(fileName, rootDir);
+						// @TODO make async or create separate
+						// directory watchers with own commands
+						if (statSync(fileName).isDirectory()) {
+							davAction = 'mkdir';
+							actionChar = 'C';
+						} else {
+							davAction = 'post';
+							actionChar = 'U';
+						}
 					} else if (action === 'delete') {
-						outputChannel.appendLine(`[D ${date.toTimeString().split(' ').shift()}] ${fileName}`);
-
-						return webdav.delete(fileName, rootDir);
+						davAction = 'delete';
+						actionChar = 'D';
 					} else {
 						throw Error('Unknown action');
 					}
+					outputChannel.appendLine(
+						`[${actionChar} ${date}] ${fileName}`
+					);
+
+					return webdav[davAction](fileName, rootDir);
 				}, 5)
 		})
 }
