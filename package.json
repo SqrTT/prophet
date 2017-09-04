@@ -1,360 +1,370 @@
 {
-    "name": "prophet",
-    "displayName": "Prophet Debugger",
-    "version": "0.9.3",
-    "publisher": "SqrTT",
-    "description": "Debugger and Uploader for Demandware/Salesforce sandbox",
-    "author": {
-        "name": "Anatolii Obitskyi",
-        "email": "tolik@sqrtt.pro"
-    },
-    "engines": {
-        "vscode": "^1.14.0",
-        "node": "^7.0.0"
-    },
-    "icon": "images/mock-debug-icon.ico",
-    "categories": [
-        "Debuggers",
-        "Languages",
-        "Snippets"
-    ],
-    "private": true,
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/SqrTT/prophet.git"
-    },
-    "bugs": {
-        "url": "https://github.com/SqrTT/prophet/issues"
-    },
-    "dependencies": {
-        "chokidar": "^1.7.0",
-        "glob": "^7.1.2",
-        "request": "^2.81.0",
-        "rimraf": "^2.6.1",
-        "rxjs": "^5.4.2",
-        "timeago.js": "^3.0.2",
-        "vscode-debugadapter": "^1.22.0",
-        "vscode-debugprotocol": "^1.22.0",
-        "vscode-languageclient": "^3.3.0",
-        "vscode-languageserver": "^3.3.0",
-        "vscode-nls": "^2.0.2",
-        "vscode-uri": "^1.0.1",
-        "walk": "^2.3.9",
-        "xmldom": "^0.1.27",
-        "yazl": "^2.4.2"
-    },
-    "devDependencies": {
-        "@types/mocha": "^2.2.41",
-        "@types/node": "^6.0.74",
-        "mocha": "^3.4.2",
-        "typescript": "^2.4.1",
-        "vscode": "^1.1.4",
-        "vscode-debugadapter-testsupport": "^1.20.0"
-    },
-    "scripts": {
-        "vscode:prepublish": "npm install && npm run compile && npm run test",
-        "prepublish": "node ./node_modules/typescript/bin/tsc -p ./src",
-        "compile": "node ./node_modules/typescript/bin/tsc -p ./src",
-        "watch": "node ./node_modules/typescript/bin/tsc -w -p ./src",
-        "test": "node ./node_modules/mocha/bin/mocha -u tdd ./out/tests/",
-        "postinstall": "node ./node_modules/vscode/bin/install"
-    },
-    "main": "./out/extension",
-    "activationEvents": [
-        "onCommand:extension.prophet.provideInitialConfigurations",
-        "workspaceContains:**/cartridge/*.properties"
-    ],
-    "contributes": {
-        "views": {
-            "explorer": [
-                {
-                    "id": "cartridgesView",
-                    "name": "Cartridges",
-                    "when": "config.extension.prophet.cartridges.view.enabled"
-                },
-                {
-                    "id": "dwLogsView",
-                    "name": "Logs"
-                }
-            ]
+  "name": "prophet",
+  "displayName": "Prophet Debugger",
+  "version": "0.9.3",
+  "publisher": "SqrTT",
+  "description": "Debugger and Uploader for Demandware/Salesforce sandbox",
+  "author": {
+    "name": "Anatolii Obitskyi",
+    "email": "tolik@sqrtt.pro"
+  },
+  "engines": {
+    "vscode": "^1.14.0",
+    "node": "^7.0.0"
+  },
+  "icon": "images/mock-debug-icon.ico",
+  "categories": [
+    "Debuggers",
+    "Languages",
+    "Snippets"
+  ],
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SqrTT/prophet.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SqrTT/prophet/issues"
+  },
+  "dependencies": {
+    "chokidar": "^1.7.0",
+    "glob": "^7.1.2",
+    "request": "^2.81.0",
+    "rimraf": "^2.6.1",
+    "rxjs": "^5.4.3",
+    "timeago.js": "^3.0.2",
+    "vscode-debugadapter": "^1.23.0",
+    "vscode-debugprotocol": "^1.23.0",
+    "vscode-languageclient": "^3.3.0",
+    "vscode-languageserver": "^3.3.0",
+    "vscode-nls": "^2.0.2",
+    "vscode-uri": "^1.0.1",
+    "walk": "^2.3.9",
+    "xmldom": "^0.1.27",
+    "yazl": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/mocha": "^2.2.41",
+    "@types/node": "^6.0.74",
+    "mocha": "^3.4.2",
+    "typescript": "^2.5.2",
+    "vscode": "^1.1.5",
+    "vscode-debugadapter-testsupport": "^1.23.0"
+  },
+  "scripts": {
+    "vscode:prepublish": "npm install && npm run compile && npm run test",
+    "prepublish": "node ./node_modules/typescript/bin/tsc -p ./src",
+    "compile": "node ./node_modules/typescript/bin/tsc -p ./src",
+    "watch": "node ./node_modules/typescript/bin/tsc -w -p ./src",
+    "test": "node ./node_modules/mocha/bin/mocha -u tdd ./out/tests/",
+    "postinstall": "node ./node_modules/vscode/bin/install"
+  },
+  "main": "./out/extension",
+  "activationEvents": [
+    "onCommand:extension.prophet.provideInitialConfigurations",
+    "workspaceContains:**/cartridge/*.properties"
+  ],
+  "contributes": {
+    "views": {
+      "explorer": [
+        {
+          "id": "cartridgesView",
+          "name": "Cartridges",
+          "when": "config.extension.prophet.cartridges.view.enabled"
         },
-        "menus": {
-            "view/title": [
-                {
-                    "command": "extension.prophet.command.clean.upload",
-                    "when": "view == cartridgesView"
-                },
-                {
-                    "command": "extension.prophet.command.enable.upload",
-                    "when": "view == cartridgesView"
-                },
-                {
-                    "command": "extension.prophet.command.disable.upload",
-                    "when": "view == cartridgesView"
-                },
-                {
-                    "command": "extension.prophet.command.refresh.cartridges",
-                    "when": "view == cartridgesView",
-                    "group": "navigation"
-                },
-                {
-                    "command": "extension.prophet.command.create.cartridge",
-                    "when": "view == cartridgesView"
-                },
-                {
-                    "command": "extension.prophet.command.refresh.logview",
-                    "when": "view == dwLogsView",
-                    "group": "navigation"
-                }
-            ],
-            "view/item/context": [
-                {
-                    "command": "extension.prophet.command.create.folder",
-                    "when": "viewItem == cartridgeDirectory"
-                },
-                {
-                    "command": "extension.prophet.command.create.file",
-                    "when": "viewItem == cartridgeDirectory"
-                },
-                {
-                    "command": "extension.prophet.command.clean.log",
-                    "when": "viewItem == dwLogFile"
-                }
-            ]
-        },
-        "commands": [
-            {
-                "command": "extension.prophet.command.enable.upload",
-                "title": "Prophet: Enable Upload",
-                "description": "Enable upload of cartridges"
-            },
-            {
-                "command": "extension.prophet.command.disable.upload",
-                "title": "Prophet: Disable Upload",
-                "description": "Disale upload of cartridges"
-            },
-            {
-                "command": "extension.prophet.command.clean.upload",
-                "title": "Prophet: Clean Project/Upload all",
-                "description": "Clean Project/Upload all"
-            },
-            {
-                "command": "extension.prophet.command.refresh.cartridges",
-                "title": "Refresh cartridges list",
-                "description": "Refresh cartridges list",
-                "icon": {
-                    "light": "resources/light/refresh.svg",
-                    "dark": "resources/dark/refresh.svg"
-                }
-            },
-            {
-                "command": "extension.prophet.command.create.cartridge",
-                "title": "Create cartridge",
-                "description": "Create cartridge"
-            },
-            {
-                "command": "extension.prophet.command.create.folder",
-                "title": "New folder",
-                "description": "New folder"
-            },
-            {
-                "command": "extension.prophet.command.create.file",
-                "title": "New file",
-                "description": "New file"
-            },
-            {
-                "command": "extension.prophet.command.refresh.logview",
-                "title": "Refresh",
-                "description": "Refresh log view",
-                "icon": {
-                    "light": "resources/light/refresh.svg",
-                    "dark": "resources/dark/refresh.svg"
-                }
-            },
-            {
-                "command": "extension.prophet.command.clean.log",
-                "title": "Clean",
-                "description": "Clean log file"
-            }
-        ],
-        "jsonValidation": [
-            {
-                "fileMatch": "dw.json",
-                "url": "./syntaxes/dw.schema.json"
-            }
-        ],
-        "snippets": [
-            {
-                "language": "isml",
-                "path": "./snippets/snippets.json"
-            }
-        ],
-        "languages": [
-            {
-                "id": "isml",
-                "extensions": [
-                    ".isml"
-                ],
-                "aliases": [
-                    "ISML"
-                ],
-                "configuration": "./syntaxes/isml.configuration.json"
-            },
-            {
-                "id": "dwscript",
-                "aliases": [
-                    "Demandware Script[Deprecated]",
-                    "dwscript"
-                ],
-                "extensions": [
-                    ".ds"
-                ],
-                "configuration": "./syntaxes/dwscript.configuration.json"
-            },
-            {
-                "id": "dwlog",
-                "aliases": [
-                    "DW Log File"
-                ],
-                "extensions": [
-                    ".log"
-                ]
-            }
-        ],
-        "grammars": [
-            {
-                "language": "isml",
-                "scopeName": "text.isml.basic",
-                "path": "./syntaxes/isml.tmLanguage.json",
-                "embeddedLanguages": {
-                    "text.html": "html",
-                    "source.css": "css",
-                    "source.js": "javascript"
-                }
-            },
-            {
-                "language": "dwscript",
-                "scopeName": "source.dwscript",
-                "path": "./syntaxes/dwscript.tmLanguage.json",
-                "embeddedLanguages": {
-                    "source.js": "javascript"
-                }
-            },
-            {
-                "language": "dwlog",
-                "scopeName": "text.log",
-                "path": "./syntaxes/dwlog.tmLanguage"
-            }
-        ],
-        "breakpoints": [
-            {
-                "language": "javascript"
-            },
-            {
-                "language": "dwscript"
-            }
-        ],
-        "debuggers": [
-            {
-                "type": "prophet",
-                "label": "Attach to Sandbox",
-                "program": "./out/mockDebug.js",
-                "runtime": "node",
-                "configurationSnippets": [
-                    {
-                        "label": "Demandware Debugger",
-                        "description": "A new configuration for connecting to sandbox",
-                        "body": {
-                            "type": "prophet",
-                            "request": "launch",
-                            "name": "${2:Attach to Sandbox}",
-                            "hostname": "${3:*.demandware.net}",
-                            "username": "${4:admin}",
-                            "password": "${5}",
-                            "codeversion": "${6:version1}",
-                            "cartridgeroot": "auto",
-                            "workspaceroot": ""
-                        }
-                    }
-                ],
-                "configurationAttributes": {
-                    "launch": {
-                        "required": [
-                            "hostname",
-                            "username",
-                            "password",
-                            "codeversion",
-                            "cartridgeroot",
-                            "workspaceroot"
-                        ],
-                        "properties": {
-                            "hostname": {
-                                "type": "string",
-                                "description": "Hostname of instance",
-                                "default": "*.demandware.net"
-                            },
-                            "username": {
-                                "type": "string",
-                                "description": "username for instance",
-                                "default": "admin"
-                            },
-                            "password": {
-                                "type": "string",
-                                "description": "password for instance",
-                                "default": ""
-                            },
-                            "codeversion": {
-                                "type": "string",
-                                "description": "version of code on instance",
-                                "default": "vesion1"
-                            },
-                            "cartridgeroot": {
-                                "type": "string",
-                                "description": "cartridges root in workspace",
-                                "default": "auto"
-                            },
-                            "workspaceroot": {
-                                "type": "string",
-                                "description": "root of workspace",
-                                "default": "${workspaceRoot}"
-                            },
-                            "trace": {
-                                "type": "boolean",
-                                "description": "Enable logging of the Debug Adapter Protocol.",
-                                "default": false
-                            }
-                        }
-                    }
-                },
-                "initialConfigurations": "extension.prophet.provideInitialConfigurations"
-            }
-        ],
-        "configuration": {
-            "title": "Prophet Configuration",
-            "properties": {
-                "extension.prophet.upload.enabled": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Enable upload to sandbox"
-                },
-                "extension.prophet.ismlServer.activateOn": {
-                    "type": "array",
-                    "default": [
-                        "isml"
-                    ],
-                    "description": "list of file extention for server activation"
-                },
-                "extension.prophet.cartridges.path": {
-                    "type": "string",
-                    "default": "",
-                    "description": "List of cartridges separated by colon. (app_storefront_controllers:app_storefront_core:bc_library)"
-                },
-                "extension.prophet.cartridges.view.enabled": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Enable/Disable cartridges view"
-                }
-            }
+        {
+          "id": "dwLogsView",
+          "name": "Logs"
         }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "extension.prophet.command.clean.upload",
+          "when": "view == cartridgesView",
+          "group": "navigation"
+        },
+        {
+          "command": "extension.prophet.command.enable.upload",
+          "when": "view == cartridgesView"
+        },
+        {
+          "command": "extension.prophet.command.disable.upload",
+          "when": "view == cartridgesView"
+        },
+        {
+          "command": "extension.prophet.command.refresh.cartridges",
+          "when": "view == cartridgesView",
+          "group": "navigation"
+        },
+        {
+          "command": "extension.prophet.command.create.cartridge",
+          "when": "view == cartridgesView"
+        },
+        {
+          "command": "extension.prophet.command.refresh.logview",
+          "when": "view == dwLogsView",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "extension.prophet.command.create.folder",
+          "when": "viewItem == cartridgeDirectory"
+        },
+        {
+          "command": "extension.prophet.command.create.file",
+          "when": "viewItem == cartridgeDirectory"
+        },
+        {
+          "command": "extension.prophet.command.clean.log",
+          "when": "viewItem == dwLogFile"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "extension.prophet.command.enable.upload",
+        "title": "Prophet: Enable Upload",
+        "description": "Enable upload of cartridges"
+      },
+      {
+        "command": "extension.prophet.command.disable.upload",
+        "title": "Prophet: Disable Upload",
+        "description": "Disale upload of cartridges"
+      },
+      {
+        "command": "extension.prophet.command.clean.upload",
+        "title": "Prophet: Clean Project/Upload all",
+        "description": "Clean Project/Upload all",
+        "icon": {
+            "light": "resources/light/clean.svg",
+            "dark": "resources/dark/clean.svg"
+          }
+      },
+      {
+        "command": "extension.prophet.command.refresh.cartridges",
+        "title": "Refresh cartridges list",
+        "description": "Refresh cartridges list",
+        "icon": {
+          "light": "resources/light/refresh.svg",
+          "dark": "resources/dark/refresh.svg"
+        }
+      },
+      {
+        "command": "extension.prophet.command.create.cartridge",
+        "title": "Create cartridge",
+        "description": "Create cartridge"
+      },
+      {
+        "command": "extension.prophet.command.create.folder",
+        "title": "New folder",
+        "description": "New folder"
+      },
+      {
+        "command": "extension.prophet.command.create.file",
+        "title": "New file",
+        "description": "New file"
+      },
+      {
+        "command": "extension.prophet.command.refresh.logview",
+        "title": "Refresh",
+        "description": "Refresh log view",
+        "icon": {
+          "light": "resources/light/refresh.svg",
+          "dark": "resources/dark/refresh.svg"
+        }
+      },
+      {
+        "command": "extension.prophet.command.clean.log",
+        "title": "Clean",
+        "description": "Clean log file"
+      }
+    ],
+    "jsonValidation": [
+      {
+        "fileMatch": "dw.json",
+        "url": "./syntaxes/dw.schema.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "isml",
+        "path": "./snippets/snippets.json"
+      }
+    ],
+    "languages": [
+      {
+        "id": "isml",
+        "extensions": [
+          ".isml"
+        ],
+        "aliases": [
+          "ISML"
+        ],
+        "configuration": "./syntaxes/isml.configuration.json"
+      },
+      {
+        "id": "dwscript",
+        "aliases": [
+          "Demandware Script[Deprecated]",
+          "dwscript"
+        ],
+        "extensions": [
+          ".ds"
+        ],
+        "configuration": "./syntaxes/dwscript.configuration.json"
+      },
+      {
+        "id": "dwlog",
+        "aliases": [
+          "DW Log File"
+        ],
+        "extensions": [
+          ".log"
+        ]
+      }
+    ],
+    "grammars": [
+      {
+        "language": "isml",
+        "scopeName": "text.isml.basic",
+        "path": "./syntaxes/isml.tmLanguage.json",
+        "embeddedLanguages": {
+          "text.html": "html",
+          "source.css": "css",
+          "source.js": "javascript"
+        }
+      },
+      {
+        "language": "dwscript",
+        "scopeName": "source.dwscript",
+        "path": "./syntaxes/dwscript.tmLanguage.json",
+        "embeddedLanguages": {
+          "source.js": "javascript"
+        }
+      },
+      {
+        "language": "dwlog",
+        "scopeName": "text.log",
+        "path": "./syntaxes/dwlog.tmLanguage"
+      }
+    ],
+    "breakpoints": [
+      {
+        "language": "javascript"
+      },
+      {
+        "language": "dwscript"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "prophet",
+        "label": "Attach to Sandbox",
+        "program": "./out/mockDebug.js",
+        "runtime": "node",
+        "configurationSnippets": [
+          {
+            "label": "Demandware Debugger",
+            "description": "A new configuration for connecting to sandbox",
+            "body": {
+              "type": "prophet",
+              "request": "launch",
+              "name": "${2:Attach to Sandbox}",
+              "hostname": "${3:*.demandware.net}",
+              "username": "${4:admin}",
+              "password": "${5}",
+              "codeversion": "${6:version1}",
+              "cartridgeroot": "auto",
+              "workspaceroot": ""
+            }
+          }
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "required": [
+              "hostname",
+              "username",
+              "password",
+              "codeversion",
+              "cartridgeroot",
+              "workspaceroot"
+            ],
+            "properties": {
+              "hostname": {
+                "type": "string",
+                "description": "Hostname of instance",
+                "default": "*.demandware.net"
+              },
+              "username": {
+                "type": "string",
+                "description": "username for instance",
+                "default": "admin"
+              },
+              "password": {
+                "type": "string",
+                "description": "password for instance",
+                "default": ""
+              },
+              "codeversion": {
+                "type": "string",
+                "description": "version of code on instance",
+                "default": "vesion1"
+              },
+              "cartridgeroot": {
+                "type": "string",
+                "description": "cartridges root in workspace",
+                "default": "auto"
+              },
+              "workspaceroot": {
+                "type": "string",
+                "description": "root of workspace",
+                "default": "${workspaceRoot}"
+              },
+              "trace": {
+                "type": "boolean",
+                "description": "Enable logging of the Debug Adapter Protocol.",
+                "default": false
+              }
+            }
+          }
+        },
+        "initialConfigurations": "extension.prophet.provideInitialConfigurations"
+      }
+    ],
+    "configuration": {
+      "title": "Prophet Configuration",
+      "properties": {
+        "extension.prophet.upload.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable upload to sandbox"
+        },
+        "extension.prophet.clean.on.start": {
+            "type": "boolean",
+            "default": true,
+            "description": "Clean/upload all on editor startup to sandbox"
+          },
+        "extension.prophet.ismlServer.activateOn": {
+          "type": "array",
+          "default": [
+            "isml"
+          ],
+          "description": "list of file extention for server activation"
+        },
+        "extension.prophet.cartridges.path": {
+          "type": "string",
+          "default": "",
+          "description": "List of cartridges separated by colon. (app_storefront_controllers:app_storefront_core:bc_library)"
+        },
+        "extension.prophet.cartridges.view.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/Disable cartridges view"
+        }
+      }
     }
+  }
 }

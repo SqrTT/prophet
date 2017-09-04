@@ -52,11 +52,11 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
 	private _onDidChangeTreeData: EventEmitter<CartridgeItem | undefined> = new EventEmitter<CartridgeItem | undefined>();
 	readonly onDidChangeTreeData: Event<CartridgeItem | undefined> = this._onDidChangeTreeData.event;
 	private lastFileOpened = 'NO_FILE';
-    /**
-     * Load the cartridges within the curren workspace
-     * @param {string} workspaceRoot The absolute path of the workspace
-     * @param {string} activeFile The absolute path of the file to expand the tree on
-     */
+	/**
+	 * Load the cartridges within the curren workspace
+	 * @param {string} workspaceRoot The absolute path of the workspace
+	 * @param {string} activeFile The absolute path of the file to expand the tree on
+	 */
 	constructor(private workspaceRoot: string, private activeFile?: string) {
 		workspace.onDidOpenTextDocument((e) => {
 			// Use startswith since editor for some reason also send the .git file.
@@ -67,10 +67,10 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
 		});
 	}
 
-    /**
-     * Refresh the tree data.
-     * @param {string} file The absolute path of the file to expand the tree on
-     */
+	/**
+	 * Refresh the tree data.
+	 * @param {string} file The absolute path of the file to expand the tree on
+	 */
 	refresh(file?: string): void {
 		if (file) {
 			cartridgeViewOutputChannel.appendLine('\nRefreshing workspace with active file: ' + file);
@@ -105,10 +105,10 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
 		});
 	}
 
-    /**
-     * Fetches all folders and files that are children of the passed element. This function can be used recursively.
-     * @param {CartridgeItem} element The parent element
-     */
+	/**
+	 * Fetches all folders and files that are children of the passed element. This function can be used recursively.
+	 * @param {CartridgeItem} element The parent element
+	 */
 	private async getCartridgeItemFilesOrFolders(element: CartridgeItem): Promise<CartridgeItem[]> {
 		const files = await getFiles(element.location);
 		const directories = await getDirectories(element.location);
@@ -128,10 +128,10 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
 		return [CartridgeItem.NoFiles];
 	}
 
-    /**
-     * Fetches all cartridges within the given path (should be the workspace root)
-     * @param workspaceRoot The absolute path to the workspace root
-     */
+	/**
+	 * Fetches all cartridges within the given path (should be the workspace root)
+	 * @param workspaceRoot The absolute path to the workspace root
+	 */
 	private getCartridgesInWorkspace(workspaceRoot: string): Promise<CartridgeItem[]> {
 		return new Promise((resolve, reject) => {
 			const activeFile = this.activeFile;

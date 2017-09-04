@@ -1,6 +1,7 @@
 import { Observable } from 'rxjs/Observable';
 
 import 'rxjs/add/operator/mergeMap';
+import 'rxjs/add/observable/of';
 import 'rxjs/add/observable/merge';
 import 'rxjs/add/operator/concat';
 import 'rxjs/add/operator/retryWhen';
@@ -127,7 +128,7 @@ const uploadCartridges = (webdav: WebDav, outputChannel: OutputChannel, config: 
 	return Observable.merge(...toUpload, 3).concat(Promise.resolve(1));
 };
 
-function uploadAndWatch(webdav: WebDav, outputChannel: OutputChannel, config: ({ cartridge, version }), rootDir: string) {
+function uploadAndWatch(webdav: WebDav, outputChannel: OutputChannel, config: ({ cartridge, version, cleanOnStart: boolean }), rootDir: string) {
 	return webdav.dirList(rootDir)
 		.do(() => {
 			outputChannel.appendLine(`Connection validated successfully`);
@@ -152,10 +153,19 @@ function uploadAndWatch(webdav: WebDav, outputChannel: OutputChannel, config: ({
 			}
 			outputChannel.appendLine(`Current active version is: ${version}`);
 		}).flatMap(() => {
-			outputChannel.appendLine(`Start uploading cartridges`);
-			return uploadCartridges(webdav, outputChannel, config, rootDir);
+			if (config.cleanOnStart) {
+				outputChannel.appendLine(`Start uploading cartridges`);
+				return uploadCartridges(webdav, outputChannel, config, rootDir);
+			} else {
+				outputChannel.appendLine(`Upload cartridges on start is disabled via config`);
+				return Observable.of(1);
+			}
 		}).do(() => {
-			outputChannel.appendLine(`Cartridges uploaded successfully`);
+			if (config.cleanOnStart) {
+				outputChannel.appendLine(`Cartridges uploaded successfully`);
+			} else {
+				config.cleanOnStart = true;
+			}
 		}).flatMap(() => {
 			outputChannel.appendLine(`Watching files`);
 			return fileWatcher(config, rootDir)
@@ -178,7 +188,7 @@ function uploadAndWatch(webdav: WebDav, outputChannel: OutputChannel, config: ({
 		});
 }
 
-export function init(configFilename: string, outputChannel: OutputChannel) {
+export function init(configFilename: string, outputChannel: OutputChannel, config) {
 	let conf;
 	return readConfigFile(configFilename).flatMap(config => {
 		let rootDir = dirname(configFilename);
@@ -190,6 +200,8 @@ export function init(configFilename: string, outputChannel: OutputChannel) {
 		return getWebDavClient(config, outputChannel, rootDir);
 	}).flatMap(webdav => {
 		let retryCounter = 0;
+		conf.cleanOnStart = config.cleanOnStart;
+
 		return uploadAndWatch(webdav, outputChannel, conf, webdav.config.root)
 			.retryWhen(function (errors) {
 				// retry for some errors, end the stream with an error for others

@@ -68,7 +68,13 @@ export const getPathsCartridges = (workspaceRoot, packageFile): Promise<string[]
 
 					if (packageFileObject.paths) {
 						const promises: Promise<string[]>[] = [];
-						const paths = Object.values(packageFileObject.paths);
+						const paths : string[] = [];
+						
+						if (packageFileObject.paths) {
+							for (var key in packageFileObject.paths) {
+								paths.push(packageFileObject.paths[key]);
+							}
+						};
 
 						paths.forEach(function (path) {
 							if (typeof path === 'string') {
