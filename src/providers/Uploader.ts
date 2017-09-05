@@ -16,7 +16,8 @@ export default class Uploader {
 	private outputChannel : OutputChannel;
 	private configuration;
 	private prevState;
-	private uploaderSubscription : Subscription|null;
+	private uploaderSubscription : Subscription | null;
+	private cleanOnStart : boolean;
 
 	/**
 	 * 
@@ -25,6 +26,7 @@ export default class Uploader {
 	constructor (configuration){
 		this.outputChannel = window.createOutputChannel('Prophet Uploader');
 		this.configuration = configuration;
+		this.cleanOnStart = Boolean(this.configuration.get('clean.on.start'));
 	}
 
 	/**
@@ -65,13 +67,11 @@ export default class Uploader {
 					const configFilename = join(rootPath, files.shift() || '');
 					this.outputChannel.appendLine(`Using config file '${configFilename}'`);
 
-					const cleanOnStart = this.configuration.get('clean.on.start');
-					
 					subscription = uploadServer.init(
 						configFilename,
 						this.outputChannel,
 						{
-							cleanOnStart: typeof cleanOnStart === 'undefined' ? true : cleanOnStart
+							cleanOnStart: this.cleanOnStart
 						})
 						.subscribe(
 						() => {
@@ -84,6 +84,8 @@ export default class Uploader {
 							observer.complete();
 						}
 					);
+					// after first run set to true
+					this.cleanOnStart = true;
 
 					if (!logsView) {
 						uploadServer.readConfigFile(configFilename).flatMap(config => {

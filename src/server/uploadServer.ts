@@ -1,12 +1,13 @@
 import { Observable } from 'rxjs/Observable';
 
 import 'rxjs/add/operator/mergeMap';
+import 'rxjs/add/operator/delay';
 import 'rxjs/add/observable/of';
 import 'rxjs/add/observable/merge';
 import 'rxjs/add/operator/concat';
 import 'rxjs/add/operator/retryWhen';
 
-import { OutputChannel, workspace } from 'vscode';
+import { OutputChannel, workspace, window, ProgressLocation } from 'vscode';
 import { default as WebDav, DavOptions } from './WebDav';
 import { getDirectoriesSync } from '../lib/FileHelper';
 import { dirname, join } from 'path';
@@ -31,6 +32,7 @@ export function readConfigFile(configFilename: string): Observable<DavOptions> {
 		stream.on('close', () => {
 			try {
 				observer.next(JSON.parse(Buffer.concat(chunks).toString()));
+				chunks = <any>null;
 			} catch (err) {
 				observer.error(err);
 			}
@@ -80,11 +82,7 @@ function fileWatcher(config, cartRoot: string) {
 			],
 			persistent: true,
 			ignoreInitial: true,
-			followSymlinks: false,
-			awaitWriteFinish: {
-				stabilityThreshold: 300,
-				pollInterval: 100
-			}
+			followSymlinks: false
 		});
 
 		watcher.on('change', path => observer.next(['upload', path]));
@@ -129,6 +127,11 @@ const uploadCartridges = (webdav: WebDav, outputChannel: OutputChannel, config: 
 };
 
 function uploadAndWatch(webdav: WebDav, outputChannel: OutputChannel, config: ({ cartridge, version, cleanOnStart: boolean }), rootDir: string) {
+	var resolve;
+	window.withProgress({
+		location: ProgressLocation.Window,
+		title: 'Uploading cartridges'
+	}, () => new Promise((res) => {resolve = res;}));
 	return webdav.dirList(rootDir)
 		.do(() => {
 			outputChannel.appendLine(`Connection validated successfully`);
@@ -163,12 +166,20 @@ function uploadAndWatch(webdav: WebDav, outputChannel: OutputChannel, config: ({
 		}).do(() => {
 			if (config.cleanOnStart) {
 				outputChannel.appendLine(`Cartridges uploaded successfully`);
-			} else {
-				config.cleanOnStart = true;
 			}
+			if (resolve) {
+				resolve();
+				resolve = null;
+			}
+		}, () => {// error case
+			if (resolve) {
+				resolve();
+				resolve = null;
+			}	
 		}).flatMap(() => {
 			outputChannel.appendLine(`Watching files`);
 			return fileWatcher(config, rootDir)
+				.delay(300)// delay uploading file (allow finish writting for large files)
 				.mergeMap(([action, fileName]) => {
 					const date = new Date();
 					if (action === 'upload') {
