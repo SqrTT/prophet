@@ -11,7 +11,7 @@ import { OutputChannel, workspace, window, ProgressLocation } from 'vscode';
 import { default as WebDav, DavOptions } from './WebDav';
 import { getDirectoriesSync } from '../lib/FileHelper';
 import { dirname, join } from 'path';
-import { createReadStream } from 'fs';
+import { createReadStream, statSync } from 'fs';
 import * as chokidar from 'chokidar';
 
 export function readConfigFile(configFilename: string): Observable<DavOptions> {
@@ -63,7 +63,7 @@ export function getWebDavClient(config: DavOptions, outputChannel: OutputChannel
 	});
 }
 
-function fileWatcher(config, cartRoot: string) {
+function fileWatcher(config, cartRoot: string, outputChannel: OutputChannel) {
 	return Observable.create(observer => {
 		let cartridges;
 
@@ -81,18 +81,28 @@ function fileWatcher(config, cartRoot: string) {
 				`**/cartridge/client/**`
 			],
 			persistent: true,
+			ignorePermissionErrors: true,
 			ignoreInitial: true,
+			interval: 1000, // while not used in normal cases, if any error causes chokidar to fallback to polling, increase its intervals
+			binaryInterval: 1000,
 			followSymlinks: false
 		});
+		
+		if (process.platform === 'darwin' && !watcher.options.useFsEvents) {
+			outputChannel.show();
+			outputChannel.appendLine('Watcher is not using native fsevents library and is falling back to unefficient polling.');
+		}
 
 		watcher.on('change', path => observer.next(['upload', path]));
 		watcher.on('add', path => observer.next(['upload', path]));
+		watcher.on('addDir', path => observer.next(['upload', path]));
 		watcher.on('unlink', path => observer.next(['delete', path]));
 		watcher.on('error', err => observer.error(err));
 
+
 		cartridges.forEach(cartridge => {
 			if (workspace.rootPath) {
-				watcher.add(join(cartRoot, cartridge) + '/**/*.*');
+				watcher.add(join(cartRoot, cartridge));
 			}
 		});
 
@@ -178,23 +188,35 @@ function uploadAndWatch(webdav: WebDav, outputChannel: OutputChannel, config: ({
 			}	
 		}).flatMap(() => {
 			outputChannel.appendLine(`Watching files`);
-			return fileWatcher(config, rootDir)
+			return fileWatcher(config, rootDir, outputChannel)
 				.delay(300)// delay uploading file (allow finish writting for large files)
 				.mergeMap(([action, fileName]) => {
-					const date = new Date();
+					const date = new Date().toTimeString().split(' ').shift();
+					var davAction : string = '',
+						actionChar : string = '';
+
 					if (action === 'upload') {
-						outputChannel.appendLine(
-							`[U ${date.toTimeString().split(' ').shift()}] ${fileName}`
-						);
-
-						return webdav.post(fileName, rootDir);
+						// @TODO make async or create separate
+						// directory watchers with own commands
+						if (statSync(fileName).isDirectory()) {
+							davAction = 'mkdir';
+							actionChar = 'C';
+						} else {
+							davAction = 'post';
+							actionChar = 'U';
+						}
 					} else if (action === 'delete') {
-						outputChannel.appendLine(`[D ${date.toTimeString().split(' ').shift()}] ${fileName}`);
-
-						return webdav.delete(fileName, rootDir);
+						davAction = 'delete';
+						actionChar = 'D';
 					} else {
 						throw Error('Unknown action');
 					}
+
+					outputChannel.appendLine(
+						`[${actionChar} ${date}] ${fileName}`
+					);
+
+					return webdav[davAction](fileName, rootDir);
 				}, 5);
 		});
 }

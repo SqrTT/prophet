@@ -52,7 +52,7 @@
         "vscode-debugadapter-testsupport": "^1.23.0"
     },
     "scripts": {
-        "vscode:prepublish": "npm install && npm run compile && npm run test",
+        "vscode:prepublish": "npm install -f && npm run compile && npm run test",
         "prepublish": "node ./node_modules/typescript/bin/tsc -p ./src",
         "compile": "node ./node_modules/typescript/bin/tsc -p ./src",
         "watch": "node ./node_modules/typescript/bin/tsc -w -p ./src",
