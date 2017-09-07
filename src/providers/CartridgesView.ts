@@ -142,7 +142,7 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
 
 					const packagePath = join(workspaceRoot, 'package.json');
 
-					getPathsCartridges(workspaceRoot, packagePath).then(function (paths) {
+					getPathsCartridges(workspaceRoot, packagePath).then(paths => {
 						if (paths && paths.length > 0) {
 							cartridgeViewOutputChannel.appendLine('Found extra cartridges in package file paths:\n\t*' + paths.join('\n\t*'));
 						}
