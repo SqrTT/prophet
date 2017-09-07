@@ -1,7 +1,7 @@
 {
     "name": "prophet",
     "displayName": "Prophet Debugger",
-    "version": "0.9.3",
+    "version": "0.9.6",
     "publisher": "SqrTT",
     "description": "Debugger and Uploader for Demandware/Salesforce sandbox",
     "author": {
@@ -31,10 +31,10 @@
         "glob": "^7.1.2",
         "request": "^2.81.0",
         "rimraf": "^2.6.1",
-        "rxjs": "^5.4.2",
+        "rxjs": "^5.4.3",
         "timeago.js": "^3.0.2",
-        "vscode-debugadapter": "^1.22.0",
-        "vscode-debugprotocol": "^1.22.0",
+        "vscode-debugadapter": "^1.23.0",
+        "vscode-debugprotocol": "^1.23.0",
         "vscode-languageclient": "^3.3.0",
         "vscode-languageserver": "^3.3.0",
         "vscode-nls": "^2.0.2",
@@ -47,12 +47,12 @@
         "@types/mocha": "^2.2.41",
         "@types/node": "^6.0.74",
         "mocha": "^3.4.2",
-        "typescript": "^2.4.1",
-        "vscode": "^1.1.4",
-        "vscode-debugadapter-testsupport": "^1.20.0"
+        "typescript": "^2.5.2",
+        "vscode": "^1.1.5",
+        "vscode-debugadapter-testsupport": "^1.23.0"
     },
     "scripts": {
-        "vscode:prepublish": "npm install && npm run compile && npm run test",
+        "vscode:prepublish": "npm install -f && npm run compile && npm run test",
         "prepublish": "node ./node_modules/typescript/bin/tsc -p ./src",
         "compile": "node ./node_modules/typescript/bin/tsc -p ./src",
         "watch": "node ./node_modules/typescript/bin/tsc -w -p ./src",
@@ -82,7 +82,8 @@
             "view/title": [
                 {
                     "command": "extension.prophet.command.clean.upload",
-                    "when": "view == cartridgesView"
+                    "when": "view == cartridgesView",
+                    "group": "navigation"
                 },
                 {
                     "command": "extension.prophet.command.enable.upload",
@@ -136,7 +137,11 @@
             {
                 "command": "extension.prophet.command.clean.upload",
                 "title": "Prophet: Clean Project/Upload all",
-                "description": "Clean Project/Upload all"
+                "description": "Clean Project/Upload all",
+                "icon": {
+                    "light": "resources/light/clean.svg",
+                    "dark": "resources/dark/clean.svg"
+                }
             },
             {
                 "command": "extension.prophet.command.refresh.cartridges",
@@ -336,6 +341,11 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Enable upload to sandbox"
+                },
+                "extension.prophet.clean.on.start": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Clean/upload all on editor startup to sandbox"
                 },
                 "extension.prophet.ismlServer.activateOn": {
                     "type": "array",

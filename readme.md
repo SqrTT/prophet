@@ -106,7 +106,7 @@ You can temporarily disable watching or force upload cartridges (i.e. clean proj
 
 * `extension.prophet.cartridges.path` - List of cartridges separated by colon. Allows  quick open don't ask a user to choose the file. Automatically open file that match first cartridge in list.
 * `extension.prophet.ismlServer.activateOn` - allow activate isml server for non standatd (isml) files, ex. `html`
-
+* `extension.prophet.clean.on.start` - allows to enable/disable code upload on editor startup (enabled by default)
 
 ### Improve experience
 
@@ -190,4 +190,11 @@ There are many ways to contribute to Prophet.
 If you have made or wish to make some features/fixes, please, make a fork of this repo, do your changes, and send your pull request to this repo into `develop` branch. After review it will be merged to `develop`, and during some time it will be available in `master` and extention itself. Before making pull request, please, make that it doesn't break anything. (currently there no tests, so test that covers current functionality are welcomed)
 
 
+
+### Contributors
+
+* [Thomas Theunen](https://github.com/taurgis)
+* [SGD](https://github.com/SGD1953)
+* [Dmytro Katashev](https://github.com/ufnd)
+* and special thanks to [Astound Commerce](https://astoundcommerce.com/)
 

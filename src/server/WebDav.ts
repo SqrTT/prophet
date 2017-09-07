@@ -254,6 +254,34 @@ export default class WebDav {
 			return activeVersion;
 		});
 	}
+	mkdir(filePath, root = this.config.root) {
+		const uriPath = relative(root, filePath);
+
+		this.log('mkdir', uriPath);
+		return Observable.create(observer => {
+			let req = request(Object.assign(this.getOptions(), {
+				uri: '/' + uriPath,
+				method: 'MKCOL'
+			}), (err, res, body) => {
+				this.log('mkcol-response', uriPath, body);
+				if (err) {
+					observer.error(err);
+				} else {
+					// server reponse with not implemented (405) but it
+					// still does what it should do
+					observer.next(body);
+				}
+
+				observer.complete();
+			});
+
+			return () => {
+				req.destroy()
+				req = null;
+			};
+
+		});
+	}
 	postAndUnzip(filePath) {
 		return this.post(filePath).flatMap(() => this.unzip(filePath));
 	}
