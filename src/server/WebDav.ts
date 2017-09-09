@@ -327,7 +327,7 @@ export default class WebDav {
 				walker.on('file', (root, fileStat, next) => {
 					const file = resolve(root, fileStat.name);
 					const toFile = relative(isCartridge ?
-						pathToCartridgesDir.replace(processingFolder, '') :
+						pathToCartridgesDir.replace(new RegExp(processingFolder+'$'), '') :
 						pathToCartridgesDir, resolve(root, fileStat.name));
 
 					//this.log('adding to zip:', file);
