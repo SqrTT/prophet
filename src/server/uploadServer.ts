@@ -7,7 +7,7 @@ import 'rxjs/add/observable/merge';
 import 'rxjs/add/operator/concat';
 import 'rxjs/add/operator/retryWhen';
 
-import { OutputChannel, workspace, window, ProgressLocation, FileSystemWatcher } from 'vscode';
+import { OutputChannel, workspace, window, ProgressLocation, FileSystemWatcher, Uri} from 'vscode';
 import { default as WebDav, DavOptions } from './WebDav';
 import { getDirectoriesSync } from '../lib/FileHelper';
 import { dirname, join } from 'path';
@@ -83,18 +83,18 @@ function fileWatcher(config, cartRoot: string, outputChannel: OutputChannel) {
 			`cartridge/client/`
 		];
 		// ... we create an array of watchers
-		var watchers : FileSystemWatcher[] = [];
+		var watchers : FileSystemWatcher[] | null = [];
 		cartridges.forEach(cartridge => {
-			if (workspace.rootPath) {
+			if (workspace.rootPath && watchers) {
 				// looks a bit odd but matches all files & directories
 				watchers.push(workspace.createFileSystemWatcher( '**/' + cartridge + '/**/'));
 			}
 		});
-		
+
 		// manually check for the excludes in the callback
-		var callback = method => (uri => {
-			if(!excludeGlobPattern.some(pattern => uri.fsPath.indexOf(pattern) > -1)){
-				observer.next([method, uri.fsPath])				
+		var callback = method => ((uri : Uri) => {
+			if (!excludeGlobPattern.some(pattern => uri.fsPath.includes(pattern))){
+				observer.next([method, uri.fsPath])
 			}
 		});
 		// add the listerners to all watchers
@@ -106,7 +106,10 @@ function fileWatcher(config, cartRoot: string, outputChannel: OutputChannel) {
 
 		return () => {
 			// and dispose them all in the end
-			watchers.forEach(watcher => watcher.dispose());
+			if (watchers) {
+				watchers.forEach(watcher => watcher.dispose());
+			}
+			watchers = null;
 			cartridges = null;
 		};
 	});
@@ -183,7 +186,7 @@ function uploadAndWatch(webdav: WebDav, outputChannel: OutputChannel, config: ({
 			if (resolve) {
 				resolve();
 				resolve = null;
-			}	
+			}
 		}).flatMap(() => {
 			outputChannel.appendLine(`Watching files`);
 			return fileWatcher(config, rootDir, outputChannel)

@@ -2,10 +2,13 @@
 import * as request from 'request';
 import { relative, sep, resolve, join } from 'path';
 import { Observable } from 'rxjs/Observable';
+import { Subscription  } from 'rxjs/Subscription';
 import 'rxjs/add/operator/mergeMap';
 import 'rxjs/add/operator/do';
 import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/filter';
+import * as yazl from 'yazl';
+import * as fs  from 'fs';
 
 export interface DavOptions {
 	hostname: string,
@@ -254,34 +257,6 @@ export default class WebDav {
 			return activeVersion;
 		});
 	}
-	mkdir(filePath, root = this.config.root) {
-		const uriPath = relative(root, filePath);
-
-		this.log('mkdir', uriPath);
-		return Observable.create(observer => {
-			let req = request(Object.assign(this.getOptions(), {
-				uri: '/' + uriPath,
-				method: 'MKCOL'
-			}), (err, res, body) => {
-				this.log('mkcol-response', uriPath, body);
-				if (err) {
-					observer.error(err);
-				} else {
-					// server reponse with not implemented (405) but it
-					// still does what it should do
-					observer.next(body);
-				}
-
-				observer.complete();
-			});
-
-			return () => {
-				req.destroy()
-				req = null;
-			};
-
-		});
-	}
 	postAndUnzip(filePath) {
 		return this.post(filePath).flatMap(() => this.unzip(filePath));
 	}
@@ -313,7 +288,7 @@ export default class WebDav {
 			};
 		});
 	}
-	getFileList(pathToCartridgesDir, options) {
+	getFileList(pathToCartridgesDir, options) : Observable<string[]>{
 		const walk = require('walk');
 		const { isCartridge = false } = options;
 		const { isDirectory = false } = options;
@@ -404,14 +379,17 @@ export default class WebDav {
 		});
 	}
 	zipFiles(pathToCartridgesDir, cartridgesPackagePath, options) {
-		const yazl = require('yazl');
-		const fs = require('fs');
 
 		return Observable.create(observer => {
 			let zipFile = new yazl.ZipFile();
-			var inputStream, outputStream;
+			var inputStream : fs.WriteStream, outputStream : fs.ReadStream;
 
-			let subscription = this.getFileList(pathToCartridgesDir, options).subscribe(
+			zipFile.on('error', (error) => {
+				finishWork();
+				observer.error(error);
+			});
+
+			let subscription : Subscription | null = this.getFileList(pathToCartridgesDir, options).subscribe(
 				// next
 				files => {
 					if (files.length === 1) {
@@ -439,16 +417,20 @@ export default class WebDav {
 				}
 			);
 
-			return () => {
+			function finishWork() {
 				if (outputStream && inputStream) {
+					//inputStream.close();
 					outputStream.unpipe(inputStream);
 					inputStream.end();
 				}
 				zipFile = null;
-
-				subscription.unsubscribe()
+				if (subscription) {
+					subscription.unsubscribe();
+				}
 				subscription = null;
 			}
+
+			return finishWork;
 		});
 	}
 	uploadCartridges(
