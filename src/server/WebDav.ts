@@ -9,6 +9,8 @@ import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/filter';
 import * as yazl from 'yazl';
 import * as fs  from 'fs';
+import * as walk from 'walk';
+import * as rimraf from 'rimraf';
 
 export interface DavOptions {
 	hostname: string,
@@ -124,8 +126,7 @@ export default class WebDav {
 		});
 	}
 	post(filePath, root = this.config.root) {
-		const uriPath = relative(root, filePath),
-			fs = require('fs');
+		const uriPath = relative(root, filePath);
 
 		this.log('post', uriPath);
 		return Observable.create(observer => {
@@ -161,7 +162,6 @@ export default class WebDav {
 				}
 				req.destroy()
 				req = null;
-				outputStream = null;
 			};
 		});
 	}
@@ -289,7 +289,6 @@ export default class WebDav {
 		});
 	}
 	getFileList(pathToCartridgesDir, options) : Observable<string[]>{
-		const walk = require('walk');
 		const { isCartridge = false } = options;
 		const { isDirectory = false } = options;
 		const { ignoreList = ['node_modules', '\\.git'] } = options;
@@ -358,8 +357,6 @@ export default class WebDav {
 		});
 	}
 	deleteLocalFile(fileName) {
-		const rimraf = require('rimraf');
-
 		return Observable.create(observer => {
 			let isCanceled = false;
 
