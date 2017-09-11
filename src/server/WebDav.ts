@@ -52,9 +52,8 @@ export default class WebDav {
 					observer.error(new Error(res.statusMessage));
 				} else {
 					observer.next(body);
+					observer.complete();
 				}
-
-				observer.complete();
 			});
 
 			return () => {
@@ -74,7 +73,7 @@ export default class WebDav {
 			strictSSL: false
 		};
 	}
-	makeRequest(options) {
+	makeRequest(options) : Observable<string>{
 		return Observable.create(observer => {
 			this.log('request', options, this.getOptions());
 
@@ -99,7 +98,7 @@ export default class WebDav {
 			};
 		});
 	}
-	postBody(uriPath : string, bodyOfFile: string) {
+	postBody(uriPath : string, bodyOfFile: string) : Observable<string>{
 		this.log('postBody', uriPath);
 
 		return Observable.create(observer => {
@@ -125,7 +124,7 @@ export default class WebDav {
 			};
 		});
 	}
-	post(filePath, root = this.config.root) {
+	post(filePath, root = this.config.root) : Observable<string>{
 		const uriPath = relative(root, filePath);
 
 		this.log('post', uriPath);
@@ -141,9 +140,8 @@ export default class WebDav {
 					observer.error(new Error(res.statusMessage));
 				} else {
 					observer.next(body);
+					observer.complete();
 				}
-
-				observer.complete();
 			});
 
 			let outputStream = fs.createReadStream(filePath);
@@ -165,7 +163,7 @@ export default class WebDav {
 			};
 		});
 	}
-	mkdir(filePath, root = this.config.root) {
+	mkdir(filePath, root = this.config.root) : Observable<string>{
 		const uriPath = relative(root, filePath);
 
 		this.log('mkdir', uriPath);
@@ -193,7 +191,7 @@ export default class WebDav {
 
 		});
 	}
-	unzip(filePath, root = this.config.root) {
+	unzip(filePath, root = this.config.root) : Observable<string>{
 		const uriPath = relative(root, filePath);
 
 		this.log('unzip', uriPath);
@@ -218,7 +216,7 @@ export default class WebDav {
 			this.log('get-response', data);
 		});
 	}
-	getActiveCodeVersion() {
+	getActiveCodeVersion() : Observable<string>{
 		return this.makeRequest({
 			uri: '/../.version',
 			method: 'GET'
@@ -257,10 +255,10 @@ export default class WebDav {
 			return activeVersion;
 		});
 	}
-	postAndUnzip(filePath) {
+	postAndUnzip(filePath : string) {
 		return this.post(filePath).flatMap(() => this.unzip(filePath));
 	}
-	delete(filePath, optionalRoot) {
+	delete(filePath, optionalRoot) : Observable<string>{
 		const uriPath = relative(optionalRoot || this.config.root, filePath);
 
 		return Observable.create(observer => {
@@ -356,7 +354,7 @@ export default class WebDav {
 			return dispose;
 		});
 	}
-	deleteLocalFile(fileName) {
+	deleteLocalFile(fileName) : Observable<undefined>{
 		return Observable.create(observer => {
 			let isCanceled = false;
 
@@ -375,7 +373,7 @@ export default class WebDav {
 			return () => { isCanceled = true }
 		});
 	}
-	zipFiles(pathToCartridgesDir, cartridgesPackagePath, options) {
+	zipFiles(pathToCartridgesDir, cartridgesPackagePath, options) : Observable<undefined> {
 
 		return Observable.create(observer => {
 			let zipFile = new yazl.ZipFile();

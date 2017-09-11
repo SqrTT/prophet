@@ -10,7 +10,7 @@ import 'rxjs/add/operator/retryWhen';
 import { OutputChannel, workspace, window, ProgressLocation, FileSystemWatcher, Uri} from 'vscode';
 import { default as WebDav, DavOptions } from './WebDav';
 import { getDirectoriesSync } from '../lib/FileHelper';
-import { dirname, join } from 'path';
+import { dirname, join, sep } from 'path';
 import { createReadStream, statSync } from 'fs';
 
 export function readConfigFile(configFilename: string): Observable<DavOptions> {
@@ -77,10 +77,10 @@ function fileWatcher(config, cartRoot: string, outputChannel: OutputChannel) {
 		// it is however very CPU friendly compared to fs.watch()
 		// or chokidar
 		var excludeGlobPattern = [
-			'node_modules/',
-			'.git/',
-			`cartridge/js/`,
-			`cartridge/client/`
+			'node_modules' + sep,
+			'.git' + sep,
+			join('cartridge', 'js') + sep,
+			join('cartridge', 'client') + sep
 		];
 		// ... we create an array of watchers
 		var watchers : FileSystemWatcher[] | null = [];
