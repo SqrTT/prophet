@@ -1,6 +1,8 @@
 
 import request = require('request');
 
+import { logger } from 'vscode-debugadapter';
+
 const justResolve = (resolve) => {resolve()};
 
 interface IThread {
@@ -27,9 +29,18 @@ interface IMember {
 	value: string;
 }
 
+export interface IVariable {
+	name: string,
+	parent: string,
+	scope : string,
+	type: string,
+	value: string
+}
+
 export default class Connection {
 	protected options : any;
 	protected estabilished : boolean;
+	//protected logger : Logger;
 
 	constructor (params = {}) {
 		this.options = Object.assign({}, {
@@ -42,7 +53,7 @@ export default class Connection {
 	}
 	getOptions () {
 		return {
-			baseUrl: 'https://' + this.options.hostname + '/s/-/dw/debugger/v1_0/',
+			baseUrl: 'https://' + this.options.hostname + '/s/-/dw/debugger/v2_0/',
 			uri: '/',
 			auth: {
 				user: this.options.username,
@@ -56,6 +67,7 @@ export default class Connection {
 		};
 	}
 	makeRequest<T> (options, cb : (resolve, reject, body) => void) : Promise<T> {
+		logger.verbose('req: ' + JSON.stringify(options));
 		return new Promise((resolve, reject) => {
 			if (!this.estabilished) {
 				reject(Error('Connection is not estabilished'));
@@ -66,6 +78,7 @@ export default class Connection {
 				if (err) {
 					return reject(err);
 				}
+				logger.verbose('res: ' + JSON.stringify(body));
 
 				if (res.statusCode >= 400) {
 					return reject(new Error(res.statusMessage));
@@ -191,6 +204,20 @@ export default class Connection {
 		}, (resolve, reject, body) => {
 			if (body.script_threads) {
 				resolve(body.script_threads);
+			} else {
+				resolve([]);
+			}
+		})
+	}
+	getVariables(threadID, frame_index) : Promise<IVariable[]>{
+		//threads/{thread_id}/variables
+		return this.makeRequest({
+			uri:  `/threads/${threadID}/frames/${frame_index}/variables`,
+			method: 'GET',
+			json: true
+		}, (resolve, reject, body) => {
+			if (body.object_members) {
+				resolve(body.object_members);
 			} else {
 				resolve([]);
 			}
