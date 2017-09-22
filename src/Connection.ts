@@ -34,7 +34,9 @@ export interface IVariable {
 	parent: string,
 	scope : string,
 	type: string,
-	value: string
+	value: string,
+	frameID : number,
+	threadID: number
 }
 
 export default class Connection {
@@ -209,7 +211,7 @@ export default class Connection {
 			}
 		})
 	}
-	getVariables(threadID, frame_index) : Promise<IVariable[]>{
+	getVariables(threadID : number, frame_index : number) : Promise<IVariable[]>{
 		//threads/{thread_id}/variables
 		return this.makeRequest({
 			uri:  `/threads/${threadID}/frames/${frame_index}/variables`,
@@ -217,11 +219,15 @@ export default class Connection {
 			json: true
 		}, (resolve, reject, body) => {
 			if (body.object_members) {
-				resolve(body.object_members);
+				resolve(body.object_members.map(member => {
+					member.frameID = frame_index;
+					member.threadID = threadID;
+					return member;
+				}));
 			} else {
 				resolve([]);
 			}
-		})
+		});
 	}
 	stepInto(threadID) {
 		//threads/{thread_id}/into
