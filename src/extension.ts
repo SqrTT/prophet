@@ -38,6 +38,17 @@ export function activate(context: ExtensionContext) {
 		].join('\n');
 	}));
 
+	context.subscriptions.push(commands.registerCommand('extension.prophet.autofillQuickOpen', () => {
+		var editor = window.activeTextEditor;
+		if (!editor) {
+			return; // No open text editor
+		}
+
+		var selection = editor.document.getText(editor.selection);
+
+		commands.executeCommand('workbench.action.quickOpen', selection);
+	}));
+
 	var ismlLanguageServer = createIsmlLanguageServer(context, configuration);
 	const disposable = ismlLanguageServer.start();
 

@@ -61,9 +61,22 @@
     "main": "./out/extension",
     "activationEvents": [
         "onCommand:extension.prophet.provideInitialConfigurations",
-        "workspaceContains:**/cartridge/*.properties"
+        "workspaceContains:**/cartridge/*.properties",
+        "onCommand:extension.prophet.autofillQuickOpen"
     ],
     "contributes": {
+        "keybindings": [{
+            "command": "extension.prophet.autofillQuickOpen",
+            "key": "ctrl+e",
+            "mac": "cmd+e",
+            "when": "editorTextFocus"
+        },
+        {
+            "command": "extension.prophet.autofillQuickOpen",
+            "key": "ctrl+p",
+            "mac": "cmd+p",
+            "when": "editorTextFocus"
+        }],
         "views": {
             "explorer": [
                 {
@@ -362,6 +375,11 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Enable/Disable cartridges view"
+                },
+                "extension.prophet.autofillQuickOpen": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Autofill Quick Open with selected text"
                 }
             }
         }
