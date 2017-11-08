@@ -9,7 +9,7 @@
         "email": "tolik@sqrtt.pro"
     },
     "engines": {
-        "vscode": "^1.14.0",
+        "vscode": "^1.17.0",
         "node": "^7.0.0"
     },
     "icon": "images/mock-debug-icon.ico",
@@ -28,26 +28,26 @@
     },
     "dependencies": {
         "glob": "^7.1.2",
-        "request": "^2.81.0",
-        "rimraf": "^2.6.1",
-        "rxjs": "^5.4.3",
+        "request": "^2.83.0",
+        "rimraf": "^2.6.2",
+        "rxjs": "^5.5.2",
         "timeago.js": "^3.0.2",
-        "vscode-debugadapter": "^1.23.0",
-        "vscode-debugprotocol": "^1.23.0",
-        "vscode-languageclient": "^3.3.0",
-        "vscode-languageserver": "^3.3.0",
+        "vscode-debugadapter": "^1.24.0",
+        "vscode-debugprotocol": "^1.24.0",
+        "vscode-languageclient": "^3.5.0",
+        "vscode-languageserver": "^3.5.0",
         "vscode-nls": "^2.0.2",
         "vscode-uri": "^1.0.1",
         "walk": "^2.3.9",
         "xmldom": "^0.1.27",
-        "yazl": "^2.4.2"
+        "yazl": "^2.4.3"
     },
     "devDependencies": {
         "@types/mocha": "^2.2.41",
         "@types/node": "^6.0.74",
         "mocha": "^3.4.2",
-        "typescript": "^2.5.2",
-        "vscode": "^1.1.5",
+        "typescript": "^2.6.1",
+        "vscode": "^1.1.6",
         "vscode-debugadapter-testsupport": "^1.23.0"
     },
     "scripts": {
@@ -277,7 +277,7 @@
                             "password": "${5}",
                             "codeversion": "${6:version1}",
                             "cartridgeroot": "auto",
-                            "workspaceroot": ""
+                            "workspaceroot": "^\"\\${workspaceFolder}\""
                         }
                     }
                 ],
@@ -329,8 +329,7 @@
                             }
                         }
                     }
-                },
-                "initialConfigurations": "extension.prophet.provideInitialConfigurations"
+                }
             }
         ],
         "configuration": {
