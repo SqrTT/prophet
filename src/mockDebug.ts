@@ -8,7 +8,7 @@ import {
 import {DebugProtocol} from 'vscode-debugprotocol';
 
 import {basename, join} from 'path';
-import Connection, { IVariable } from './Connection';
+import Connection from './Connection';
 import * as process from 'process';
 
 import path = require('path');
@@ -43,7 +43,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 	private threadsTimer : NodeJS.Timer;
 	private awaitThreadsTimer : NodeJS.Timer;
 	private isAwaitingThreads = false;
-	private _variableHandles = new Handles<IVariable[]>();
+	private _variableHandles = new Handles<string>();
 	private pendingThreads = new Map<number, 'step'| 'breakpoint' | 'exception' | 'pause' | 'entry'>();
 
 
@@ -78,9 +78,9 @@ class ProphetDebugSession extends LoggingDebugSession {
 			// make VS Code to use 'evaluate' when hovering over source
 			response.body.supportsEvaluateForHovers = false;
 			response.body.supportsFunctionBreakpoints = false;
-			response.body.supportsConditionalBreakpoints = true;
+			response.body.supportsConditionalBreakpoints = false;
 			response.body.supportsHitConditionalBreakpoints = false;
-			response.body.supportsSetVariable = false;
+			response.body.supportsSetVariable = true;
 			response.body.supportsGotoTargetsRequest = false;
 			response.body.supportsRestartRequest = false;
 			response.body.supportsRestartFrame = false;
@@ -96,7 +96,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 
 	protected launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments): void {
 
-		if (true || args.trace) {
+		if (args.trace) {
 			logger.setup(Logger.LogLevel.Verbose, /*logToFile=*/ true);
 		}
 
@@ -288,95 +288,63 @@ class ProphetDebugSession extends LoggingDebugSession {
 
 	protected scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments): void {
 
-		const frameReference = args.frameId || 0;
-		const threadID = parseInt((frameReference / 100000) + '');
-		const frameID = frameReference - (threadID * 100000);
+		const frameReference = args.frameId;
 		const scopes = new Array<Scope>();
 
-		
+		scopes.push(new Scope("Local", this._variableHandles.create("" + frameReference), false));
 
 		// scopes.push(new Scope("Local", this._variableHandles.create("local_" + frameReference), false));
 		// scopes.push(new Scope("Closure", this._variableHandles.create("closure_" + frameReference), false));
 		// scopes.push(new Scope("Global", this._variableHandles.create("global_" + frameReference), true));
 
-		this.connection.getVariables(threadID, frameID).then((vars) => {
-			const scopesMap = new Map<string, IVariable[]>();
-
-			vars.forEach(vr => {
-				const scope = scopesMap.get(vr.scope) || [];
-				scope.push(vr);
-				scopesMap.set(vr.scope, scope);
-			})
-
-			scopesMap.forEach((sc, key) => {
-				scopes.push(new Scope(key, this._variableHandles.create(sc), false));
-			});
-
-			response.body = {
-				scopes: scopes
-			};
-			this.sendResponse(response);
-
-		}).catch(this.catchLog.bind(this));
-
-
+		response.body = {
+			scopes: scopes
+		};
+		this.sendResponse(response);
 	}
 
 	protected variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments): void {
 
-		//const variables = [];
-		const variables = this._variableHandles.get(args.variablesReference);
+		const variables = [];
+		const id = this._variableHandles.get(args.variablesReference);
+		if (id) {
+			const vals = id.split('_');
+			const frameReferenceStr = vals[0];
+			const path = vals[1] || '';
+			const frameReference = parseInt(frameReferenceStr);
 
-		response.body = {
-			variables: variables.map(vrbl => {
+			const threadID = parseInt((frameReference / 100000) + '');
+			const frameID = frameReference - (threadID * 100000)
 
-				return {
-					name: vrbl.name,
-					type: vrbl.type.replace(/\./g, '/'),
-					value: vrbl.value,
-					variablesReference: 0
-				}
-			})
-		};
-		this.sendResponse(response);
-		// if (id) {
-		// 	const vals = id.split('_');
-		// 	const frameReferenceStr = vals[0];
-		// 	const path = vals[1] || '';
-		// 	const frameReference = parseInt(frameReferenceStr);
+			this.connection.getMembers(threadID, frameID, path)
+				.then(members => {
 
-		// 	const threadID = parseInt((frameReference / 100000) + '');
-		// 	const frameID = frameReference - (threadID * 100000)
+					response.body = {
+						variables: members.map(member => {
+							var variablesReference = 0;
 
-		// 	this.connection.getMembers(threadID, frameID, path)
-		// 		.then(members => {
+							if (includes(member.type, 'dw.') || includes(member.type, 'Object')) {
+								const encPath = frameReferenceStr + '_' + (path ? path + '.' : '') + member.name;
+								variablesReference = this._variableHandles.create(encPath)
+							}
 
-		// 			response.body = {
-		// 				variables: members.map(member => {
-		// 					var variablesReference = 0;
-
-		// 					if (includes(member.type, 'dw.') || includes(member.type, 'Object')) {
-		// 						const encPath = frameReferenceStr + '_' + (path ? path + '.' : '') + member.name;
-		// 						variablesReference = this._variableHandles.create(encPath)
-		// 					}
-
-		// 					return {
-		// 						name: member.name,
-		// 						type: member.type.replace(/\./g, '/'),
-		// 						value: member.value,
-		// 						variablesReference: variablesReference
-		// 					}
-		// 				})
-		// 			};
-		// 			this.sendResponse(response);
-		// 		})
-		// 		.catch(this.catchLog.bind(this));
-		// } else {
-		// 	response.body = {
-		// 		variables: variables
-		// 	};
-		// 	this.sendResponse(response);
-		// }
+							return {
+								name: member.name,
+								type: member.type.replace(/\./g, '/'),
+								value: member.value,
+								variablesReference: variablesReference
+							}
+						})
+					};
+					this.sendResponse(response);
+				})
+				.catch(this.catchLog.bind(this));
+		} else {
+			response.body = {
+				variables: variables
+			};
+			this.sendResponse(response);
+		}
 	}
 
 	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
@@ -449,37 +417,37 @@ class ProphetDebugSession extends LoggingDebugSession {
 		}
 
 	}
-	// protected setVariableRequest(response: DebugProtocol.SetVariableResponse, args: DebugProtocol.SetVariableArguments): void {
-	// 	const id = this._variableHandles.get(args.variablesReference);
-	// 	const vals = id.split('_');
-	// 	const frameReferenceStr = vals[0];
-	// 	var path = vals[1] || '';
-	// 	const frameReference = parseInt(frameReferenceStr);
+	protected setVariableRequest(response: DebugProtocol.SetVariableResponse, args: DebugProtocol.SetVariableArguments): void {
+		const id = this._variableHandles.get(args.variablesReference);
+		const vals = id.split('_');
+		const frameReferenceStr = vals[0];
+		var path = vals[1] || '';
+		const frameReference = parseInt(frameReferenceStr);
 
-	// 	path = path.replace(/\.\[/, '[').replace(/\]\./, ']');
+		path = path.replace(/\.\[/, '[').replace(/\]\./, ']');
 
-	// 	const threadID = parseInt((frameReference / 100000) + '');
-	// 	const frameID = frameReference - (threadID * 100000)
+		const threadID = parseInt((frameReference / 100000) + '');
+		const frameID = frameReference - (threadID * 100000)
 
-	// 	if (this.connection && threadID) {
-	// 		this.connection.evaluate(threadID, (path ? path + '.' : '') +  args.name + '=' + args.value, frameID)
-	// 			.then(res => {
-	// 				response.body = {
-	// 					value: res,
-	// 					variablesReference: 0
-	// 				};
-	// 				response.success = res.indexOf('DEBUGGER EXPR') === -1 && res.indexOf('is not defined.') === -1;
-	// 				if (!response.success) {
-	// 					response.message = res;
-	// 				}
-	// 				this.sendResponse(response);
-	// 			});
-	// 	} else {
-	// 		response.success = false;
-	// 		this.sendResponse(response);
-	// 	}
+		if (this.connection && threadID) {
+			this.connection.evaluate(threadID, (path ? path + '.' : '') +  args.name + '=' + args.value, frameID)
+				.then(res => {
+					response.body = {
+						value: res,
+						variablesReference: 0
+					};
+					response.success = res.indexOf('DEBUGGER EXPR') === -1 && res.indexOf('is not defined.') === -1;
+					if (!response.success) {
+						response.message = res;
+					}
+					this.sendResponse(response);
+				});
+		} else {
+			response.success = false;
+			this.sendResponse(response);
+		}
 
-	// }
+	}
 	//---- some helpers
 
 	protected convertClientPathToDebugger(clientPath: string): string {
