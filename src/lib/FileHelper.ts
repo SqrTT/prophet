@@ -9,7 +9,7 @@ import * as path from 'path';
  * @param srcpath The path to look in for directories
  */
 export function getDirectoriesSync(srcpath: string): string[] {
-	return fs.readdirSync(srcpath).filter(file => fs.lstatSync(path.join(srcpath, file)).isDirectory());
+	return fs.readdirSync(srcpath).filter(file => fs.statSync(path.join(srcpath, file)).isDirectory());
 }
 
 /**
