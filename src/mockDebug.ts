@@ -17,12 +17,6 @@ function includes(str: string, pattern: string) {
 	return str.indexOf(pattern) !== -1;
 }
 
-function isComplexType(type : string) {
-	return includes(type, 'Class') ||
-	includes(type, 'dw.') ||
-	includes(type, 'dw/') ||
-	includes(type, 'Object');
-}
 
 
 /**
@@ -49,7 +43,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 	private threadsTimer : NodeJS.Timer;
 	private awaitThreadsTimer : NodeJS.Timer;
 	private isAwaitingThreads = false;
-	private _variableHandles = new Handles<IVariable[] | string>();
+	private _variableHandles = new Handles<IVariable[]>();
 	private pendingThreads = new Map<number, 'step'| 'breakpoint' | 'exception' | 'pause' | 'entry'>();
 
 
@@ -96,7 +90,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 			response.body.exceptionBreakpointFilters = [];
 		}
 
-
+		
 		this.sendResponse(response);
 	}
 
@@ -151,7 +145,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 					super.disconnectRequest(response, args);
 				});
 		}
-
+		
 	};
 
 	protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
@@ -209,7 +203,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 						// send back the actual breakpoint positions
 						this._breakPoints.set(path, brks.map(brk => brk.id));
 						response.body = {
-							breakpoints:
+							breakpoints: 
 								brks.filter(brk => brk.file === scriptPath)
 								.map(brk =>
 									new Breakpoint(
@@ -299,7 +293,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 		const frameID = frameReference - (threadID * 100000);
 		const scopes = new Array<Scope>();
 
-
+		
 
 		// scopes.push(new Scope("Local", this._variableHandles.create("local_" + frameReference), false));
 		// scopes.push(new Scope("Closure", this._variableHandles.create("closure_" + frameReference), false));
@@ -312,13 +306,10 @@ class ProphetDebugSession extends LoggingDebugSession {
 				const scope = scopesMap.get(vr.scope) || [];
 				scope.push(vr);
 				scopesMap.set(vr.scope, scope);
-			});
+			})
 
-			['local', 'closure', 'global'].forEach((key) => {
-				const sc = scopesMap.get(key);
-				if (sc) {
-					scopes.push(new Scope(key, this._variableHandles.create(sc), false));
-				}
+			scopesMap.forEach((sc, key) => {
+				scopes.push(new Scope(key, this._variableHandles.create(sc), false));
 			});
 
 			response.body = {
@@ -336,57 +327,56 @@ class ProphetDebugSession extends LoggingDebugSession {
 		//const variables = [];
 		const variables = this._variableHandles.get(args.variablesReference);
 
-		if (typeof variables === 'string') {
-			const vals = variables.split('_');
-			const frameReferenceStr = vals[0];
-			const path = vals[1] || '';
-			const frameReference = parseInt(frameReferenceStr);
+		response.body = {
+			variables: variables.map(vrbl => {
 
-			const threadID = parseInt((frameReference / 100000) + '');
-			const frameID = frameReference - (threadID * 100000)
+				return {
+					name: vrbl.name,
+					type: vrbl.type.replace(/\./g, '/'),
+					value: vrbl.value,
+					variablesReference: 0
+				}
+			})
+		};
+		this.sendResponse(response);
+		// if (id) {
+		// 	const vals = id.split('_');
+		// 	const frameReferenceStr = vals[0];
+		// 	const path = vals[1] || '';
+		// 	const frameReference = parseInt(frameReferenceStr);
 
-			this.connection.getMembers(threadID, frameID, path)
-				.then(members => {
+		// 	const threadID = parseInt((frameReference / 100000) + '');
+		// 	const frameID = frameReference - (threadID * 100000)
 
-					response.body = {
-						variables: members.map(member => {
-							var variablesReference = 0;
+		// 	this.connection.getMembers(threadID, frameID, path)
+		// 		.then(members => {
 
-							if (isComplexType(member.type)) {
-								const encPath = frameReferenceStr + '_' + (path ? path + '.' : '') + member.name;
-								variablesReference = this._variableHandles.create(encPath)
-							}
+		// 			response.body = {
+		// 				variables: members.map(member => {
+		// 					var variablesReference = 0;
 
-							return {
-								name: member.name,
-								type: member.type.replace(/\./g, '/'),
-								value: member.value,
-								variablesReference: variablesReference
-							}
-						})
-					};
-					this.sendResponse(response);
-				})
-				.catch(this.catchLog.bind(this));
-		} else {
-			response.body = {
-				variables: variables.map(member => {
-					var variablesReference = 0;
-					if (isComplexType(member.type)) {
-						const encPath = ((member.threadID * 100000) + member.frameID) + '_'+ member.name;
-						variablesReference = this._variableHandles.create(encPath)
-					}
+		// 					if (includes(member.type, 'dw.') || includes(member.type, 'Object')) {
+		// 						const encPath = frameReferenceStr + '_' + (path ? path + '.' : '') + member.name;
+		// 						variablesReference = this._variableHandles.create(encPath)
+		// 					}
 
-					return {
-						name: member.name,
-						type: member.type.replace(/\./g, '/'),
-						value: member.value,
-						variablesReference: variablesReference
-					}
-				})
-			};
-			this.sendResponse(response);
-		}
+		// 					return {
+		// 						name: member.name,
+		// 						type: member.type.replace(/\./g, '/'),
+		// 						value: member.value,
+		// 						variablesReference: variablesReference
+		// 					}
+		// 				})
+		// 			};
+		// 			this.sendResponse(response);
+		// 		})
+		// 		.catch(this.catchLog.bind(this));
+		// } else {
+		// 	response.body = {
+		// 		variables: variables
+		// 	};
+		// 	this.sendResponse(response);
+		// }
 	}
 
 	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
@@ -434,7 +424,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 	}
 
 	protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {
-
+		
 		const frameReference = args.frameId || 0;
 		const threadID = parseInt((frameReference / 100000) + '');
 		const frameID = frameReference - (threadID * 100000);
@@ -578,7 +568,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 	private catchLog(err) {
 		const e = new OutputEvent(`${err}\n ${err.stack}`);
 		//(<DebugProtocol.OutputEvent>e).body.variablesReference = this._variableHandles.create("args");
-		this.sendEvent(e);	// print current line on debug console
+		this.sendEvent(e);	// print current line on debug console	
 	}
 	private logError(err) {
 		const e = new OutputEvent(err, 'stderr');
