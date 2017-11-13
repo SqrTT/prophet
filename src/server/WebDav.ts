@@ -428,7 +428,7 @@ export default class WebDav {
 			return finishWork;
 		});
 	}
-	uploadCartridges(
+	uploadCartridge(
 		pathToCartridgesDir,
 		notify = (string) => { },
 		options = {}
