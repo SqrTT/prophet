@@ -165,58 +165,76 @@ const uploadCartridges = (
 	return Observable.merge(...toUpload, 3).concat(Observable.of(''));
 };
 
-function uploadAndWatch(webdav: WebDav, outputChannel: OutputChannel, config: ({ cartridge, version, cleanOnStart: boolean }), rootDir: string) {
-	var resolve;
-	var progress : Progress<{message?: string}>['report'] | undefined;
-	window.withProgress({
-		location: ProgressLocation.Window,
-		title: 'Uploading cartridges'
-	}, (prg) => {progress = prg.report; return new Promise((res) => {resolve = res;})});
-	return webdav.dirList(rootDir)
-		.do(() => {
-			outputChannel.appendLine(`Connection validated successfully`);
-		}, (err) => {
-			outputChannel.appendLine(`Unable validate connection!`);
-
-			if (err instanceof Error) {
-				if (err.message === 'Not Found') {
-					outputChannel.appendLine(`Please check existence of code version: "${config.version}"`);
-				} else if (err.message === 'Unauthorized') {
-					outputChannel.appendLine(`Please check your credentials (login, password, etc)`);
-				} else {
-					outputChannel.appendLine(`Validation error: ${err.message}`);
+function uploadWithProgress(webdav: WebDav, outputChannel: OutputChannel, config: ({ cartridge, version, cleanOnStart: boolean }), rootDir: string) {
+	return Observable.create(observer => {
+		var resolve;
+		var progress : Progress<{message?: string}>['report'] | undefined;
+		window.withProgress({
+			location: ProgressLocation.Window,
+			title: 'Uploading cartridges'
+		}, (prg) => {progress = prg.report; return new Promise((res) => {resolve = res;})});
+		const subscr = webdav.dirList(rootDir)
+			.do(() => {
+				outputChannel.appendLine(`Connection validated successfully`);
+			}, (err) => {
+				outputChannel.appendLine(`Unable validate connection!`);
+	
+				if (err instanceof Error) {
+					if (err.message === 'Not Found') {
+						outputChannel.appendLine(`Please check existence of code version: "${config.version}"`);
+					} else if (err.message === 'Unauthorized') {
+						outputChannel.appendLine(`Please check your credentials (login, password, etc)`);
+					} else {
+						outputChannel.appendLine(`Validation error: ${err.message}`);
+					}
 				}
-			}
-		}).flatMap(() => {
-			return webdav.getActiveCodeVersion();
-		}).do((version) => {
-			if (version !== webdav.config.version) {
-				outputChannel.show();
-				outputChannel.appendLine(`\nWarn: Current code version is "${version}" while uploading is processed into "${webdav.config.version}"\n`);
-			}
-			outputChannel.appendLine(`Current active version is: ${version}`);
-		}).flatMap(() => {
-			if (config.cleanOnStart) {
-				outputChannel.appendLine(`Start uploading cartridges`);
-				return uploadCartridges(webdav, outputChannel, config, rootDir, progress);
-			} else {
-				outputChannel.appendLine(`Upload cartridges on start is disabled via config`);
-				return Observable.of(1);
-			}
-		}).do(() => {
-			if (config.cleanOnStart) {
-				outputChannel.appendLine(`Cartridges uploaded successfully`);
-			}
+			}).flatMap(() => {
+				return webdav.getActiveCodeVersion();
+			}).do((version) => {
+				if (version !== webdav.config.version) {
+					outputChannel.show();
+					outputChannel.appendLine(`\nWarn: Current code version is "${version}" while uploading is processed into "${webdav.config.version}"\n`);
+				}
+				outputChannel.appendLine(`Current active version is: ${version}`);
+			}).flatMap(() => {
+				if (config.cleanOnStart) {
+					outputChannel.appendLine(`Start uploading cartridges`);
+					return uploadCartridges(webdav, outputChannel, config, rootDir, progress);
+				} else {
+					outputChannel.appendLine(`Upload cartridges on start is disabled via config`);
+					return Observable.of(1);
+				}
+			}).do(() => {
+				if (config.cleanOnStart) {
+					outputChannel.appendLine(`Cartridges uploaded successfully`);
+				}
+				if (resolve) {
+					resolve();
+					resolve = null;
+				}
+			}, () => {// error case
+				if (resolve) {
+					resolve();
+					resolve = null;
+				}
+			}).subscribe(
+				() => observer.next(),
+				error => observer.error(error),
+				() => observer.complete()
+			);
+
+		return () => {
+			subscr.unsubscribe();
 			if (resolve) {
 				resolve();
-				resolve = null;
 			}
-		}, () => {// error case
-			if (resolve) {
-				resolve();
-				resolve = null;
-			}
-		}).flatMap(() => {
+		}
+	});
+}
+
+function uploadAndWatch(webdav: WebDav, outputChannel: OutputChannel, config: ({ cartridge, version, cleanOnStart: boolean }), rootDir: string) {
+	return uploadWithProgress(webdav, outputChannel, config, rootDir)
+	.flatMap(() => {
 			outputChannel.appendLine(`Watching files`);
 			return fileWatcher(config, rootDir, outputChannel)
 				.delay(300)// delay uploading file (allow finish writting for large files)
