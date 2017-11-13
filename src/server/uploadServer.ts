@@ -173,6 +173,7 @@ function uploadWithProgress(webdav: WebDav, outputChannel: OutputChannel, config
 			location: ProgressLocation.Window,
 			title: 'Uploading cartridges'
 		}, (prg) => {progress = prg.report; return new Promise((res) => {resolve = res;})});
+
 		const subscr = webdav.dirList(rootDir)
 			.do(() => {
 				outputChannel.appendLine(`Connection validated successfully`);
