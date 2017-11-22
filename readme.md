@@ -1,4 +1,4 @@
-<h2 align="center">Work your Demandware/Salesforce Cloud code</h4>
+<h2 align="center">Work your Demandware/Salesforce Cloud code</h2>
 
 A VS Code extension to work with Demandware/Salesforce Cloud code on Sandbox that support the Script Debugger API (SDAPI) 1.0
 

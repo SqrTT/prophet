@@ -73,6 +73,7 @@ export class LogsView implements TreeDataProvider<LogItem> {
 	}
 	private _onDidChangeTreeData: EventEmitter<LogItem | undefined> = new EventEmitter<LogItem | undefined>();
 	readonly onDidChangeTreeData: Event<LogItem | undefined> = this._onDidChangeTreeData.event;
+	private _logsFileNameFilter : string = '';
 
 	refresh(): void {
 		this._onDidChangeTreeData.fire();
@@ -136,12 +137,33 @@ export class LogsView implements TreeDataProvider<LogItem> {
 
 	getChildren(element?: LogItem): Thenable<LogItem[]> {
 		return observable2promise(this.webdavClient.dirList('.', '.').map(data => {
-			const statuses = parseResponse(data);
+			let statuses = parseResponse(data);
+			let _LogsView = this;
+
+			if (_LogsView._logsFileNameFilter && _LogsView._logsFileNameFilter != '') {
+				statuses = statuses.filter(function(status) {
+					return status.filename.indexOf(_LogsView._logsFileNameFilter) > -1;
+				});
+			}
+
 			const sortedStauses = statuses.sort((a, b) => b.lastmodifed.getTime() - a.lastmodifed.getTime());
 			return sortedStauses.map(status => {
 				return new LogItem(status.filename, 'file', status.filePath, TreeItemCollapsibleState.None);
 			});
 		}));
+	}
+
+	showFilterBox() {
+		window.showInputBox({
+			prompt: "Filter the logs view by filename",
+			placeHolder: "Type log name search string",
+			value: this._logsFileNameFilter
+		}).then(searchFilter => {
+			if (searchFilter !== undefined) {
+				this._logsFileNameFilter = searchFilter;
+				this.refresh();
+			}
+		});
 	}
 }
 
