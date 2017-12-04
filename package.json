@@ -102,6 +102,11 @@
                     "when": "view == cartridgesView"
                 },
                 {
+                    "command": "extension.prophet.command.filter.logview",
+                    "when": "view == dwLogsView",
+                    "group": "navigation"
+                },
+                {
                     "command": "extension.prophet.command.refresh.logview",
                     "when": "view == dwLogsView",
                     "group": "navigation"
@@ -165,6 +170,15 @@
                 "command": "extension.prophet.command.create.file",
                 "title": "New file",
                 "description": "New file"
+            },
+            {
+                "command": "extension.prophet.command.filter.logview",
+                "title": "Filter",
+                "description": "Filter log view",
+                "icon": {
+                    "light": "resources/light/search.svg",
+                    "dark": "resources/dark/search.svg"
+                }
             },
             {
                 "command": "extension.prophet.command.refresh.logview",
