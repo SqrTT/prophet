@@ -17,9 +17,11 @@ export function getDirectoriesSync(srcpath: string): string[] {
  * @param srcpath The path to look in for directories
  */
 export async function getDirectories(srcpath: string): Promise<string[]> {
-	return new Promise<string[]>(resolve => {
+	return new Promise<string[]>((resolve, reject) => {
 		fs.readdir(srcpath, function (err, result: string[]) {
-			if (err) { resolve([err.message]); } else {
+			if (err) {
+				reject(err);
+			} else {
 				resolve(result.filter(file => fs.lstatSync(path.join(srcpath, file)).isDirectory()));
 			}
 		});
@@ -31,9 +33,11 @@ export async function getDirectories(srcpath: string): Promise<string[]> {
  * @param srcpath The path to look in for files
  */
 export function getFiles(srcpath: string): Promise<string[]> {
-	return new Promise<string[]>(resolve => {
+	return new Promise<string[]>((resolve, reject) => {
 		fs.readdir(srcpath, function (err, result: string[]) {
-			if (err) { resolve([err.message]); } else {
+			if (err) {
+				reject(err.message);
+			} else {
 				resolve(result.filter(file => fs.lstatSync(path.join(srcpath, file)).isFile()));
 			}
 		});

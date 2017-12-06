@@ -138,12 +138,11 @@ export class LogsView implements TreeDataProvider<LogItem> {
 	getChildren(element?: LogItem): Thenable<LogItem[]> {
 		return observable2promise(this.webdavClient.dirList('.', '.').map(data => {
 			let statuses = parseResponse(data);
-			let _LogsView = this;
 
-			if (_LogsView._logsFileNameFilter && _LogsView._logsFileNameFilter != '') {
-				statuses = statuses.filter(function(status) {
-					return status.filename.indexOf(_LogsView._logsFileNameFilter) > -1;
-				});
+			if (this._logsFileNameFilter) {
+				statuses = statuses.filter(status =>
+					status.filename.includes(this._logsFileNameFilter)
+				);
 			}
 
 			const sortedStauses = statuses.sort((a, b) => b.lastmodifed.getTime() - a.lastmodifed.getTime());
