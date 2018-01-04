@@ -5,23 +5,25 @@ import {
 	InitializedEvent, TerminatedEvent, StoppedEvent, OutputEvent, ThreadEvent,
 	Thread, StackFrame, Scope, Source, Handles, Breakpoint
 } from 'vscode-debugadapter';
-import {DebugProtocol} from 'vscode-debugprotocol';
+import { DebugProtocol } from 'vscode-debugprotocol';
 
-import {basename, join} from 'path';
+import { basename, join } from 'path';
 import Connection, { IVariable } from './Connection';
 import * as process from 'process';
 
 import path = require('path');
 
+const VARIABLE_SEPARATOR = '%';
+
 function includes(str: string, pattern: string) {
 	return str.indexOf(pattern) !== -1;
 }
 
-function isComplexType(type : string) {
+function isComplexType(type: string) {
 	return includes(type, 'Class') ||
-	includes(type, 'dw.') ||
-	includes(type, 'dw/') ||
-	includes(type, 'Object');
+		includes(type, 'dw.') ||
+		includes(type, 'dw/') ||
+		includes(type, 'Object');
 }
 
 
@@ -29,11 +31,11 @@ function isComplexType(type : string) {
  * This interface should always match the schema found in the mock-debug extension manifest.
  */
 export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
-	hostname : string
-	username : string
-	password : string
-	codeversion : string
-	cartridgeroot : string
+	hostname: string
+	username: string
+	password: string
+	codeversion: string
+	cartridgeroot: string
 	workspaceroot: string
 	/** enable logging the Debug Adapter Protocol */
 	trace?: boolean;
@@ -44,13 +46,13 @@ class ProphetDebugSession extends LoggingDebugSession {
 	// maps from sourceFile to array of Breakpoints
 	private _breakPoints = new Map<string, Array<number>>();
 	private threadsArray = new Array<number>();
-	private connection : Connection;
+	private connection: Connection;
 	private config: LaunchRequestArguments
-	private threadsTimer : NodeJS.Timer;
-	private awaitThreadsTimer : NodeJS.Timer;
+	private threadsTimer: NodeJS.Timer;
+	private awaitThreadsTimer: NodeJS.Timer;
 	private isAwaitingThreads = false;
 	private _variableHandles = new Handles<IVariable[] | string>();
-	private pendingThreads = new Map<number, 'step'| 'breakpoint' | 'exception' | 'pause' | 'entry'>();
+	private pendingThreads = new Map<number, 'step' | 'breakpoint' | 'exception' | 'pause' | 'entry'>();
 
 
 
@@ -76,7 +78,6 @@ class ProphetDebugSession extends LoggingDebugSession {
 	 */
 	protected initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): void {
 
-
 		// This debug adapter implements the configurationDoneRequest.
 		if (response.body) {
 			response.body.supportsConfigurationDoneRequest = true;
@@ -95,7 +96,6 @@ class ProphetDebugSession extends LoggingDebugSession {
 			response.body.supportsStepBack = false;
 			response.body.exceptionBreakpointFilters = [];
 		}
-
 
 		this.sendResponse(response);
 	}
@@ -210,7 +210,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 						this._breakPoints.set(path, brks.map(brk => brk.id));
 						response.body = {
 							breakpoints:
-								brks.filter(brk => brk.file === scriptPath)
+							brks.filter(brk => brk.file === scriptPath)
 								.map(brk =>
 									new Breakpoint(
 										true,
@@ -246,11 +246,12 @@ class ProphetDebugSession extends LoggingDebugSession {
 	protected threadsRequest(response: DebugProtocol.ThreadsResponse): void {
 
 		if (this.connection) {
-			this.connection.getThreads().then(threads => {
+			this.connection.getThreads()
+			.then(threads => {
 				response.body = {
 					threads: threads
-					.filter(thread => thread.status === 'halted')
-					.map(thread => new Thread(thread.id, "thread " + thread.id))
+						.filter(thread => thread.status === 'halted')
+						.map(thread => new Thread(thread.id, "thread " + thread.id))
 				}
 				this.sendResponse(response);
 			})
@@ -337,7 +338,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 		const variables = this._variableHandles.get(args.variablesReference);
 
 		if (typeof variables === 'string') {
-			const vals = variables.split('_');
+			const vals = variables.split(VARIABLE_SEPARATOR);
 			const frameReferenceStr = vals[0];
 			const path = vals[1] || '';
 			const frameReference = parseInt(frameReferenceStr);
@@ -353,7 +354,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 							var variablesReference = 0;
 
 							if (isComplexType(member.type)) {
-								const encPath = frameReferenceStr + '_' + (path ? path + '.' : '') + member.name;
+								const encPath = frameReferenceStr + VARIABLE_SEPARATOR + (path ? path + '.' : '') + member.name;
 								variablesReference = this._variableHandles.create(encPath)
 							}
 
@@ -373,7 +374,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 				variables: variables.map(member => {
 					var variablesReference = 0;
 					if (isComplexType(member.type)) {
-						const encPath = ((member.threadID * 100000) + member.frameID) + '_'+ member.name;
+						const encPath = ((member.threadID * 100000) + member.frameID) + VARIABLE_SEPARATOR + member.name;
 						variablesReference = this._variableHandles.create(encPath)
 					}
 
@@ -392,9 +393,15 @@ class ProphetDebugSession extends LoggingDebugSession {
 	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
 		this.connection
 			.resume(args.threadId)
-			.then(() => {
-				this.pendingThreads.set(args.threadId, 'breakpoint');
-				return this.awaitThreads();
+			.then(thread => {
+				if (thread && thread.status === 'halted') {
+					this.sendEvent(
+						new StoppedEvent('step', thread.id)
+					);
+				} else {
+					this.pendingThreads.set(args.threadId, 'step');
+					return this.awaitThreads();
+				}
 			})
 			.catch(this.catchLog.bind(this));;
 		this.sendResponse(response);
@@ -403,19 +410,32 @@ class ProphetDebugSession extends LoggingDebugSession {
 	protected stepInRequest(response: DebugProtocol.StepInResponse, args: DebugProtocol.StepInArguments): void {
 		this.connection
 			.stepInto(args.threadId)
-			.then(() => {
-				this.pendingThreads.set(args.threadId, 'step');
-				return this.awaitThreads();
+			.then(thread => {
+				if (thread && thread.status === 'halted') {
+					this.sendEvent(
+						new StoppedEvent('step', thread.id)
+					);
+				} else {
+					this.pendingThreads.set(args.threadId, 'step');
+					return this.awaitThreads();
+				}
 			})
 			.catch(this.catchLog.bind(this));
-			this.sendResponse(response);
+		this.sendResponse(response);
 	}
 	protected stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments): void {
 		this.connection
 			.stepOut(args.threadId)
-			.then(() => {
-				this.pendingThreads.set(args.threadId, 'step');
-				return this.awaitThreads();
+			.then(thread => {
+				if (thread && thread.status === 'halted') {
+					this.log('haltedStep');
+					this.sendEvent(
+						new StoppedEvent('step', thread.id)
+					);
+				} else {
+					this.pendingThreads.set(args.threadId, 'step');
+					return this.awaitThreads();
+				}
 			})
 			.catch(this.catchLog.bind(this));
 		this.sendResponse(response);
@@ -423,11 +443,19 @@ class ProphetDebugSession extends LoggingDebugSession {
 
 
 	protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
+		this.log('haltedStep+++');
 		this.connection
 			.stepOver(args.threadId)
-			.then(() => {
-				this.pendingThreads.set(args.threadId, 'step');
-				return this.awaitThreads();
+			.then(thread => {
+				if (thread && thread.status === 'halted') {
+					this.log('haltedStep');
+					this.sendEvent(
+						new StoppedEvent('step', thread.id)
+					);
+				} else {
+					this.pendingThreads.set(args.threadId, 'step');
+					return this.awaitThreads();
+				}
 			})
 			.catch(this.catchLog.bind(this));
 		this.sendResponse(response);
@@ -461,7 +489,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 	}
 	// protected setVariableRequest(response: DebugProtocol.SetVariableResponse, args: DebugProtocol.SetVariableArguments): void {
 	// 	const id = this._variableHandles.get(args.variablesReference);
-	// 	const vals = id.split('_');
+	// 	const vals = id.split(VARIABLE_SEPARATOR);
 	// 	const frameReferenceStr = vals[0];
 	// 	var path = vals[1] || '';
 	// 	const frameReference = parseInt(frameReferenceStr);
@@ -551,7 +579,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 				.then(activeThreads => {
 					if (activeThreads.length) {
 						activeThreads.forEach(activeThread => {
-							if (this.threadsArray.indexOf(activeThread.id) === -1) {
+							if (!this.threadsArray.includes(activeThread.id)) {
 								this.sendEvent(new ThreadEvent('started', activeThread.id));
 								this.sendEvent(new StoppedEvent('breakpoint', activeThread.id));
 								this.threadsArray.push(activeThread.id)
