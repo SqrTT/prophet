@@ -9,8 +9,8 @@
         "email": "tolik@sqrtt.pro"
     },
     "engines": {
-        "vscode": "^1.17.0",
-        "node": "^7.0.0"
+        "vscode": "^1.19.0",
+        "node": "^7.9.0"
     },
     "icon": "images/mock-debug-icon.ico",
     "categories": [
@@ -30,10 +30,10 @@
         "glob": "^7.1.2",
         "request": "^2.83.0",
         "rimraf": "^2.6.2",
-        "rxjs": "^5.5.2",
+        "rxjs": "^5.5.6",
         "timeago.js": "^3.0.2",
-        "vscode-debugadapter": "^1.24.0",
-        "vscode-debugprotocol": "^1.24.0",
+        "vscode-debugadapter": "^1.25.0",
+        "vscode-debugprotocol": "^1.25.0",
         "vscode-languageclient": "^3.5.0",
         "vscode-languageserver": "^3.5.0",
         "vscode-nls": "^2.0.2",
@@ -43,12 +43,12 @@
         "yazl": "^2.4.3"
     },
     "devDependencies": {
-        "@types/mocha": "^2.2.41",
-        "@types/node": "^6.0.74",
-        "mocha": "^3.4.2",
-        "typescript": "^2.6.1",
-        "vscode": "^1.1.6",
-        "vscode-debugadapter-testsupport": "^1.23.0"
+        "@types/mocha": "^2.2.45",
+        "@types/node": "^6.0.95",
+        "mocha": "^3.5.3",
+        "typescript": "^2.6.2",
+        "vscode": "^1.1.10",
+        "vscode-debugadapter-testsupport": "^1.25.0"
     },
     "scripts": {
         "vscode:prepublish": "npm install && npm run compile && npm run test",
