@@ -1,10 +1,16 @@
+### 0.10.0
+
+* Add support of SDAPI v2
+* Add availability to filter log files (thanks to [Lacho Tomov](https://github.com/ltomov))
+
+
 ### 0.9.0
 
-* Added log viewer
+* Add log viewer
 
 ### 0.8.0
 
-* Added cartridges overview in explorer. Thanks to [Thomas Theunen](https://github.com/taurgis) Can be enabled/disabled by `extension.prophet.cartridges.view.enabled` (enabled by default)
+* Add cartridges overview in explorer. Thanks to [Thomas Theunen](https://github.com/taurgis) Can be enabled/disabled by `extension.prophet.cartridges.view.enabled` (enabled by default)
 * improved symbol navigation
 
 
@@ -20,9 +26,9 @@
 
 ### 0.6.3
 
-* Added quick open for custom tags
-* Added `extension.prophet.cartridges.path` property that allows quick open don't ask a user to choose the file.
-* Added `extension.prophet.ismlServer.activateOn` property that allow activate isml server for non standard (isml) files, ex. `html`
+* Add quick open for custom tags
+* Add `extension.prophet.cartridges.path` property that allows quick open don't ask a user to choose the file.
+* Add `extension.prophet.ismlServer.activateOn` property that allow activate isml server for non standard (isml) files, ex. `html`
 * small refactoring of uploader (not need reload the whole editor for applying settings from `dw.json`)
 
 
@@ -36,7 +42,7 @@ Quick open local `isinclude` files via Ctrl+Click
 
 ### 0.4.0
 
-Added support for opening files trought Storefront Toolkit
+Add support for opening files trought Storefront Toolkit
 
 ### 0.3.6
 
@@ -48,11 +54,11 @@ Add support `ds` files, but marked as deprecated as does not allow use VSCode fu
 
 ### 0.3.0
 
-Added common sinppents
+Add common sinppents
 
 ### 0.2.0
 
-Added isml syntax support
+Add isml syntax support
 
 ### 0.1.0
 

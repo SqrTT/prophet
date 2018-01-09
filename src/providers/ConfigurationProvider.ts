@@ -13,7 +13,7 @@ const initialConfigurations = {
 		{
 			'type': 'prophet',
 			'request': 'launch',
-			'name': 'Attach to Sandbox provider',
+			'name': 'Attach to Sandbox',
 			'hostname': '*.demandware.net',
 			'username': '<username>',
 			'password': '<password>',
