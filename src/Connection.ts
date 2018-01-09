@@ -5,7 +5,7 @@ import { logger } from 'vscode-debugadapter';
 
 const justResolve = (resolve, reject, body) => { resolve(body) };
 
-interface IThread {
+export interface IThread {
 	id: number;
 	status: 'halted' | 'running' | 'done';
 	call_stack: IStackFrame[];
