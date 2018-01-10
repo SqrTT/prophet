@@ -55,7 +55,7 @@ Example `launch.json` configs with `"request": "launch"`. You must specify hostn
           "password": "<password>",
           "codeversion": "version1",
           "cartridgeroot": "auto",
-          "workspaceroot": "${workspaceRoot}"
+          "workspaceroot": "${workspaceFolder}"
       }
     ]
 }

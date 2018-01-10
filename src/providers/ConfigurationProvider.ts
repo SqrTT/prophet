@@ -19,7 +19,7 @@ const initialConfigurations = {
 			'password': '<password>',
 			'codeversion': 'version1',
 			'cartridgeroot': 'auto',
-			'workspaceroot': '${workspaceRoot}'
+			'workspaceroot': '${workspaceFolder}'
 		}
 	]
 };

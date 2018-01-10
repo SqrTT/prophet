@@ -13,6 +13,9 @@ import { getDirectoriesSync } from '../lib/FileHelper';
 import { dirname, join, sep } from 'path';
 import { createReadStream, statSync } from 'fs';
 
+const CONCURENT_CARTRIDGES_UPLOADS: number = 3;
+const CONCURENT_FILE_UPLOADS: number = 5;
+
 export function readConfigFile(configFilename: string): Observable<DavOptions> {
 	return Observable.create(observer => {
 		const stream = createReadStream(configFilename);
@@ -53,18 +56,18 @@ export function getWebDavClient(config: DavOptions, outputChannel: OutputChannel
 			version: config['code-version'] || config.version,
 			root: rootDir
 		}, config.debug ?
-				(...msgs) => { outputChannel.appendLine(`${msgs.join(' ')}`); } :
-				() => {
-					// DO NOTHING
-				}
-		);
-		observer.next(webdav);
-	});
+		(...msgs) => { outputChannel.appendLine(`${msgs.join(' ')}`); } :
+		() => {
+			// DO NOTHING
+		}
+	);
+	observer.next(webdav);
+});
 }
 
 function fileWatcher(config, cartRoot: string, outputChannel: OutputChannel) {
 	return Observable.create(observer => {
-		let cartridges;
+		let cartridges : string[];
 
 		if (config.cartridge && config.cartridge.length) {
 			cartridges = config.cartridge;
@@ -75,7 +78,6 @@ function fileWatcher(config, cartRoot: string, outputChannel: OutputChannel) {
 		// Unfortunately workspace.createFileSystemWatcher() does
 		// only support single paths and no excludes
 		// it is however very CPU friendly compared to fs.watch()
-		// or chokidar
 		var excludeGlobPattern = [
 			'node_modules' + sep,
 			'.git' + sep
@@ -107,19 +109,17 @@ function fileWatcher(config, cartRoot: string, outputChannel: OutputChannel) {
 			if (watchers) {
 				watchers.forEach(watcher => watcher.dispose());
 			}
-			watchers = null;
-			cartridges = null;
 		};
 	});
 }
 
 const uploadCartridges = (
-		webdav: WebDav,
-		outputChannel: OutputChannel,
-		config: ({ cartridge }),
-		cartRoot: string,
-		progress : Progress<{message?: string}>['report'] | undefined
-	) => {
+	webdav: WebDav,
+	outputChannel: OutputChannel,
+	config: ({ cartridge }),
+	cartRoot: string,
+	progress : Progress<{message?: string}>['report'] | undefined
+) => {
 	let cartridges : string[];
 	if (config.cartridge && config.cartridge.length) {
 		cartridges = config.cartridge;
@@ -160,9 +160,11 @@ const uploadCartridges = (
 					cartridge$.unsubscribe();
 				}
 			})
-			
+
 		});
-	return Observable.merge(...toUpload, 3).concat(Observable.of(''));
+	return Observable
+		.merge(...toUpload, CONCURENT_CARTRIDGES_UPLOADS)
+		.concat(Observable.of(''));
 };
 
 function uploadWithProgress(webdav: WebDav, outputChannel: OutputChannel, config: ({ cartridge, version, cleanOnStart: boolean }), rootDir: string) {
@@ -179,7 +181,7 @@ function uploadWithProgress(webdav: WebDav, outputChannel: OutputChannel, config
 				outputChannel.appendLine(`Connection validated successfully`);
 			}, (err) => {
 				outputChannel.appendLine(`Unable validate connection!`);
-	
+
 				if (err instanceof Error) {
 					if (err.message === 'Not Found') {
 						outputChannel.appendLine(`Please check existence of code version: "${config.version}"`);
@@ -241,7 +243,7 @@ function uploadAndWatch(webdav: WebDav, outputChannel: OutputChannel, config: ({
 				.delay(300)// delay uploading file (allow finish writting for large files)
 				.mergeMap(([action, fileName]) => {
 					const date = new Date().toTimeString().split(' ').shift();
-					var davAction : string = '',
+					var davAction : 'mkdir' | 'post' | 'delete',
 						actionChar : string = '';
 
 					if (action === 'upload') {
@@ -265,7 +267,7 @@ function uploadAndWatch(webdav: WebDav, outputChannel: OutputChannel, config: ({
 					);
 
 					return webdav[davAction](fileName, rootDir);
-				}, 5);
+				}, CONCURENT_FILE_UPLOADS);
 		});
 }
 

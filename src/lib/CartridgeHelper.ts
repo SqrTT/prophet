@@ -52,10 +52,10 @@ export const toCardridge = (projectFile: string, activeFile?: string): Promise<C
 
 /**
  * Checks for cartridges in the paths variable. (References to other cartridges)
- * @param workspaceRoot The current workspaceroot
+ * @param workspaceFolder The current workspaceroot
  * @param packageFile The path to the package file.
  */
-export const getPathsCartridges = (workspaceRoot, packageFile): Promise<string[]> => {
+export const getPathsCartridges = (workspaceFolder, packageFile): Promise<string[]> => {
 	return new Promise((resolve, reject) => {
 		pathExists(packageFile).then(packageExists => {
 			if (packageExists) {
@@ -69,7 +69,7 @@ export const getPathsCartridges = (workspaceRoot, packageFile): Promise<string[]
 					if (packageFileObject.paths) {
 						const promises: Promise<string[]>[] = [];
 						const paths : string[] = [];
-						
+
 						if (packageFileObject.paths) {
 							for (var key in packageFileObject.paths) {
 								paths.push(packageFileObject.paths[key]);
@@ -79,11 +79,11 @@ export const getPathsCartridges = (workspaceRoot, packageFile): Promise<string[]
 						paths.forEach(function (path) {
 							if (typeof path === 'string') {
 								promises.push(new Promise((resolvePathProjects, rejectPathProjects) => {
-									exists(join(workspaceRoot, path), packagePathExists => {
+									exists(join(workspaceFolder, path), packagePathExists => {
 										if (packagePathExists) {
 											glob('**/.project', {
-												cwd: join(workspaceRoot, path),
-												root: join(workspaceRoot, path),
+												cwd: join(workspaceFolder, path),
+												root: join(workspaceFolder, path),
 												nodir: true,
 												follow: false,
 												absolute: true,
@@ -122,7 +122,7 @@ export const getPathsCartridges = (workspaceRoot, packageFile): Promise<string[]
  * Note: This is currently a class to make it extensible, could be usefull to do things to a newly created cartridge.
  */
 export class CartridgeCreator {
-	constructor(private workspaceRoot: string) {
+	constructor(private workspaceFolder: string) {
 
 	}
 
@@ -134,7 +134,7 @@ export class CartridgeCreator {
 	}
 
 	createMainDirectory(name, directory) {
-		const pathToCreate = join(this.workspaceRoot, directory, name);
+		const pathToCreate = join(this.workspaceFolder, directory, name);
 
 		pathToCreate
 			.split(sep)
@@ -157,15 +157,15 @@ export class CartridgeCreator {
 			'webreferences',
 			'webreferences2'];
 
-		mkdir(join(this.workspaceRoot, directory, name, 'cartridge'));
+		mkdir(join(this.workspaceFolder, directory, name, 'cartridge'));
 		for (let i = 0; i < directoriesToCreate.length; i++) {
-			mkdir(join(this.workspaceRoot, directory, name, 'cartridge', directoriesToCreate[i]));
+			mkdir(join(this.workspaceFolder, directory, name, 'cartridge', directoriesToCreate[i]));
 		}
 
 	}
 
 	createProjectFiles(name, directory) {
-		writeFile(join(this.workspaceRoot, directory, name, '.project'),
+		writeFile(join(this.workspaceFolder, directory, name, '.project'),
 			`<?xml version='1.0' encoding='UTF-8'?>
 <projectDescription>
     <name>${name}</name>
@@ -189,7 +189,7 @@ export class CartridgeCreator {
 				}
 			});
 
-		writeFile(join(this.workspaceRoot, directory, name, '.tern-project'),
+		writeFile(join(this.workspaceFolder, directory, name, '.tern-project'),
 			`{
     'ecmaVersion': 5,
     'plugins': {
@@ -242,7 +242,7 @@ export class CartridgeCreator {
 			+ currentDateTime.getMinutes() + ':'
 			+ currentDateTime.getSeconds() + ' CEST ' + currentDateTime.getFullYear();
 
-		writeFile(join(this.workspaceRoot, directory, name, 'cartridge', name + '.properties'),
+		writeFile(join(this.workspaceFolder, directory, name, 'cartridge', name + '.properties'),
 			`## cartridge.properties for cartridge ${name}
 #${timeString}
 demandware.cartridges.${name}.multipleLanguageStorefront=true

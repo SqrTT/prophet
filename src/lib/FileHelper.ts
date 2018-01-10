@@ -32,7 +32,7 @@ export async function getDirectories(srcpath: string): Promise<string[]> {
  * Fetches all files with the given path.
  * @param srcpath The path to look in for files
  */
-export function getFiles(srcpath: string): Promise<string[]> {
+export async function getFiles(srcpath: string): Promise<string[]> {
 	return new Promise<string[]>((resolve, reject) => {
 		fs.readdir(srcpath, function (err, result: string[]) {
 			if (err) {
@@ -48,8 +48,8 @@ export function getFiles(srcpath: string): Promise<string[]> {
  * Checks whether or not a file or directory exists.
  * @param location The path to the file/directory to check
  */
-export function pathExists(location: string): Promise<boolean> {
-	return new Promise(resolve => {
+export async function pathExists(location: string): Promise<boolean> {
+	return new Promise<boolean>(resolve => {
 		fs.access(location, error => {
 			resolve(!error);
 		});

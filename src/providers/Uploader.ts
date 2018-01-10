@@ -5,9 +5,7 @@ import * as glob from 'glob';
 import { LogsView } from "./LogsView";
 import * as uploadServer from "../server/uploadServer";
 import { Subscription } from "rxjs/Subscription";
-
-let logsView: LogsView | undefined;
-const rootPath = workspace.rootPath || '';
+import {basename} from 'path';
 
 /**
  * Class for handling the server upload integration
@@ -18,14 +16,16 @@ export default class Uploader {
 	private prevState;
 	private uploaderSubscription : Subscription | null;
 	private cleanOnStart : boolean;
+	private workspaceFolder: string;
 
 	/**
-	 * 
+	 *
 	 * @param configuration the workspace configuration to use
 	 */
-	constructor (configuration){
-		this.outputChannel = window.createOutputChannel('Prophet Uploader');
+	constructor (configuration, workspaceFolder: string){
+		this.outputChannel = window.createOutputChannel(`Prophet Uploader: ${basename(workspaceFolder)}`);
 		this.configuration = configuration;
+		this.workspaceFolder = workspaceFolder;
 		this.cleanOnStart = Boolean(this.configuration.get('clean.on.start'));
 	}
 
@@ -38,11 +38,11 @@ export default class Uploader {
 
 	/**
 	 * Loads the uploader configuration and start the server
-	 * 
-	 * @param rootPath 
-	 * @param context 
+	 *
+	 * @param rootPath
+	 * @param context
 	 */
-	loadUploaderConfig(rootPath: string, context: ExtensionContext) {
+	loadUploaderConfig(rootPath: string) {
 		if (this.uploaderSubscription) {
 			this.uploaderSubscription.unsubscribe();
 			this.uploaderSubscription = null;
@@ -50,10 +50,10 @@ export default class Uploader {
 		} else {
 			this.outputChannel.appendLine(`Starting...`);
 		}
-	
+
 		this.uploaderSubscription = Observable.create(observer => {
 			let subscription;
-	
+
 			glob('**/dw.json', {
 				cwd: rootPath,
 				root: rootPath,
@@ -63,7 +63,7 @@ export default class Uploader {
 			}, (error, files: string[]) => {
 				if (error) {
 					observer.error(error);
-				} else if (files.length && workspace.rootPath) {
+				} else if (files.length) {
 					const configFilename = join(rootPath, files.shift() || '');
 					this.outputChannel.appendLine(`Using config file '${configFilename}'`);
 
@@ -87,41 +87,41 @@ export default class Uploader {
 					// after first run set to true
 					this.cleanOnStart = true;
 
-					if (!logsView) {
-						uploadServer.readConfigFile(configFilename).flatMap(config => {
-							return uploadServer.getWebDavClient(config, this.outputChannel, rootPath);
-						}).subscribe(webdav => {
-							logsView = new LogsView(webdav);
-							context.subscriptions.push(
-								window.registerTreeDataProvider('dwLogsView', logsView)
-							);
+					// if (!logsView) {
+					// 	uploadServer.readConfigFile(configFilename).flatMap(config => {
+					// 		return uploadServer.getWebDavClient(config, this.outputChannel, rootPath);
+					// 	}).subscribe(webdav => {
+					// 		logsView = new LogsView(webdav);
+					// 		context.subscriptions.push(
+					// 			window.registerTreeDataProvider('dwLogsView', logsView)
+					// 		);
 
-							context.subscriptions.push(commands.registerCommand('extension.prophet.command.refresh.logview', () => {
-								if (logsView) {
-									logsView.refresh();
-								}
-							}));
+					// 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.refresh.logview', () => {
+					// 			if (logsView) {
+					// 				logsView.refresh();
+					// 			}
+					// 		}));
 
-							context.subscriptions.push(commands.registerCommand('extension.prophet.command.filter.logview', () => {
-								if (logsView) {
-									logsView.showFilterBox();
-								}
-							}));
+					// 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.filter.logview', () => {
+					// 			if (logsView) {
+					// 				logsView.showFilterBox();
+					// 			}
+					// 		}));
 
-							context.subscriptions.push(commands.registerCommand('extension.prophet.command.log.open', (filename) => {
-								if (logsView) {
-									logsView.openLog(filename);
-								}
-							}));
+					// 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.log.open', (filename) => {
+					// 			if (logsView) {
+					// 				logsView.openLog(filename);
+					// 			}
+					// 		}));
 
-							context.subscriptions.push(commands.registerCommand('extension.prophet.command.clean.log', (logItem) => {
-								if (logsView) {
-									logsView.cleanLog(logItem);
-								}
-							}));
-						});
-					}
-	
+					// 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.clean.log', (logItem) => {
+					// 			if (logsView) {
+					// 				logsView.cleanLog(logItem);
+					// 			}
+					// 		}));
+					// 	});
+					// }
+
 				} else {
 					observer.error('Unable to find "dw.json", cartridge upload disabled. Please re-enable the upload in the command menu when ready.');
 				}
@@ -143,24 +143,38 @@ export default class Uploader {
 			}
 		);
 	}
+	static initialize(context: ExtensionContext) {
+		var subscriptions = context.subscriptions;
+		subscriptions.push(commands.registerCommand('extension.prophet.command.enable.upload', () => {
+			this.loadUploaderConfig(this.workspaceFolder, context);
+		}));
+
+		subscriptions.push(commands.registerCommand('extension.prophet.command.clean.upload', () => {
+			this.loadUploaderConfig(this.workspaceFolder, context);
+		}));
+
+		subscriptions.push(commands.registerCommand('extension.prophet.command.disable.upload', () => {
+			if (this.uploaderSubscription) {
+				this.outputChannel.appendLine(`Stopping`);
+				this.uploaderSubscription!.unsubscribe();
+				this.uploaderSubscription = null;
+			}
+		}));
+	}
 
 	/**
 	 * Registers commands, creates listeners and starts the uploader
-	 * 
-	 * @param context the extension context
+	 *
 	 */
-	start(context) {
-		var subscriptions = context.subscriptions;
-		
-		subscriptions.push(this.outputChannel);
+	start() {
 
-		subscriptions.push(workspace.onDidChangeConfiguration(() => {
+		const configSubscription = workspace.onDidChangeConfiguration(() => {
 			const isProphetUploadEnabled = this.isUploadEnabled();
 
 			if (isProphetUploadEnabled !== this.prevState) {
 				this.prevState = isProphetUploadEnabled;
 				if (isProphetUploadEnabled) {
-					this.loadUploaderConfig(rootPath, context);
+					this.loadUploaderConfig(this.workspaceFolder);
 				} else {
 					if (this.uploaderSubscription) {
 						this.outputChannel.appendLine(`Stopping`);
@@ -169,31 +183,24 @@ export default class Uploader {
 					}
 				}
 			}
+		});
 
-		}));
 
-		subscriptions.push(commands.registerCommand('extension.prophet.command.enable.upload', () => {
-			this.loadUploaderConfig(rootPath, context);
-		}));
-		
-		subscriptions.push(commands.registerCommand('extension.prophet.command.clean.upload', () => {
-			this.loadUploaderConfig(rootPath, context);
-		}));
-		
-		subscriptions.push(commands.registerCommand('extension.prophet.command.disable.upload', () => {
-			if (this.uploaderSubscription) {
-				this.outputChannel.appendLine(`Stopping`);
-				this.uploaderSubscription!.unsubscribe();
-				this.uploaderSubscription = null;
-			}
-		}));
-		
 		const isUploadEnabled = this.isUploadEnabled();
 		this.prevState = isUploadEnabled;
 		if (isUploadEnabled) {
-			this.loadUploaderConfig(rootPath, context);
+			this.loadUploaderConfig(this.workspaceFolder);
 		} else {
-			this.outputChannel.appendLine('Uploader disabled in configuration');
+			this.outputChannel.appendLine('Uploader disabled via configuration');
+		}
+		return {
+			dispose: () => {
+				this.outputChannel.dispose();
+				configSubscription.dispose();
+				if (this.uploaderSubscription) {
+					this.uploaderSubscription.unsubscribe();
+				}
+			}
 		}
 
 	}

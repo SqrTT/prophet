@@ -32,8 +32,8 @@ const customTagsMap = new Map<string, string>();
 
 
 // After the server has started the client sends an initialize request. The server receives
-// in the passed params the rootPath of the workspace plus the client capabilities. 
-let workspaceRoot: string | undefined;
+// in the passed params the rootPath of the workspace plus the client capabilities.
+let workspaceFolder: string | undefined;
 let languageService = getLanguageService();
 let userFormatParams;
 connection.onInitialize((params): InitializeResult => {
@@ -45,7 +45,7 @@ connection.onInitialize((params): InitializeResult => {
 
 
 		userFormatParams = params.initializationOptions.formatParams;
-		workspaceRoot = params.rootPath;
+		workspaceFolder = params.rootPath;
 		return {
 			capabilities: {
 				// Tell the client that the server works in FULL text document sync mode
@@ -151,7 +151,7 @@ connection.onDocumentLinkResolve(documentLink => {
 
 				// options is optional
 				glob(join('**', 'templates', '**', fileToOpen), {
-					cwd: workspaceRoot,
+					cwd: workspaceFolder,
 					nodir: true,
 					follow: false,
 					ignore: ['**/node_modules/**', '**/.git/**'],
@@ -167,7 +167,7 @@ connection.onDocumentLinkResolve(documentLink => {
 						} else if (files.length === 1) {
 							let doc = DocumentLink.create(
 								documentLink.range,
-								Uri.file(join(workspaceRoot + '', files.pop())).toString()
+								Uri.file(join(workspaceFolder + '', files.pop())).toString()
 							);
 							connection.console.log('fileToOpen opening: ' + JSON.stringify(doc));
 							resolve(doc);
@@ -176,7 +176,7 @@ connection.onDocumentLinkResolve(documentLink => {
 								if (selected) {
 									let doc = DocumentLink.create(
 										documentLink.range,
-										Uri.file(join(workspaceRoot + '', selected)).toString()
+										Uri.file(join(workspaceFolder + '', selected)).toString()
 									);
 									connection.console.log('fileToOpen opening: ' + JSON.stringify(doc));
 									resolve(doc);

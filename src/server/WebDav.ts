@@ -124,7 +124,7 @@ export default class WebDav {
 			};
 		});
 	}
-	post(filePath, root = this.config.root) : Observable<string>{
+	post(filePath: string, root : string = this.config.root) : Observable<string>{
 		const uriPath = relative(root, filePath);
 
 		this.log('post', uriPath);
@@ -163,7 +163,7 @@ export default class WebDav {
 			};
 		});
 	}
-	mkdir(filePath, root = this.config.root) : Observable<string>{
+	mkdir(filePath : string, root : string = this.config.root) : Observable<string>{
 		const uriPath = relative(root, filePath);
 
 		this.log('mkdir', uriPath);
@@ -258,7 +258,7 @@ export default class WebDav {
 	postAndUnzip(filePath : string) {
 		return this.post(filePath).flatMap(() => this.unzip(filePath));
 	}
-	delete(filePath, optionalRoot) : Observable<string>{
+	delete(filePath : string, optionalRoot?: string) : Observable<string>{
 		const uriPath = relative(optionalRoot || this.config.root, filePath);
 
 		return Observable.create(observer => {
