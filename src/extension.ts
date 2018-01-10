@@ -1,7 +1,7 @@
 
 'use strict';
 import { join } from 'path';
-import { workspace, Disposable, ExtensionContext, commands, window, Uri, WorkspaceConfiguration, debug } from 'vscode';
+import { workspace, Disposable, ExtensionContext, commands, window, Uri, WorkspaceConfiguration, debug, WorkspaceFolder } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
 import { CartridgesView } from './providers/CartridgesView';
 
@@ -12,28 +12,52 @@ import { ProphetConfigurationProvider } from './providers/ConfigurationProvider'
 
 
 export function activate(context: ExtensionContext) {
-	const configuration = workspace.getConfiguration('extension.prophet');
+
 	// register a configuration provider
-	context.subscriptions.push(debug.registerDebugConfigurationProvider('prophet', new ProphetConfigurationProvider()));
+	context.subscriptions.push(
+		debug.registerDebugConfigurationProvider(
+			'prophet',
+			new ProphetConfigurationProvider()
+		)
+	);
 
-
-	var ismlLanguageServer = createIsmlLanguageServer(context, configuration);
-	context.subscriptions.push(ismlLanguageServer.start());
+	// const configuration = workspace.getConfiguration('extension.prophet');
+	// var ismlLanguageServer = createIsmlLanguageServer(context, configuration);
+	// context.subscriptions.push(ismlLanguageServer.start());
 
 
 	/// open files from browser
-	handleToolkitActions(context);
+	initializeToolkitActions(context);
+
+
+	/// uploader
 	Uploader.initialize(context);
 
-	var uploader = new Uploader(configuration);
-	context.subscriptions.push(uploader.start(context));
+	//workspace.findFiles
 
-	// setup cartridge commands
+	function addWorkspaceToUpload(workspaceFolder: WorkspaceFolder) {
+		if (workspaceFolder.uri.scheme === 'file') {
+			const configuration = workspace.getConfiguration('extension.prophet', workspaceFolder.uri);
+			var uploader = new Uploader(configuration, workspaceFolder.uri.fsPath);
+			context.subscriptions.push(uploader.start());
+		}
+	}
+	if (workspace.workspaceFolders) {
+		workspace.workspaceFolders.forEach(addWorkspaceToUpload);
+	}
+	workspace.onDidChangeWorkspaceFolders(event => {
+		event.added.forEach(addWorkspaceToUpload);
+
+	});
+
+
+
+	// CartridgesView
 	CartridgesView.initialize(context);
 
 }
 
-function handleToolkitActions(context: ExtensionContext) {
+function initializeToolkitActions(context: ExtensionContext) {
 	const server = createServer(function (req, res) {
 		res.writeHead(200, { 'Content-Type': 'text/plain' });
 		res.end('ok');
@@ -65,6 +89,7 @@ function handleToolkitActions(context: ExtensionContext) {
 		}
 	});
 
+
 	server.listen(60606);
 
 	context.subscriptions.push(new Disposable(() => {
@@ -78,7 +103,7 @@ function handleToolkitActions(context: ExtensionContext) {
  * @param context the extension context
  * @param configuration the extension configuration
  */
-function createIsmlLanguageServer(context : ExtensionContext, configuration : WorkspaceConfiguration) {
+function createIsmlLanguageServer(context: ExtensionContext, configuration: WorkspaceConfiguration) {
 	// The server is implemented in node
 	const serverModule = context.asAbsolutePath(join('out', 'server', 'ismlServer.js'));
 	// The debug options for the server

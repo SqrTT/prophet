@@ -6,7 +6,7 @@ import * as glob from 'glob';
 import { mkdirSync, open, close } from 'fs';
 
 import { getDirectories, getFiles, pathExists } from '../lib/FileHelper';
-import { checkIfCartridge, toCardridge, getPathsCartridges, CartridgeCreator } from '../lib/CartridgeHelper';
+import { checkIfCartridge, toCardridge, getPathsCartridges } from '../lib/CartridgeHelper';
 import { filterAsync } from '../lib/CollectionUtil';
 import { CartridgeItem, CartridgeItemType } from '../lib/CartridgeItem';
 
@@ -68,7 +68,12 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
 	}
 	static initialize(context: ExtensionContext) {
 
-				// add CartridgesView
+		if (!workspace.workspaceFolders) {
+			return;
+		}
+
+		const rootPath = workspace.workspaceFolders[0].uri.fsPath;
+		// add CartridgesView
 		const cartridgesView = new CartridgesView(rootPath, (window.activeTextEditor) ? window.activeTextEditor.document.fileName : undefined);
 
 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.refresh.cartridges', () => {
@@ -107,7 +112,7 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
 					if (!value) { return; }
 					if (!folderValue) { folderValue = ''; }
 
-					new CartridgeCreator(rootPath).createCartridge(value.trim().replace(' ', '_'), folderValue.trim());
+					//new CartridgeCreator(rootPath).createCartridge(value.trim().replace(' ', '_'), folderValue.trim());
 
 					if (cartridgesView) {
 						cartridgesView.refresh((window.activeTextEditor) ? window.activeTextEditor.document.fileName : undefined);

@@ -352,29 +352,34 @@
                 "extension.prophet.upload.enabled": {
                     "type": "boolean",
                     "default": false,
-                    "description": "Enable upload to sandbox"
+                    "description": "Enable upload to sandbox",
+                    "scope": "resource"
                 },
                 "extension.prophet.clean.on.start": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Clean/upload all on editor startup to sandbox"
+                    "description": "Clean/upload all on editor startup to sandbox",
+                    "scope": "resource"
                 },
                 "extension.prophet.ismlServer.activateOn": {
                     "type": "array",
                     "default": [
                         "isml"
                     ],
-                    "description": "list of file extention for server activation"
+                    "description": "list of file extention for server activation",
+                    "scope": "resource"
                 },
                 "extension.prophet.cartridges.path": {
                     "type": "string",
                     "default": "",
-                    "description": "List of cartridges separated by colon. (app_storefront_controllers:app_storefront_core:bc_library)"
+                    "description": "List of cartridges separated by colon. (app_storefront_controllers:app_storefront_core:bc_library)",
+                    "scope": "resource"
                 },
                 "extension.prophet.cartridges.view.enabled": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Enable/Disable cartridges view"
+                    "description": "Enable/Disable cartridges view",
+                    "scope": "resource"
                 }
             }
         }

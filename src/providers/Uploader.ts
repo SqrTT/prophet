@@ -1,11 +1,11 @@
 import { Observable } from 'rxjs/Observable';
-import { window, OutputChannel, ExtensionContext, workspace, commands } from 'vscode';
-import { join } from "path";
-import * as glob from 'glob';
-import { LogsView } from "./LogsView";
+import { window, OutputChannel, ExtensionContext, workspace, commands, RelativePattern } from 'vscode';
 import * as uploadServer from "../server/uploadServer";
 import { Subscription } from "rxjs/Subscription";
+import {Subject} from 'rxjs/Subject';
 import {basename} from 'path';
+
+const commandBus = new Subject<'enable.upload' | 'clean.upload' | 'disable.upload'>();
 
 /**
  * Class for handling the server upload integration
@@ -17,6 +17,7 @@ export default class Uploader {
 	private uploaderSubscription : Subscription | null;
 	private cleanOnStart : boolean;
 	private workspaceFolder: string;
+	private commandSubs: Subscription;
 
 	/**
 	 *
@@ -27,6 +28,18 @@ export default class Uploader {
 		this.configuration = configuration;
 		this.workspaceFolder = workspaceFolder;
 		this.cleanOnStart = Boolean(this.configuration.get('clean.on.start'));
+
+		this.commandSubs = commandBus.subscribe(command => {
+			if (command === 'clean.upload' || command === 'enable.upload') {
+				this.loadUploaderConfig(this.workspaceFolder);
+			} else if (command === 'disable.upload') {
+				if (this.uploaderSubscription) {
+					this.outputChannel.appendLine(`Stopping`);
+					this.uploaderSubscription!.unsubscribe();
+					this.uploaderSubscription = null;
+				}
+			}
+		});
 	}
 
 	/**
@@ -54,78 +67,75 @@ export default class Uploader {
 		this.uploaderSubscription = Observable.create(observer => {
 			let subscription;
 
-			glob('**/dw.json', {
-				cwd: rootPath,
-				root: rootPath,
-				nodir: true,
-				follow: false,
-				ignore: ['**/node_modules/**', '**/.git/**']
-			}, (error, files: string[]) => {
-				if (error) {
-					observer.error(error);
-				} else if (files.length) {
-					const configFilename = join(rootPath, files.shift() || '');
-					this.outputChannel.appendLine(`Using config file '${configFilename}'`);
+			workspace
+				.findFiles(new RelativePattern(rootPath, 'dw.json'), '{node_modules,.git}', 1)
+				.then(files => {
+					if (files.length && files[0].scheme === 'file') {
+						const configFilename = files[0].fsPath;
+						this.outputChannel.appendLine(`Using config file '${configFilename}'`);
 
-					subscription = uploadServer.init(
-						configFilename,
-						this.outputChannel,
-						{
-							cleanOnStart: this.cleanOnStart
-						})
-						.subscribe(
-						() => {
-							// reset counter to zero if success
-						},
-						err => {
-							observer.error(err);
-						},
-						() => {
-							observer.complete();
-						}
-					);
-					// after first run set to true
-					this.cleanOnStart = true;
+						subscription = uploadServer.init(
+							configFilename,
+							this.outputChannel,
+							{
+								cleanOnStart: this.cleanOnStart
+							})
+							.subscribe(
+							() => {
+								// reset counter to zero if success
+							},
+							err => {
+								observer.error(err);
+							},
+							() => {
+								observer.complete();
+							}
+						);
+						// after first run set to true
+						this.cleanOnStart = true;
 
-					// if (!logsView) {
-					// 	uploadServer.readConfigFile(configFilename).flatMap(config => {
-					// 		return uploadServer.getWebDavClient(config, this.outputChannel, rootPath);
-					// 	}).subscribe(webdav => {
-					// 		logsView = new LogsView(webdav);
-					// 		context.subscriptions.push(
-					// 			window.registerTreeDataProvider('dwLogsView', logsView)
-					// 		);
+						// if (!logsView) {
+						// 	uploadServer.readConfigFile(configFilename).flatMap(config => {
+						// 		return uploadServer.getWebDavClient(config, this.outputChannel, rootPath);
+						// 	}).subscribe(webdav => {
+						// 		logsView = new LogsView(webdav);
+						// 		context.subscriptions.push(
+						// 			window.registerTreeDataProvider('dwLogsView', logsView)
+						// 		);
 
-					// 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.refresh.logview', () => {
-					// 			if (logsView) {
-					// 				logsView.refresh();
-					// 			}
-					// 		}));
+						// 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.refresh.logview', () => {
+						// 			if (logsView) {
+						// 				logsView.refresh();
+						// 			}
+						// 		}));
 
-					// 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.filter.logview', () => {
-					// 			if (logsView) {
-					// 				logsView.showFilterBox();
-					// 			}
-					// 		}));
+						// 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.filter.logview', () => {
+						// 			if (logsView) {
+						// 				logsView.showFilterBox();
+						// 			}
+						// 		}));
 
-					// 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.log.open', (filename) => {
-					// 			if (logsView) {
-					// 				logsView.openLog(filename);
-					// 			}
-					// 		}));
+						// 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.log.open', (filename) => {
+						// 			if (logsView) {
+						// 				logsView.openLog(filename);
+						// 			}
+						// 		}));
 
-					// 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.clean.log', (logItem) => {
-					// 			if (logsView) {
-					// 				logsView.cleanLog(logItem);
-					// 			}
-					// 		}));
-					// 	});
-					// }
+						// 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.clean.log', (logItem) => {
+						// 			if (logsView) {
+						// 				logsView.cleanLog(logItem);
+						// 			}
+						// 		}));
+						// 	});
+						// }
 
-				} else {
-					observer.error('Unable to find "dw.json", cartridge upload disabled. Please re-enable the upload in the command menu when ready.');
-				}
-			});
+					} else {
+						observer.error('Unable to find "dw.json", cartridge upload disabled. Please re-enable the upload in the command menu when ready.');
+					}
+				}, err => {
+					observer.error(err);
+				});
+
 			return () => {
 				subscription.unsubscribe();
 			};
@@ -146,20 +156,22 @@ export default class Uploader {
 	static initialize(context: ExtensionContext) {
 		var subscriptions = context.subscriptions;
 		subscriptions.push(commands.registerCommand('extension.prophet.command.enable.upload', () => {
-			this.loadUploaderConfig(this.workspaceFolder, context);
+			commandBus.next('enable.upload');
 		}));
 
 		subscriptions.push(commands.registerCommand('extension.prophet.command.clean.upload', () => {
-			this.loadUploaderConfig(this.workspaceFolder, context);
+			commandBus.next('clean.upload');
 		}));
 
 		subscriptions.push(commands.registerCommand('extension.prophet.command.disable.upload', () => {
-			if (this.uploaderSubscription) {
-				this.outputChannel.appendLine(`Stopping`);
-				this.uploaderSubscription!.unsubscribe();
-				this.uploaderSubscription = null;
-			}
+			commandBus.next('disable.upload');
 		}));
+
+		subscriptions.push({
+			dispose: () => {
+				commandBus.unsubscribe();
+			}
+		})
 	}
 
 	/**
@@ -197,9 +209,12 @@ export default class Uploader {
 			dispose: () => {
 				this.outputChannel.dispose();
 				configSubscription.dispose();
+				this.commandSubs.unsubscribe();
+
 				if (this.uploaderSubscription) {
 					this.uploaderSubscription.unsubscribe();
 				}
+
 			}
 		}
 

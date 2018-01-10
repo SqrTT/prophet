@@ -7,7 +7,7 @@ import 'rxjs/add/observable/merge';
 import 'rxjs/add/operator/concat';
 import 'rxjs/add/operator/retryWhen';
 
-import { OutputChannel, workspace, window, ProgressLocation, FileSystemWatcher, Uri, Progress} from 'vscode';
+import { OutputChannel, workspace, window, ProgressLocation, FileSystemWatcher, Uri, Progress, RelativePattern} from 'vscode';
 import { default as WebDav, DavOptions } from './WebDav';
 import { getDirectoriesSync } from '../lib/FileHelper';
 import { dirname, join, sep } from 'path';
@@ -83,12 +83,11 @@ function fileWatcher(config, cartRoot: string, outputChannel: OutputChannel) {
 			'.git' + sep
 		];
 		// ... we create an array of watchers
-		var watchers : FileSystemWatcher[] | null = [];
+		const watchers : FileSystemWatcher[] = [];
 		cartridges.forEach(cartridge => {
-			if (workspace.rootPath && watchers) {
-				// looks a bit odd but matches all files & directories
-				watchers.push(workspace.createFileSystemWatcher( '**/' + cartridge + '/**/'));
-			}
+			watchers.push(
+				workspace.createFileSystemWatcher(new RelativePattern(join(cartRoot, cartridge), '/**/*'))
+			);
 		});
 
 		// manually check for the excludes in the callback
@@ -106,9 +105,8 @@ function fileWatcher(config, cartRoot: string, outputChannel: OutputChannel) {
 
 		return () => {
 			// and dispose them all in the end
-			if (watchers) {
-				watchers.forEach(watcher => watcher.dispose());
-			}
+
+			watchers.forEach(watcher => watcher.dispose());
 		};
 	});
 }
@@ -292,6 +290,7 @@ export function init(configFilename: string, outputChannel: OutputChannel, confi
 					if (e instanceof Error && e.message === 'Unauthorized') {
 						throw e;
 					} else if (retryCounter < 3) {
+						outputChannel.appendLine(`Error: ${e}`);
 						outputChannel.appendLine(`Trying to re-upload`);
 						retryCounter++;
 					} else {
