@@ -94,41 +94,6 @@ export default class Uploader {
 						// after first run set to true
 						this.cleanOnStart = true;
 
-						// if (!logsView) {
-						// 	uploadServer.readConfigFile(configFilename).flatMap(config => {
-						// 		return uploadServer.getWebDavClient(config, this.outputChannel, rootPath);
-						// 	}).subscribe(webdav => {
-						// 		logsView = new LogsView(webdav);
-						// 		context.subscriptions.push(
-						// 			window.registerTreeDataProvider('dwLogsView', logsView)
-						// 		);
-
-						// 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.refresh.logview', () => {
-						// 			if (logsView) {
-						// 				logsView.refresh();
-						// 			}
-						// 		}));
-
-						// 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.filter.logview', () => {
-						// 			if (logsView) {
-						// 				logsView.showFilterBox();
-						// 			}
-						// 		}));
-
-						// 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.log.open', (filename) => {
-						// 			if (logsView) {
-						// 				logsView.openLog(filename);
-						// 			}
-						// 		}));
-
-						// 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.clean.log', (logItem) => {
-						// 			if (logsView) {
-						// 				logsView.cleanLog(logItem);
-						// 			}
-						// 		}));
-						// 	});
-						// }
-
 					} else {
 						observer.error('Unable to find "dw.json", cartridge upload disabled. Please re-enable the upload in the command menu when ready.');
 					}

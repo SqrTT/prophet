@@ -10,14 +10,18 @@ import {
 	workspace,
 	ViewColumn,
 	Position,
-	Range
+	Range,
+	Disposable
 } from 'vscode';
 
 import { join, basename } from 'path';
 import WebDav from '../server/WebDav';
 import { DOMParser } from 'xmldom';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import timeago from 'timeago.js';
+
+
+const commandBus = new Subject<'refresh.logview' | 'filter.logview' | 'log.open' | 'clean.log'>();
 
 const domParser = new DOMParser();
 
@@ -67,6 +71,42 @@ function observable2promise<T>(observable: Observable<T>): Promise<T> {
 }
 
 export class LogsView implements TreeDataProvider<LogItem> {
+	start(commands, ) {
+		const logsView = this;
+		const subscriptions : Disposable[] = [];
+
+		subscriptions.push(
+			window.registerTreeDataProvider('dwLogsView', logsView)
+		)
+		subscriptions.push(commands.registerCommand('extension.prophet.command.refresh.logview', () => {
+			logsView.refresh();
+		}));
+
+		subscriptions.push(commands.registerCommand('extension.prophet.command.filter.logview', () => {
+			logsView.showFilterBox();
+		}));
+
+		subscriptions.push(commands.registerCommand('extension.prophet.command.log.open', (filename) => {
+			logsView.openLog(filename);
+		}));
+
+		subscriptions.push(commands.registerCommand('extension.prophet.command.clean.log', (logItem) => {
+			logsView.cleanLog(logItem);
+		}));
+
+		uploadServer.readConfigFile(configFilename).flatMap(config => {
+			return uploadServer.getWebDavClient(config, this.outputChannel, rootPath);
+		}).subscribe(webdav => {
+
+
+		});
+
+		return {
+			dispose: () => {
+				subscriptions.forEach(subscription => subscription.dispose());
+			}
+		}
+	}
 	constructor(private webdavClient: WebDav) {
 		this.webdavClient.config.version = '';
 		this.webdavClient.folder = 'Logs';
@@ -106,13 +146,13 @@ export class LogsView implements TreeDataProvider<LogItem> {
 					});
 
 					// replace paths
-					// 
+					//
 					const root = this.webdavClient.config.root;
 					filedata = filedata.replace(/\tat (.*?):(.*?) \(/ig, ($0, $1, $2) => {
 						return `\tat file://${join(root, ...$1.split('/'))}#${$2} (`;
 					});
 
-					// add new line before message message
+					// add new line before message
 					filedata = filedata.replace(/  /ig, '\n');
 
 					return workspace.openTextDocument({ 'language': 'dwlog', 'content': filedata })
