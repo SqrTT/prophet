@@ -20,7 +20,7 @@ function includes(str: string, pattern: string) {
 }
 
 function isComplexType(type: string) {
-	return ['Class', 'dw.', 'dw/', 'Object'].some(ctype => type.includes(ctype));
+	return ['Class', 'dw.', 'dw/', 'Object', 'Array'].some(ctype => type.includes(ctype));
 }
 
 
@@ -104,7 +104,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 
 	protected launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments): void {
 
-		if (true || args.trace) {
+		if (args.trace) {
 			logger.setup(Logger.LogLevel.Verbose, /*logToFile=*/ true);
 		}
 
