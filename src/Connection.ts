@@ -1,7 +1,7 @@
 
 import request = require('request');
 
-import { logger } from 'vscode-debugadapter';
+//import { logger } from 'vscode-debugadapter';
 
 const justResolve = (resolve, reject, body) => { resolve(body) };
 
@@ -69,7 +69,7 @@ export default class Connection {
 		};
 	}
 	makeRequest<T>(options, cb: (resolve, reject, body) => void): Promise<T> {
-		logger.verbose('req -> ' + JSON.stringify(options));
+		// logger.verbose('req -> ' + JSON.stringify(options));
 		return new Promise((resolve, reject) => {
 			if (!this.estabilished) {
 				reject(Error('Connection is not estabilished'));
@@ -83,8 +83,8 @@ export default class Connection {
 				if (err) {
 					return reject(err);
 				}
-				logger.verbose('req: ' + JSON.stringify(options));
-				logger.verbose('res: ' + JSON.stringify(body));
+				// logger.verbose('req: ' + JSON.stringify(options));
+				// logger.verbose('res: ' + JSON.stringify(body));
 
 				if (res.statusCode >= 400) {
 					return reject(new Error(res.statusMessage));
