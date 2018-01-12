@@ -1,9 +1,9 @@
 import { Observable } from 'rxjs/Observable';
-import { window, OutputChannel, ExtensionContext, workspace, commands, RelativePattern } from 'vscode';
+import { window, OutputChannel, ExtensionContext, workspace, commands, RelativePattern, WorkspaceFolder } from 'vscode';
 import * as uploadServer from "../server/uploadServer";
 import { Subscription } from "rxjs/Subscription";
-import {Subject} from 'rxjs/Subject';
-import {basename} from 'path';
+import { Subject } from 'rxjs/Subject';
+
 
 const commandBus = new Subject<'enable.upload' | 'clean.upload' | 'disable.upload'>();
 
@@ -11,11 +11,11 @@ const commandBus = new Subject<'enable.upload' | 'clean.upload' | 'disable.uploa
  * Class for handling the server upload integration
  */
 export default class Uploader {
-	private outputChannel : OutputChannel;
+	private outputChannel: OutputChannel;
 	private configuration;
 	private prevState;
-	private uploaderSubscription : Subscription | null;
-	private cleanOnStart : boolean;
+	private uploaderSubscription: Subscription | null;
+	private cleanOnStart: boolean;
 	private workspaceFolder: string;
 	private commandSubs: Subscription;
 
@@ -23,10 +23,10 @@ export default class Uploader {
 	 *
 	 * @param configuration the workspace configuration to use
 	 */
-	constructor (configuration, workspaceFolder: string){
-		this.outputChannel = window.createOutputChannel(`Prophet Uploader: ${basename(workspaceFolder)}`);
+	constructor(configuration, workspaceFolder: WorkspaceFolder) {
+		this.outputChannel = window.createOutputChannel(`Prophet Uploader: ${workspaceFolder.name}`);
 		this.configuration = configuration;
-		this.workspaceFolder = workspaceFolder;
+		this.workspaceFolder = workspaceFolder.uri.fsPath;
 		this.cleanOnStart = Boolean(this.configuration.get('clean.on.start'));
 
 		this.commandSubs = commandBus.subscribe(command => {
@@ -90,7 +90,7 @@ export default class Uploader {
 							() => {
 								observer.complete();
 							}
-						);
+							);
 						// after first run set to true
 						this.cleanOnStart = true;
 
@@ -116,10 +116,11 @@ export default class Uploader {
 				this.outputChannel.show();
 				this.outputChannel.appendLine(`Error: completed!`);
 			}
-		);
+			);
 	}
 	static initialize(context: ExtensionContext) {
 		var subscriptions = context.subscriptions;
+
 		subscriptions.push(commands.registerCommand('extension.prophet.command.enable.upload', () => {
 			commandBus.next('enable.upload');
 		}));
@@ -131,6 +132,46 @@ export default class Uploader {
 		subscriptions.push(commands.registerCommand('extension.prophet.command.disable.upload', () => {
 			commandBus.next('disable.upload');
 		}));
+
+		function addWorkspaceToUpload(workspaceFolder: WorkspaceFolder) {
+			if (workspaceFolder.uri.scheme === 'file') {
+				const configuration = workspace.getConfiguration('extension.prophet', workspaceFolder.uri);
+				var uploader = new Uploader(configuration, workspaceFolder);
+				return uploader.start();
+			}
+		}
+
+		const uploadingSubscriptions = (workspace.workspaceFolders || []).map(addWorkspaceToUpload);
+
+		workspace.onDidChangeWorkspaceFolders(event => {
+			const newWrkSpaces = event.added.map(addWorkspaceToUpload);
+			if (newWrkSpaces && newWrkSpaces.length) {
+				uploadingSubscriptions.push(...newWrkSpaces);
+			}
+
+			event.removed.forEach(removedWorkspace => {
+				const index = uploadingSubscriptions.findIndex(sub => {
+					return !!sub && sub.wrkFld === removedWorkspace.uri.fsPath;
+				});
+				if (index > -1) {
+					const uploadingSubscription = uploadingSubscriptions[index];
+					if (uploadingSubscription) {
+						uploadingSubscription.dispose();
+					}
+					uploadingSubscriptions.splice(index, 1);
+				}
+			});
+		});
+
+		subscriptions.push({
+			dispose: () => {
+				uploadingSubscriptions.forEach(subs => {
+					if (subs) {
+						subs.dispose();
+					}
+				})
+			}
+		})
 
 		subscriptions.push({
 			dispose: () => {
@@ -171,18 +212,17 @@ export default class Uploader {
 			this.outputChannel.appendLine('Uploader disabled via configuration');
 		}
 		return {
+			wrkFld: this.workspaceFolder,
 			dispose: () => {
-				this.outputChannel.dispose();
 				configSubscription.dispose();
 				this.commandSubs.unsubscribe();
 
 				if (this.uploaderSubscription) {
 					this.uploaderSubscription.unsubscribe();
 				}
-
+				this.outputChannel.dispose();
 			}
 		}
-
 	}
 }
 

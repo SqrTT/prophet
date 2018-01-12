@@ -17,7 +17,9 @@ export enum CartridgeItemType {
     /**
      * The CartridgeItem is a cartridge folder (project folder)
      */
-	Cartridge = 'cartridge'
+	Cartridge = 'cartridge',
+
+	Host = 'sandbox'
 }
 
 /**
@@ -55,9 +57,9 @@ export class CartridgeItem extends TreeItem {
 			this.iconPath = join(__filename, '..', '..', '..', 'images', 'resources', this.fileExtension + '.svg');
 		} else if (this.type === CartridgeItemType.Cartridge) {
 			this.iconPath = join(__filename, '..', '..', '..', 'images', 'resources', 'cartridge.svg');
+		} else if (this.type === CartridgeItemType.Host) {
+			this.iconPath = join(__filename, '..', '..', '..', 'images', 'resources', 'sandbox.svg');
 		}
 	}
 }
 
-
-export default CartridgeItem;

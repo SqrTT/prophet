@@ -1,8 +1,7 @@
 'use strict';
-import { TreeItemCollapsibleState, EventEmitter, TreeDataProvider, Event, window, TreeItem, Uri, workspace, ViewColumn, ExtensionContext, commands } from 'vscode';
+import { TreeItemCollapsibleState, EventEmitter, TreeDataProvider, Event, window, TreeItem, Uri, workspace, ViewColumn, ExtensionContext, commands, RelativePattern } from 'vscode';
 
 import { join } from 'path';
-import * as glob from 'glob';
 import { mkdirSync, open, close } from 'fs';
 
 import { getDirectories, getFiles, pathExists } from '../lib/FileHelper';
@@ -19,7 +18,7 @@ const cartridgeViewOutputChannel = window.createOutputChannel('Cartridges List (
  * @param {CartridgeItem} element  The parent element
  * @param {string} activeFile The path to the currently active file in the workspace
  */
-const toFolderElement = (directory: string, element: CartridgeItem, activeFile?: string): CartridgeItem => {
+const createFolderElement = (directory: string, element: CartridgeItem, activeFile?: string): CartridgeItem => {
 	const actualFolderLocation = join(element.location, directory);
 	return new CartridgeItem(
 		directory,
@@ -34,7 +33,7 @@ const toFolderElement = (directory: string, element: CartridgeItem, activeFile?:
  * @param {string} fileName The file name
  * @param {CartridgeItem} element The parent element
  */
-const toFileElement = (fileName: string, element: CartridgeItem): CartridgeItem => {
+const createFileElement = (fileName: string, element: CartridgeItem): CartridgeItem => {
 	return new CartridgeItem(fileName,
 		CartridgeItemType.File,
 		join(element.location, fileName),
@@ -52,29 +51,29 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
 	private _onDidChangeTreeData: EventEmitter<CartridgeItem | undefined> = new EventEmitter<CartridgeItem | undefined>();
 	readonly onDidChangeTreeData: Event<CartridgeItem | undefined> = this._onDidChangeTreeData.event;
 	private lastFileOpened = 'NO_FILE';
+	private workspaceFolder : string;
 	/**
 	 * Load the cartridges within the curren workspace
 	 * @param {string} workspaceFolder The absolute path of the workspace
 	 * @param {string} activeFile The absolute path of the file to expand the tree on
 	 */
-	constructor(private workspaceFolder: string, private activeFile?: string) {
-		workspace.onDidOpenTextDocument((e) => {
+	constructor(private activeFile?: string) {
+		this.workspaceFolder = (workspace.workspaceFolders && workspace.workspaceFolders[0].uri.fsPath) || '';
+
+		workspace.onDidOpenTextDocument((textDocument) => {
 			// Use startswith since editor for some reason also send the .git file.
-			if (!e.fileName.startsWith(this.lastFileOpened)) {
-				this.lastFileOpened = e.fileName;
-				this.refresh(e.fileName);
+			if (textDocument.uri.scheme === 'file' && !textDocument.fileName.startsWith(this.lastFileOpened) ) {
+				this.lastFileOpened = textDocument.fileName;
+				this.refresh(textDocument.fileName);
 			}
 		});
 	}
 	static initialize(context: ExtensionContext) {
 
-		if (!workspace.workspaceFolders) {
-			return;
-		}
-
-		const rootPath = workspace.workspaceFolders[0].uri.fsPath;
 		// add CartridgesView
-		const cartridgesView = new CartridgesView(rootPath, (window.activeTextEditor) ? window.activeTextEditor.document.fileName : undefined);
+		const cartridgesView = new CartridgesView(
+			(window.activeTextEditor) ? window.activeTextEditor.document.fileName : undefined
+		);
 
 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.refresh.cartridges', () => {
 			if (cartridgesView) {
@@ -147,26 +146,24 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
 		return element;
 	}
 
-	getChildren(element?: CartridgeItem): Thenable<CartridgeItem[]> {
-		if (!this.workspaceFolder) {
+	async getChildren(element?: CartridgeItem): Promise<CartridgeItem[]> {
+		if (!workspace.workspaceFolders) {
 			window.showInformationMessage('No dependency in empty workspace.');
-			return Promise.resolve([]);
+			return [];
 		}
 
-		return new Promise(resolve => {
-			if (element) {
-				resolve(this.getCartridgeItemFilesOrFolders(element));
+		if (element) {
+			return await this.getCartridgeItemFilesOrFolders(element);
+		} else {
+			const exist = await pathExists(this.workspaceFolder);
+
+			if (exist) {
+				return await this.getCartridgesInWorkspace(this.workspaceFolder);
 			} else {
-				pathExists(this.workspaceFolder).then((exist) => {
-					if (exist) {
-						this.getCartridgesInWorkspace(this.workspaceFolder).then(resolve);
-					} else {
-						window.showInformationMessage('No workspace!');
-						resolve([]);
-					}
-				});
+				window.showInformationMessage('No workspace!');
+				return [];
 			}
-		});
+		}
 	}
 
 	/**
@@ -181,10 +178,10 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
 		if (files.length || directories.length) {
 			return directories.map(
 				function (dir) {
-					return toFolderElement(dir, element, activeFile);
+					return createFolderElement(dir, element, activeFile);
 				}).concat(files.map(
 					function (file) {
-						return toFileElement(file, element);
+						return createFileElement(file, element);
 					}
 				));
 		}
@@ -211,18 +208,8 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
 							cartridgeViewOutputChannel.appendLine('Found extra cartridges in package file paths:\n\t*' + paths.join('\n\t*'));
 						}
 
-						glob('**/.project', {
-							cwd: workspaceFolder,
-							root: workspaceFolder,
-							nodir: true,
-							follow: false,
-							absolute: true,
-							ignore: ['**/node_modules/**', '**/.git/**']
-						}, (error, projectFiles: string[]) => {
-							if (error) {
-								return reject(error);
-							}
-
+						workspace.findFiles(new RelativePattern(workspaceFolder, '/**/.project'), '{node_modules,.git}').then(filesUri => {
+							let projectFiles = filesUri.map(file => file.fsPath);
 							cartridgeViewOutputChannel.appendLine('Found catridges in workspace:\n\t*' + projectFiles.join('\n\t*'));
 
 							if (projectFiles.length) {
@@ -236,9 +223,11 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
 							} else {
 								resolve([new CartridgeItem('No cartridges found in this workspace.',
 									CartridgeItemType.Cartridge,
-									this.workspaceFolder,
+									workspaceFolder,
 									TreeItemCollapsibleState.None)]);
 							}
+						}, err => {
+							return reject(err);
 						});
 					});
 				} else {

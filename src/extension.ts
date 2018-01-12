@@ -1,7 +1,7 @@
 
 'use strict';
 import { join } from 'path';
-import { workspace, Disposable, ExtensionContext, commands, window, Uri, WorkspaceConfiguration, debug, WorkspaceFolder } from 'vscode';
+import { workspace, Disposable, ExtensionContext, commands, window, Uri, WorkspaceConfiguration, debug } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
 import { CartridgesView } from './providers/CartridgesView';
 
@@ -29,26 +29,8 @@ export function activate(context: ExtensionContext) {
 	/// open files from browser
 	initializeToolkitActions(context);
 
-
 	/// uploader
 	Uploader.initialize(context);
-
-	//workspace.findFiles
-
-	function addWorkspaceToUpload(workspaceFolder: WorkspaceFolder) {
-		if (workspaceFolder.uri.scheme === 'file') {
-			const configuration = workspace.getConfiguration('extension.prophet', workspaceFolder.uri);
-			var uploader = new Uploader(configuration, workspaceFolder.uri.fsPath);
-			context.subscriptions.push(uploader.start());
-		}
-	}
-	if (workspace.workspaceFolders) {
-		workspace.workspaceFolders.forEach(addWorkspaceToUpload);
-	}
-	workspace.onDidChangeWorkspaceFolders(event => {
-		event.added.forEach(addWorkspaceToUpload);
-
-	});
 
 
 
