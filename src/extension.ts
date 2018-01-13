@@ -1,7 +1,7 @@
 
 'use strict';
 import { join } from 'path';
-import { workspace, Disposable, ExtensionContext, commands, window, Uri, WorkspaceConfiguration, debug } from 'vscode';
+import { workspace, ExtensionContext, commands, window, Uri, WorkspaceConfiguration, debug, WorkspaceFolder } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
 import { CartridgesView } from './providers/CartridgesView';
 
@@ -9,7 +9,56 @@ import { existsSync } from 'fs';
 import { createServer } from 'http';
 import Uploader from "./providers/Uploader";
 import { ProphetConfigurationProvider } from './providers/ConfigurationProvider';
+import {Observable} from 'rxjs/Observable';
+import 'rxjs/add/operator/takeUntil';
 
+function getWorkspaceFolders$(context: ExtensionContext) : Observable<Observable<WorkspaceFolder>>{
+	return new Observable(observer => {
+
+		function createObservableWorkspace(workspaceFolder : WorkspaceFolder) {
+			return new Observable<WorkspaceFolder>(wrkObserver => {
+				const wrkListener = workspace.onDidChangeWorkspaceFolders(event => {
+					event.removed.forEach(removedWrk => {
+						if (removedWrk.uri.fsPath === workspaceFolder.uri.fsPath) {
+							wrkObserver.complete();
+							wrkListener.dispose();
+						}
+					});
+				});
+				wrkObserver.next(workspaceFolder)
+				return () => {
+					wrkListener.dispose();
+				}
+			});
+		}
+
+		const listener = workspace.onDidChangeWorkspaceFolders(event => {
+			event.added.forEach(addWrk => {
+				if (addWrk.uri.scheme === 'file') {
+					observer.next(createObservableWorkspace(addWrk));
+				}
+			});
+		});
+
+		if (workspace.workspaceFolders) {
+			workspace.workspaceFolders.forEach(addWrk => {
+				if (addWrk.uri.scheme === 'file') {
+					observer.next(createObservableWorkspace(addWrk));
+				}
+			});
+		}
+
+		context.subscriptions.push({
+			dispose() {
+				observer.complete();
+				listener.dispose();
+			}
+		})
+		return () => {
+			listener.dispose();
+		};
+	});
+}
 
 export function activate(context: ExtensionContext) {
 
@@ -21,62 +70,79 @@ export function activate(context: ExtensionContext) {
 		)
 	);
 
+	const workspaceFolders$$ = getWorkspaceFolders$(context);
+
 	// const configuration = workspace.getConfiguration('extension.prophet');
 	// var ismlLanguageServer = createIsmlLanguageServer(context, configuration);
 	// context.subscriptions.push(ismlLanguageServer.start());
 
+	function subscribe2disposable($: Observable<any>) {
+		const subscr = $.subscribe();
+
+		context.subscriptions.push({
+			dispose() {
+				subscr.unsubscribe();
+			}
+		});
+
+	}
 
 	/// open files from browser
-	initializeToolkitActions(context);
+	//subscribe2disposable(initializeToolkitActions().takeUntil(workspaceFolders$$.filter(() => false)));
 
 	/// uploader
-	Uploader.initialize(context);
+	Uploader.initialize(context, workspaceFolders$$);
 
 
 
 	// CartridgesView
 	CartridgesView.initialize(context);
 
+
+
 }
 
-function initializeToolkitActions(context: ExtensionContext) {
-	const server = createServer(function (req, res) {
-		res.writeHead(200, { 'Content-Type': 'text/plain' });
-		res.end('ok');
-		if (req.url && req.url.includes('/target') && workspace.rootPath) {
-			const reqUrl = req.url.split('/target=')[1].split('&')[0]; // fixme
-			const filePaths = [
-				join(workspace.rootPath, ...reqUrl.split('/')),
-				join(workspace.rootPath, 'cartridges', ...reqUrl.split('/')),
-				join(workspace.rootPath, ...reqUrl.split('/')).replace('.js', '.ds'),
-				join(workspace.rootPath, 'cartridges', ...reqUrl.split('/')).replace('.js', '.ds')
-			];
-			const filePath = filePaths.find(existsSync);
-			if (filePath) {
-				commands.executeCommand('vscode.open', Uri.file(filePath)).then(() => {
-					// DO NOTHING
-				}, err => {
-					window.showErrorMessage(err);
-				});
+function initializeToolkitActions() {
+	return new Observable<never>(observeer => {
+		const server = createServer(function (req, res) {
+			res.writeHead(200, { 'Content-Type': 'text/plain' });
+			res.end('ok');
+			if (req.url && req.url.includes('/target') && workspace.rootPath) {
+				const reqUrl = req.url.split('/target=')[1].split('&')[0]; // fixme
+				const filePaths = [
+					join(workspace.rootPath, ...reqUrl.split('/')),
+					join(workspace.rootPath, 'cartridges', ...reqUrl.split('/')),
+					join(workspace.rootPath, ...reqUrl.split('/')).replace('.js', '.ds'),
+					join(workspace.rootPath, 'cartridges', ...reqUrl.split('/')).replace('.js', '.ds')
+				];
+				const filePath = filePaths.find(existsSync);
+				if (filePath) {
+					commands.executeCommand('vscode.open', Uri.file(filePath)).then(() => {
+						// DO NOTHING
+					}, err => {
+						window.showErrorMessage(err);
+					});
+				}
+				else {
+					window.showWarningMessage(`Unable to find '${reqUrl}'`);
+				}
 			}
-			else {
-				window.showWarningMessage(`Unable to find '${reqUrl}'`);
+		});
+		server.once('error', err => {
+			if (err instanceof Error) {
+				window.showWarningMessage(`Unable open port for browsers files, probably other instance or Digital Studio is opened. Error: ${err.message}`);
+				server.close();
 			}
-		}
-	});
-	server.once('error', err => {
-		if (err instanceof Error) {
-			window.showWarningMessage(`Unable open port for browsers files, probably other instance or Digital Studio is opened. Error: ${err.message}`);
+		});
+
+
+		server.listen(60606);
+
+		return () => {
 			server.close();
 		}
 	});
 
-
-	server.listen(60606);
-
-	context.subscriptions.push(new Disposable(() => {
-		server.close();
-	}));
 }
 
 /**

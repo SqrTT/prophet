@@ -1,11 +1,5 @@
-import { Observable } from 'rxjs/Observable';
+import { Observable } from 'rxjs';
 
-import 'rxjs/add/operator/mergeMap';
-import 'rxjs/add/operator/delay';
-import 'rxjs/add/observable/of';
-import 'rxjs/add/observable/merge';
-import 'rxjs/add/operator/concat';
-import 'rxjs/add/operator/retryWhen';
 
 import { OutputChannel, workspace, window, ProgressLocation, FileSystemWatcher, Uri, Progress, RelativePattern} from 'vscode';
 import { default as WebDav, DavOptions } from './WebDav';

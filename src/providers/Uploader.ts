@@ -1,8 +1,7 @@
-import { Observable } from 'rxjs/Observable';
+import { Observable, Subscription,  Subject} from 'rxjs';
 import { window, OutputChannel, ExtensionContext, workspace, commands, RelativePattern, WorkspaceFolder } from 'vscode';
 import * as uploadServer from "../server/uploadServer";
-import { Subscription } from "rxjs/Subscription";
-import { Subject } from 'rxjs/Subject';
+
 
 
 const commandBus = new Subject<'enable.upload' | 'clean.upload' | 'disable.upload'>();
@@ -118,7 +117,7 @@ export default class Uploader {
 			}
 			);
 	}
-	static initialize(context: ExtensionContext) {
+	static initialize(context: ExtensionContext, workspaceFolder$$: Observable<Observable<WorkspaceFolder>>) {
 		var subscriptions = context.subscriptions;
 
 		subscriptions.push(commands.registerCommand('extension.prophet.command.enable.upload', () => {
@@ -133,45 +132,13 @@ export default class Uploader {
 			commandBus.next('disable.upload');
 		}));
 
-		function addWorkspaceToUpload(workspaceFolder: WorkspaceFolder) {
-			if (workspaceFolder.uri.scheme === 'file') {
+		workspaceFolder$$.map(workspaceFolder$ => {
+			return workspaceFolder$.map(workspaceFolder => {
 				const configuration = workspace.getConfiguration('extension.prophet', workspaceFolder.uri);
 				var uploader = new Uploader(configuration, workspaceFolder);
 				return uploader.start();
-			}
-		}
-
-		const uploadingSubscriptions = (workspace.workspaceFolders || []).map(addWorkspaceToUpload);
-
-		workspace.onDidChangeWorkspaceFolders(event => {
-			const newWrkSpaces = event.added.map(addWorkspaceToUpload);
-			if (newWrkSpaces && newWrkSpaces.length) {
-				uploadingSubscriptions.push(...newWrkSpaces);
-			}
-
-			event.removed.forEach(removedWorkspace => {
-				const index = uploadingSubscriptions.findIndex(sub => {
-					return !!sub && sub.wrkFld === removedWorkspace.uri.fsPath;
-				});
-				if (index > -1) {
-					const uploadingSubscription = uploadingSubscriptions[index];
-					if (uploadingSubscription) {
-						uploadingSubscription.dispose();
-					}
-					uploadingSubscriptions.splice(index, 1);
-				}
-			});
-		});
-
-		subscriptions.push({
-			dispose: () => {
-				uploadingSubscriptions.forEach(subs => {
-					if (subs) {
-						subs.dispose();
-					}
-				})
-			}
-		})
+			}).mergeAll();
+		}).mergeAll().subscribe();
 
 		subscriptions.push({
 			dispose: () => {
@@ -185,44 +152,45 @@ export default class Uploader {
 	 *
 	 */
 	start() {
+		return new Observable(observer => {
+			const configSubscription = workspace.onDidChangeConfiguration(() => {
+				const isProphetUploadEnabled = this.isUploadEnabled();
 
-		const configSubscription = workspace.onDidChangeConfiguration(() => {
-			const isProphetUploadEnabled = this.isUploadEnabled();
-
-			if (isProphetUploadEnabled !== this.prevState) {
-				this.prevState = isProphetUploadEnabled;
-				if (isProphetUploadEnabled) {
-					this.loadUploaderConfig(this.workspaceFolder);
-				} else {
-					if (this.uploaderSubscription) {
-						this.outputChannel.appendLine(`Stopping`);
-						this.uploaderSubscription!.unsubscribe();
-						this.uploaderSubscription = null;
+				if (isProphetUploadEnabled !== this.prevState) {
+					this.prevState = isProphetUploadEnabled;
+					if (isProphetUploadEnabled) {
+						this.loadUploaderConfig(this.workspaceFolder);
+					} else {
+						if (this.uploaderSubscription) {
+							this.outputChannel.appendLine(`Stopping`);
+							this.uploaderSubscription!.unsubscribe();
+							this.uploaderSubscription = null;
+						}
 					}
 				}
+			});
+
+
+			const isUploadEnabled = this.isUploadEnabled();
+			this.prevState = isUploadEnabled;
+			if (isUploadEnabled) {
+				this.loadUploaderConfig(this.workspaceFolder);
+			} else {
+				this.outputChannel.appendLine('Uploader disabled via configuration');
 			}
-		});
+			return () => {
+					this.outputChannel.appendLine('Shutting down...');
+					configSubscription.dispose();
+					this.commandSubs.unsubscribe();
 
-
-		const isUploadEnabled = this.isUploadEnabled();
-		this.prevState = isUploadEnabled;
-		if (isUploadEnabled) {
-			this.loadUploaderConfig(this.workspaceFolder);
-		} else {
-			this.outputChannel.appendLine('Uploader disabled via configuration');
-		}
-		return {
-			wrkFld: this.workspaceFolder,
-			dispose: () => {
-				configSubscription.dispose();
-				this.commandSubs.unsubscribe();
-
-				if (this.uploaderSubscription) {
-					this.uploaderSubscription.unsubscribe();
+					if (this.uploaderSubscription) {
+						this.uploaderSubscription.unsubscribe();
+					}
+					this.outputChannel.dispose();
 				}
-				this.outputChannel.dispose();
 			}
-		}
+		);
+
 	}
 }
 
