@@ -1,6 +1,7 @@
 import { Observable, Subscription,  Subject} from 'rxjs';
 import { window, OutputChannel, ExtensionContext, workspace, commands, RelativePattern, WorkspaceFolder } from 'vscode';
 import * as uploadServer from "../server/uploadServer";
+import { setTimeout } from 'timers';
 
 
 
@@ -132,17 +133,23 @@ export default class Uploader {
 			commandBus.next('disable.upload');
 		}));
 
-		workspaceFolder$$.map(workspaceFolder$ => {
-			return workspaceFolder$.map(workspaceFolder => {
+		const subs = workspaceFolder$$.map(workspaceFolder$ => {
+			const end$ = new Subject();
+			return workspaceFolder$
+			.do(() => {}, undefined, () => {end$.next();end$.complete()})
+			.flatMap(workspaceFolder => {
 				const configuration = workspace.getConfiguration('extension.prophet', workspaceFolder.uri);
 				var uploader = new Uploader(configuration, workspaceFolder);
 				return uploader.start();
-			}).mergeAll();
-		}).mergeAll().subscribe();
+			}).takeUntil(end$);
+		})
+		.mergeAll()
+		.subscribe();
 
 		subscriptions.push({
 			dispose: () => {
 				commandBus.unsubscribe();
+				subs.unsubscribe();
 			}
 		})
 	}
@@ -152,7 +159,7 @@ export default class Uploader {
 	 *
 	 */
 	start() {
-		return new Observable(observer => {
+		return new Observable<string>(observer => {
 			const configSubscription = workspace.onDidChangeConfiguration(() => {
 				const isProphetUploadEnabled = this.isUploadEnabled();
 
@@ -163,7 +170,7 @@ export default class Uploader {
 					} else {
 						if (this.uploaderSubscription) {
 							this.outputChannel.appendLine(`Stopping`);
-							this.uploaderSubscription!.unsubscribe();
+							this.uploaderSubscription.unsubscribe();
 							this.uploaderSubscription = null;
 						}
 					}
@@ -178,6 +185,7 @@ export default class Uploader {
 			} else {
 				this.outputChannel.appendLine('Uploader disabled via configuration');
 			}
+			observer.next(this.workspaceFolder);
 			return () => {
 					this.outputChannel.appendLine('Shutting down...');
 					configSubscription.dispose();
@@ -186,7 +194,9 @@ export default class Uploader {
 					if (this.uploaderSubscription) {
 						this.uploaderSubscription.unsubscribe();
 					}
-					this.outputChannel.dispose();
+					setTimeout(() => {
+						this.outputChannel.dispose();
+					}, 60 * 1000);// 
 				}
 			}
 		);

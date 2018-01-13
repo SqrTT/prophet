@@ -12,18 +12,22 @@ import { ProphetConfigurationProvider } from './providers/ConfigurationProvider'
 import {Observable} from 'rxjs/Observable';
 import 'rxjs/add/operator/takeUntil';
 
-function getWorkspaceFolders$(context: ExtensionContext) : Observable<Observable<WorkspaceFolder>>{
+function getWorkspaceFolders$$(context: ExtensionContext) : Observable<Observable<WorkspaceFolder>>{
 	return new Observable(observer => {
 
 		function createObservableWorkspace(workspaceFolder : WorkspaceFolder) {
 			return new Observable<WorkspaceFolder>(wrkObserver => {
 				const wrkListener = workspace.onDidChangeWorkspaceFolders(event => {
-					event.removed.forEach(removedWrk => {
-						if (removedWrk.uri.fsPath === workspaceFolder.uri.fsPath) {
-							wrkObserver.complete();
-							wrkListener.dispose();
-						}
-					});
+					try {
+						event.removed && event.removed.forEach(removedWrk => {
+							if (removedWrk.uri.fsPath === workspaceFolder.uri.fsPath) {
+								wrkObserver.complete();
+								wrkListener.dispose();
+							}
+						});
+					} catch (e) {
+						wrkObserver.error(e);
+					}
 				});
 				wrkObserver.next(workspaceFolder)
 				return () => {
@@ -70,7 +74,7 @@ export function activate(context: ExtensionContext) {
 		)
 	);
 
-	const workspaceFolders$$ = getWorkspaceFolders$(context);
+	const workspaceFolders$$ = getWorkspaceFolders$$(context);
 
 	// const configuration = workspace.getConfiguration('extension.prophet');
 	// var ismlLanguageServer = createIsmlLanguageServer(context, configuration);
@@ -88,7 +92,7 @@ export function activate(context: ExtensionContext) {
 	}
 
 	/// open files from browser
-	//subscribe2disposable(initializeToolkitActions().takeUntil(workspaceFolders$$.filter(() => false)));
+	subscribe2disposable(initializeToolkitActions().takeUntil(workspaceFolders$$.filter(() => false)));
 
 	/// uploader
 	Uploader.initialize(context, workspaceFolders$$);
