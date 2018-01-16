@@ -21,8 +21,6 @@ import { Observable, Subject } from 'rxjs';
 import timeago from 'timeago.js';
 
 
-const commandBus = new Subject<'refresh.logview' | 'filter.logview' | 'log.open' | 'clean.log'>();
-
 const domParser = new DOMParser();
 
 function getNodeText(node): string | undefined {

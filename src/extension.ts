@@ -100,7 +100,7 @@ export function activate(context: ExtensionContext) {
 
 
 	// CartridgesView
-	CartridgesView.initialize(context);
+	CartridgesView.initialize(context, workspaceFolders$$);
 
 
 

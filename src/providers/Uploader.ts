@@ -116,7 +116,7 @@ export default class Uploader {
 				this.outputChannel.show();
 				this.outputChannel.appendLine(`Error: completed!`);
 			}
-			);
+		);
 	}
 	static initialize(context: ExtensionContext, workspaceFolder$$: Observable<Observable<WorkspaceFolder>>) {
 		var subscriptions = context.subscriptions;
@@ -139,7 +139,7 @@ export default class Uploader {
 			.do(() => {}, undefined, () => {end$.next();end$.complete()})
 			.flatMap(workspaceFolder => {
 				const configuration = workspace.getConfiguration('extension.prophet', workspaceFolder.uri);
-				var uploader = new Uploader(configuration, workspaceFolder);
+				const uploader = new Uploader(configuration, workspaceFolder);
 				return uploader.start();
 			}).takeUntil(end$);
 		})

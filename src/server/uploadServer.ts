@@ -265,14 +265,14 @@ function uploadAndWatch(webdav: WebDav, outputChannel: OutputChannel, config: ({
 
 export function init(configFilename: string, outputChannel: OutputChannel, config) {
 	let conf;
-	return readConfigFile(configFilename).flatMap(config => {
+	return readConfigFile(configFilename).flatMap(dwConfig => {
 		let rootDir = dirname(configFilename);
-		if (config.root) {
-			rootDir = join(rootDir, config.root);
+		if (dwConfig.root) {
+			rootDir = join(rootDir, dwConfig.root);
 		}
-		conf = config;
+		conf = dwConfig;
 		outputChannel.appendLine(`Using directory "${rootDir}" as cartridges root`);
-		return getWebDavClient(config, outputChannel, rootDir);
+		return getWebDavClient(dwConfig, outputChannel, rootDir);
 	}).flatMap(webdav => {
 		let retryCounter = 0;
 		conf.cleanOnStart = config.cleanOnStart;
