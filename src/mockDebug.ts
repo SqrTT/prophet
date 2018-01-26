@@ -15,10 +15,6 @@ import path = require('path');
 
 const VARIABLE_SEPARATOR = '%';
 
-function includes(str: string, pattern: string) {
-	return str.indexOf(pattern) !== -1;
-}
-
 function isComplexType(type: string) {
 	return ['Class', 'dw.', 'dw/', 'Object', 'Array'].some(ctype => type.includes(ctype));
 }
@@ -174,12 +170,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 			this._breakPoints.set(path, []);
 		}
 
-		if (
-			!includes(scriptPath, '/cartridge/controller') &&
-			!includes(scriptPath, '/cartridge/scripts/') &&
-			!includes(scriptPath, '/cartridge/models/') &&
-			!includes(scriptPath, 'modules/')
-		) {
+		if (scriptPath.includes('/default/js/') || scriptPath.includes('/cartridge/js/')) {
 			response.body = {
 				breakpoints: []
 			};
