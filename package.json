@@ -205,6 +205,14 @@
             {
                 "language": "isml",
                 "path": "./snippets/snippets.json"
+            },
+            {
+                "language": "javascript",
+                "path": "./snippets/requireSnippets.json"
+            },
+            {
+                "language": "javascript",
+                "path": "./snippets/scriptSnippets.json"
             }
         ],
         "languages": [
