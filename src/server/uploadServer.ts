@@ -1,9 +1,9 @@
 import { Observable } from 'rxjs';
 
 
-import { OutputChannel, workspace, window, ProgressLocation, FileSystemWatcher, Uri, Progress, RelativePattern} from 'vscode';
+import { OutputChannel, workspace, window, ProgressLocation, FileSystemWatcher, Uri, Progress, RelativePattern } from 'vscode';
 import { default as WebDav, DavOptions } from './WebDav';
-import { getDirectoriesSync } from '../lib/FileHelper';
+import { getDirectories, getDirectoriesSync } from '../lib/FileHelper';
 import { dirname, join, sep } from 'path';
 import { createReadStream, statSync } from 'fs';
 
@@ -50,51 +50,53 @@ export function getWebDavClient(config: DavOptions, outputChannel: OutputChannel
 			version: config['code-version'] || config.version,
 			root: rootDir
 		}, config.debug ?
-		(...msgs) => { outputChannel.appendLine(`${msgs.join(' ')}`); } :
-		() => {
-			// DO NOTHING
-		}
-	);
-	observer.next(webdav);
-});
+				(...msgs) => { outputChannel.appendLine(`${msgs.join(' ')}`); } :
+				() => {
+					// DO NOTHING
+				}
+		);
+		observer.next(webdav);
+	});
 }
 
 function fileWatcher(config, cartRoot: string, outputChannel: OutputChannel) {
 	return Observable.create(observer => {
-		let cartridges : string[];
+		const watchers: FileSystemWatcher[] = [];
+		let cartridges: Promise<string[]>;
 
 		if (config.cartridge && config.cartridge.length) {
-			cartridges = config.cartridge;
+			cartridges = Promise.resolve(config.cartridge);
 		} else {
-			cartridges = getDirectoriesSync(cartRoot);
+			cartridges = getDirectories(cartRoot);
 		}
 
-		// Unfortunately workspace.createFileSystemWatcher() does
-		// only support single paths and no excludes
-		// it is however very CPU friendly compared to fs.watch()
-		var excludeGlobPattern = [
-			'node_modules' + sep,
-			'.git' + sep
-		];
-		// ... we create an array of watchers
-		const watchers : FileSystemWatcher[] = [];
-		cartridges.forEach(cartridge => {
-			watchers.push(
-				workspace.createFileSystemWatcher(new RelativePattern(join(cartRoot, cartridge), '/**/*'))
-			);
-		});
+		cartridges.then(cartridges => {
+			// Unfortunately workspace.createFileSystemWatcher() does
+			// only support single paths and no excludes
+			// it is however very CPU friendly compared to fs.watch()
+			var excludeGlobPattern = [
+				'node_modules' + sep,
+				'.git' + sep
+			];
+			// ... we create an array of watchers
+			cartridges.forEach(cartridge => {
+				watchers.push(
+					workspace.createFileSystemWatcher(new RelativePattern(join(cartRoot, cartridge), '/**/*'))
+				);
+			});
 
-		// manually check for the excludes in the callback
-		var callback = method => ((uri : Uri) => {
-			if (!excludeGlobPattern.some(pattern => uri.fsPath.includes(pattern))){
-				observer.next([method, uri.fsPath])
-			}
-		});
-		// add the listerners to all watchers
-		watchers.forEach(watcher => {
-			watcher.onDidChange(callback('upload'));
-			watcher.onDidCreate(callback('upload'));
-			watcher.onDidDelete(callback('delete'));
+			// manually check for the excludes in the callback
+			var callback = method => ((uri: Uri) => {
+				if (!excludeGlobPattern.some(pattern => uri.fsPath.includes(pattern))) {
+					observer.next([method, uri.fsPath])
+				}
+			});
+			// add the listerners to all watchers
+			watchers.forEach(watcher => {
+				watcher.onDidChange(callback('upload'));
+				watcher.onDidCreate(callback('upload'));
+				watcher.onDidDelete(callback('delete'));
+			})
 		})
 
 		return () => {
@@ -110,9 +112,9 @@ const uploadCartridges = (
 	outputChannel: OutputChannel,
 	config: ({ cartridge }),
 	cartRoot: string,
-	progress : Progress<{message?: string}>['report'] | undefined
+	progress: Progress<{ message?: string }>['report'] | undefined
 ) => {
-	let cartridges : string[];
+	let cartridges: string[];
 	if (config.cartridge && config.cartridge.length) {
 		cartridges = config.cartridge;
 	} else {
@@ -134,18 +136,18 @@ const uploadCartridges = (
 				const dirToUpload = join(cartRoot, cartridge);
 				const cartridge$ = webdav
 					.uploadCartridge(dirToUpload, notify, { isCartridge: true }).subscribe(
-						(data) => {
-							observer.next(data);
+					(data) => {
+						observer.next(data);
 
-						},
-						(error) => observer.error(error),
-						() => {
-							observer.complete();
-							count++;
-							if (progress) {
-								progress({message: `Uploading cartridges: ${count} of ${cartridgesList.length}`})
-							}
+					},
+					(error) => observer.error(error),
+					() => {
+						observer.complete();
+						count++;
+						if (progress) {
+							progress({ message: `Uploading cartridges: ${count} of ${cartridgesList.length}` })
 						}
+					}
 					);
 
 				return () => {
@@ -162,11 +164,11 @@ const uploadCartridges = (
 function uploadWithProgress(webdav: WebDav, outputChannel: OutputChannel, config: ({ cartridge, version, cleanOnStart: boolean }), rootDir: string) {
 	return Observable.create(observer => {
 		var resolve;
-		var progress : Progress<{message?: string}>['report'] | undefined;
+		var progress: Progress<{ message?: string }>['report'] | undefined;
 		window.withProgress({
 			location: ProgressLocation.Window,
 			title: 'Uploading cartridges'
-		}, (prg) => {progress = prg.report; return new Promise((res) => {resolve = res;})});
+		}, (prg) => { progress = prg.report; return new Promise((res) => { resolve = res; }) });
 
 		const subscr = webdav.dirList(rootDir)
 			.do(() => {
@@ -213,9 +215,9 @@ function uploadWithProgress(webdav: WebDav, outputChannel: OutputChannel, config
 					resolve = null;
 				}
 			}).subscribe(
-				() => observer.next(),
-				error => observer.error(error),
-				() => observer.complete()
+			() => observer.next(),
+			error => observer.error(error),
+			() => observer.complete()
 			);
 
 		return () => {
@@ -229,14 +231,14 @@ function uploadWithProgress(webdav: WebDav, outputChannel: OutputChannel, config
 
 function uploadAndWatch(webdav: WebDav, outputChannel: OutputChannel, config: ({ cartridge, version, cleanOnStart: boolean }), rootDir: string) {
 	return uploadWithProgress(webdav, outputChannel, config, rootDir)
-	.flatMap(() => {
+		.flatMap(() => {
 			outputChannel.appendLine(`Watching files`);
 			return fileWatcher(config, rootDir, outputChannel)
 				.delay(300)// delay uploading file (allow finish writting for large files)
 				.mergeMap(([action, fileName]) => {
 					const date = new Date().toTimeString().split(' ').shift();
-					var davAction : 'mkdir' | 'post' | 'delete',
-						actionChar : string = '';
+					var davAction: 'mkdir' | 'post' | 'delete',
+						actionChar: string = '';
 
 					if (action === 'upload') {
 						// @TODO make async or create separate

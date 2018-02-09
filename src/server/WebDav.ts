@@ -8,9 +8,8 @@ import 'rxjs/add/operator/do';
 import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/filter';
 import * as yazl from 'yazl';
-import * as fs  from 'fs';
 import * as walk from 'walk';
-import * as rimraf from 'rimraf';
+import { createReadStream, WriteStream, ReadStream, unlink, createWriteStream } from 'fs';
 
 export interface DavOptions {
 	hostname: string,
@@ -144,7 +143,7 @@ export default class WebDav {
 				}
 			});
 
-			let outputStream = fs.createReadStream(filePath);
+			let outputStream = createReadStream(filePath);
 
 			outputStream.once('error', error => {
 				observer.error(error);
@@ -294,6 +293,10 @@ export default class WebDav {
 
 		return Observable.create(observer => {
 
+			import('walk').then(walk => {
+
+			});
+
 			let walker = walk.walk(pathToCartridgesDir, {
 				filters: ignoreList,
 				followLinks: true
@@ -358,18 +361,12 @@ export default class WebDav {
 		return Observable.create(observer => {
 			let isCanceled = false;
 
-			rimraf(fileName, () => {
+			unlink(fileName, err => {
 				if (!isCanceled) {
 					observer.next();
 					observer.complete();
 				}
 			});
-			// setTimeout(() => {
-			//         observer.next();
-			//         observer.complete();
-			// });
-
-
 			return () => { isCanceled = true }
 		});
 	}
@@ -377,7 +374,7 @@ export default class WebDav {
 
 		return Observable.create(observer => {
 			let zipFile = new yazl.ZipFile();
-			var inputStream : fs.WriteStream, outputStream : fs.ReadStream;
+			var inputStream : WriteStream, outputStream : ReadStream;
 
 			zipFile.on('error', (error) => {
 				finishWork();
@@ -402,7 +399,7 @@ export default class WebDav {
 				// complite
 				() => {
 					zipFile.end();
-					inputStream = fs.createWriteStream(cartridgesPackagePath);
+					inputStream = createWriteStream(cartridgesPackagePath);
 					outputStream = zipFile.outputStream;
 
 					zipFile.outputStream
