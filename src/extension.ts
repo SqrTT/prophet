@@ -1,16 +1,17 @@
 
 'use strict';
 import { join } from 'path';
-import { workspace, ExtensionContext, commands, window, Uri, WorkspaceConfiguration, debug, WorkspaceFolder } from 'vscode';
+import { workspace, ExtensionContext, commands, window, Uri, WorkspaceConfiguration, debug, WorkspaceFolder, GlobPattern, CancellationTokenSource } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
 import { CartridgesView } from './providers/CartridgesView';
+import { LogsView } from './providers/LogsView';
 
 import { existsSync } from 'fs';
 import { createServer } from 'http';
 import Uploader from "./providers/Uploader";
 import { ProphetConfigurationProvider } from './providers/ConfigurationProvider';
-import {Observable} from 'rxjs/Observable';
-import 'rxjs/add/operator/takeUntil';
+import { Subject, Observable } from 'rxjs';
+import { findFiles } from './lib/FileHelper';
 
 function getWorkspaceFolders$$(context: ExtensionContext) : Observable<Observable<WorkspaceFolder>>{
 	return new Observable(observer => {
@@ -101,6 +102,16 @@ export function activate(context: ExtensionContext) {
 
 	// CartridgesView
 	CartridgesView.initialize(context);
+
+	const dwConfig = workspaceFolders$$.map(workspaceFolder$ => {
+		const end$ = new Subject();
+		return workspaceFolder$
+		.do(() => {}, undefined, () => {end$.next();end$.complete()})
+		.flatMap(workspaceFolder => {
+			return findFiles('dw.json', 1)
+		}).takeUntil(end$);
+	})
+	.mergeAll()
 
 }
 

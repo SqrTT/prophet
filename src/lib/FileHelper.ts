@@ -1,6 +1,8 @@
 'use strict';
 import { readdirSync, statSync, lstatSync, readdir, access } from 'fs';
 import { join } from 'path';
+import { GlobPattern, Uri, CancellationTokenSource, workspace } from 'vscode';
+import { Observable } from 'rxjs';
 
 /**
  * Fetches all directories within the given path syncrhonously.
@@ -56,3 +58,32 @@ export async function pathExists(location: string): Promise<boolean> {
 	});
 }
 
+export function findFiles(include: GlobPattern, maxResults?: number, errIfNoFound?: boolean) {
+	return new Observable<Uri>(observer => {
+		const tokenSource = new CancellationTokenSource();
+		let isDone = false;
+
+		workspace.findFiles(
+			include,
+			'{node_modules,.git}',
+			maxResults,
+			tokenSource.token
+		).then(files => {
+			isDone = true;
+			if (errIfNoFound && !files.length) {
+				observer.error(new Error('Unable find files: ' + include));
+			} else {
+				files.forEach(file => {
+					observer.next(file);
+				})
+				observer.complete();
+			}
+		}, err => {
+			observer.error(err);
+		})
+
+		return () => {
+			tokenSource.dispose();
+		}
+	});
+}

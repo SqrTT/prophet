@@ -11,10 +11,11 @@ import {
 	ViewColumn,
 	Position,
 	Range,
-	Disposable
+	Disposable,
+	Uri
 } from 'vscode';
 
-import { join, basename } from 'path';
+import { join, basename , sep} from 'path';
 import WebDav from '../server/WebDav';
 import { DOMParser } from 'xmldom';
 import { Observable, Subject } from 'rxjs';
@@ -147,7 +148,8 @@ export class LogsView implements TreeDataProvider<LogItem> {
 					//
 					const root = this.webdavClient.config.root;
 					filedata = filedata.replace(/\tat (.*?):(.*?) \(/ig, ($0, $1, $2) => {
-						return `\tat file://${join(root, ...$1.split('/'))}#${$2} (`;
+						var file = Uri.parse(join(root, ...$1.split('/')));
+						return `\tat ${file.toString()}#${$2} (`;
 					});
 
 					// add new line before message

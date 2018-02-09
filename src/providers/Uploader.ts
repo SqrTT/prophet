@@ -2,6 +2,7 @@ import { Observable, Subscription,  Subject} from 'rxjs';
 import { window, OutputChannel, ExtensionContext, workspace, commands, RelativePattern, WorkspaceFolder } from 'vscode';
 import * as uploadServer from "../server/uploadServer";
 import { setTimeout } from 'timers';
+import { findFiles } from '../lib/FileHelper';
 
 
 
@@ -64,47 +65,22 @@ export default class Uploader {
 			this.outputChannel.appendLine(`Starting...`);
 		}
 
-		this.uploaderSubscription = Observable.create(observer => {
-			let subscription;
+		this.uploaderSubscription = 
+			findFiles(new RelativePattern(rootPath, 'dw.json'), 1, true)
+			.flatMap(file => {
+				const configFilename = file.fsPath;
+				this.outputChannel.appendLine(`Using config file '${configFilename}'`);
 
-			workspace
-				.findFiles(new RelativePattern(rootPath, 'dw.json'), '{node_modules,.git}', 1)
-				.then(files => {
-					if (files.length && files[0].scheme === 'file') {
-						const configFilename = files[0].fsPath;
-						this.outputChannel.appendLine(`Using config file '${configFilename}'`);
-
-						subscription = uploadServer.init(
-							configFilename,
-							this.outputChannel,
-							{
-								cleanOnStart: this.cleanOnStart
-							})
-							.subscribe(
-							() => {
-								// reset counter to zero if success
-							},
-							err => {
-								observer.error(err);
-							},
-							() => {
-								observer.complete();
-							}
-							);
-						// after first run set to true
+				return uploadServer.init(
+					configFilename,
+					this.outputChannel,
+					{
+						cleanOnStart: this.cleanOnStart
+					}).do(() => {
 						this.cleanOnStart = true;
-
-					} else {
-						observer.error('Unable to find "dw.json", cartridge upload disabled. Please re-enable the upload in the command menu when ready.');
-					}
-				}, err => {
-					observer.error(err);
-				});
-
-			return () => {
-				subscription.unsubscribe();
-			};
-		}).subscribe(
+					});
+			})
+			.subscribe(
 			() => {
 				// DO NOTHING
 			},
