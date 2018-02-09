@@ -1,8 +1,7 @@
 'use strict';
 import { TreeItemCollapsibleState, workspace, RelativePattern } from 'vscode';
-import { exists, readFile, existsSync, mkdirSync, writeFile, mkdir, } from 'fs';
+import { exists, readFile, existsSync, mkdirSync, writeFile, mkdir } from 'fs';
 import { dirname, join, basename, sep } from 'path';
-import { GenericTreeItem, CartridgeTreeItem } from './CartridgeViwesItem';
 import { pathExists } from '../lib/FileHelper';
 
 /**
@@ -18,33 +17,6 @@ export const checkIfCartridge = (projectFile: string): Promise<boolean> => {
 				// Check the file for demandware package (since the file is not that big no need for a DOM parser)
 				resolve(data.includes('com.demandware.studio.core.beehiveNature'));
 			}
-		});
-	});
-};
-
-/**
- * Creates a CartridgeItem based on the project file.
- * @param projectFile The absolute path to the file location of the Eclipse project file.
- * @param activeFile The active file in the current workspace.
- */
-export const toCardridge = (projectFile: string, activeFile?: string): Promise<CartridgeTreeItem> => {
-	return new Promise((resolve, reject) => {
-		const projectFileDirectory = dirname(projectFile);
-		const projectName = basename(projectFileDirectory);
-
-		let subFolder = '';
-		exists(join(projectFileDirectory, 'cartridge'), (existsDirectory) => {
-			if (existsDirectory) {
-				subFolder = 'cartridge';
-			}
-
-			const actualCartridgeLocation = join(projectFileDirectory, subFolder);
-
-			resolve(new CartridgeTreeItem(
-				projectName || 'Unknown project name',
-				actualCartridgeLocation,
-				(activeFile && activeFile.startsWith(actualCartridgeLocation))
-					? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.Collapsed));
 		});
 	});
 };

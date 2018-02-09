@@ -1,17 +1,46 @@
 'use strict';
 import { TreeItemCollapsibleState, EventEmitter, TreeDataProvider, Event, window, TreeItem, Uri, workspace, ViewColumn, ExtensionContext, commands, RelativePattern, WorkspaceFolder } from 'vscode';
 
-import { join, basename } from 'path';
-import { mkdir, open, close } from 'fs';
+import { join, basename, dirname } from 'path';
+import { mkdir, open, close, exists } from 'fs';
 
 import { getDirectories, getFiles, pathExists } from '../lib/FileHelper';
-import { checkIfCartridge, toCardridge, getPathsCartridges } from '../lib/CartridgeHelper';
+import { checkIfCartridge, getPathsCartridges } from '../lib/CartridgeHelper';
 import { filterAsync } from '../lib/CollectionUtil';
-import { GenericTreeItem, DirectoryTreeItem, FileTreeItem, CartridgeTreeItem, WorkspaceTreeItem } from '../lib/CartridgeViwesItem';
+import { GenericTreeItem, DirectoryTreeItem, FileTreeItem, CartridgeTreeItem, WorkspaceTreeItem } from '../lib/CartridgeViewsItem';
 import { Observable } from 'rxjs';
 
 
 const cartridgeViewOutputChannel = window.createOutputChannel('Cartridges List (Prophet)');
+
+
+
+/**
+ * Creates a CartridgeItem based on the project file.
+ * @param projectFile The absolute path to the file location of the Eclipse project file.
+ * @param activeFile The active file in the current workspace.
+ */
+export const createCardridgeElement = (projectFile: string, activeFile?: string): Promise<CartridgeTreeItem> => {
+	return new Promise((resolve, reject) => {
+		const projectFileDirectory = dirname(projectFile);
+		const projectName = basename(projectFileDirectory);
+
+		let subFolder = '';
+		exists(join(projectFileDirectory, 'cartridge'), (existsDirectory) => {
+			if (existsDirectory) {
+				subFolder = 'cartridge';
+			}
+
+			const actualCartridgeLocation = join(projectFileDirectory, subFolder);
+
+			resolve(new CartridgeTreeItem(
+				projectName || 'Unknown project name',
+				actualCartridgeLocation,
+				(activeFile && activeFile.startsWith(actualCartridgeLocation))
+					? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.Collapsed));
+		});
+	});
+};
 
 /**
  * Creates a folder CartridgeItem.
@@ -232,7 +261,7 @@ export class CartridgesView implements TreeDataProvider<GenericTreeItem> {
 
 				return await Promise.all(
 					filteredProjectFiles.map(
-						projectFile => toCardridge(projectFile, activeFile)
+						projectFile => createCardridgeElement(projectFile, activeFile)
 					)
 				);
 
