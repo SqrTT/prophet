@@ -92,12 +92,12 @@ export class LogsView implements TreeDataProvider<LogItem> {
 			logsView.cleanLog(logItem);
 		}));
 
-		uploadServer.readConfigFile(configFilename).flatMap(config => {
-			return uploadServer.getWebDavClient(config, this.outputChannel, rootPath);
-		}).subscribe(webdav => {
+		// uploadServer.readConfigFile(configFilename).flatMap(config => {
+		// 	return uploadServer.getWebDavClient(config, this.outputChannel, rootPath);
+		// }).subscribe(webdav => {
 
 
-		});
+		// });
 
 		return {
 			dispose: () => {

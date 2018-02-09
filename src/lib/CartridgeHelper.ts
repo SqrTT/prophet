@@ -1,9 +1,8 @@
 'use strict';
-import * as glob from 'glob';
-import { TreeItemCollapsibleState } from 'vscode';
+import { TreeItemCollapsibleState, workspace, RelativePattern } from 'vscode';
 import { exists, readFile, existsSync, mkdirSync, writeFile, mkdir, } from 'fs';
 import { dirname, join, basename, sep } from 'path';
-import { CartridgeItem, CartridgeItemType } from './CartridgeItem';
+import { GenericTreeItem, CartridgeTreeItem } from './CartridgeViwesItem';
 import { pathExists } from '../lib/FileHelper';
 
 /**
@@ -28,7 +27,7 @@ export const checkIfCartridge = (projectFile: string): Promise<boolean> => {
  * @param projectFile The absolute path to the file location of the Eclipse project file.
  * @param activeFile The active file in the current workspace.
  */
-export const toCardridge = (projectFile: string, activeFile?: string): Promise<CartridgeItem> => {
+export const toCardridge = (projectFile: string, activeFile?: string): Promise<CartridgeTreeItem> => {
 	return new Promise((resolve, reject) => {
 		const projectFileDirectory = dirname(projectFile);
 		const projectName = basename(projectFileDirectory);
@@ -41,8 +40,8 @@ export const toCardridge = (projectFile: string, activeFile?: string): Promise<C
 
 			const actualCartridgeLocation = join(projectFileDirectory, subFolder);
 
-			resolve(new CartridgeItem(
-				projectName || 'Unknown project name', CartridgeItemType.Cartridge,
+			resolve(new CartridgeTreeItem(
+				projectName || 'Unknown project name',
 				actualCartridgeLocation,
 				(activeFile && activeFile.startsWith(actualCartridgeLocation))
 					? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.Collapsed));
@@ -81,17 +80,11 @@ export const getPathsCartridges = (workspaceFolder, packageFile): Promise<string
 								promises.push(new Promise((resolvePathProjects, rejectPathProjects) => {
 									exists(join(workspaceFolder, path), packagePathExists => {
 										if (packagePathExists) {
-											glob('**/.project', {
-												cwd: join(workspaceFolder, path),
-												root: join(workspaceFolder, path),
-												nodir: true,
-												follow: false,
-												absolute: true,
-												ignore: ['**/node_modules/**', '**/.git/**']
-											}, (globError, projectFiles: string[]) => {
-												if (globError) { rejectPathProjects(globError); };
-												resolvePathProjects(projectFiles);
-											});
+											workspace
+												.findFiles(new RelativePattern(workspaceFolder, '.project'), '{node_modules,.git}')
+												.then(filesUri => {
+													resolvePathProjects(filesUri.map(fileUri => fileUri.fsPath))
+												}, rejectPathProjects);
 										} else {
 											resolvePathProjects([]);
 										}

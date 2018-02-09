@@ -9,7 +9,7 @@
         "email": "tolik@sqrtt.pro"
     },
     "engines": {
-        "vscode": "^1.19.0",
+        "vscode": "^1.20.0",
         "node": "^7.9.0"
     },
     "icon": "images/mock-debug-icon.ico",
@@ -32,27 +32,27 @@
         "rimraf": "^2.6.2",
         "rxjs": "^5.5.6",
         "timeago.js": "^3.0.2",
-        "vscode-debugadapter": "^1.25.0",
-        "vscode-debugprotocol": "^1.25.0",
+        "vscode-debugadapter": "^1.26.0",
+        "vscode-debugprotocol": "^1.26.0",
         "vscode-languageclient": "^3.5.0",
         "vscode-languageserver": "^3.5.0",
-        "vscode-nls": "^2.0.2",
+        "vscode-nls": "^3.2.1",
         "vscode-uri": "^1.0.1",
         "walk": "^2.3.9",
         "xmldom": "^0.1.27",
         "yazl": "^2.4.3"
     },
     "devDependencies": {
-        "@types/mocha": "^2.2.45",
+        "@types/mocha": "^2.2.48",
         "@types/node": "^7.0.0",
         "mocha": "^3.5.3",
-        "typescript": "^2.6.2",
+        "typescript": "^2.7.1",
         "vscode": "^1.1.10",
-        "vscode-debugadapter-testsupport": "^1.25.0"
+        "vscode-debugadapter-testsupport": "^1.26.0"
     },
     "scripts": {
         "vscode:prepublish": "npm install && npm run compile && npm run test",
-        "prepublish": "node ./node_modules/typescript/bin/tsc -p ./src",
+        "prepare": "node ./node_modules/typescript/bin/tsc -p ./src",
         "compile": "node ./node_modules/typescript/bin/tsc -p ./src",
         "watch": "node ./node_modules/typescript/bin/tsc -w -p ./src",
         "test": "node ./node_modules/mocha/bin/mocha -u tdd ./out/tests/",

@@ -11,7 +11,7 @@ import Uri from 'vscode-uri';
 import { join } from 'path';
 
 import { readFile } from 'fs';
-import * as glob from 'glob';
+import * as glob from 'glob';// fixme: figure out way to work without glob module
 import { EventEmitter } from 'events';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport
