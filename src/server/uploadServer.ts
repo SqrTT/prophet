@@ -81,7 +81,7 @@ function fileWatcher(config, cartRoot: string, outputChannel: OutputChannel) {
 			// ... we create an array of watchers
 			cartridges.forEach(cartridge => {
 				watchers.push(
-					workspace.createFileSystemWatcher(new RelativePattern(join(cartRoot, cartridge), '/**/*'))
+					workspace.createFileSystemWatcher(new RelativePattern(join(cartRoot, cartridge), '**/*'))
 				);
 			});
 
@@ -101,7 +101,6 @@ function fileWatcher(config, cartRoot: string, outputChannel: OutputChannel) {
 
 		return () => {
 			// and dispose them all in the end
-
 			watchers.forEach(watcher => watcher.dispose());
 		};
 	});
@@ -131,29 +130,15 @@ const uploadCartridges = (
 			const notify = (...msgs) => {
 				outputChannel.appendLine(msgs.join(' '));
 			};
+			const dirToUpload = join(cartRoot, cartridge);
 
-			return Observable.create(observer => {
-				const dirToUpload = join(cartRoot, cartridge);
-				const cartridge$ = webdav
-					.uploadCartridge(dirToUpload, notify, { isCartridge: true }).subscribe(
-					(data) => {
-						observer.next(data);
-
-					},
-					(error) => observer.error(error),
-					() => {
-						observer.complete();
-						count++;
-						if (progress) {
-							progress({ message: `Uploading cartridges: ${count} of ${cartridgesList.length}` })
-						}
+			return webdav
+				.uploadCartridge(dirToUpload, notify, { isCartridge: true })
+				.do(() => { }, undefined, () => {
+					if (progress) {
+						progress({ message: `Uploading cartridges: ${count++} of ${cartridgesList.length}` });
 					}
-					);
-
-				return () => {
-					cartridge$.unsubscribe();
-				}
-			})
+				});
 
 		});
 	return Observable
@@ -199,7 +184,7 @@ function uploadWithProgress(webdav: WebDav, outputChannel: OutputChannel, config
 					return uploadCartridges(webdav, outputChannel, config, rootDir, progress);
 				} else {
 					outputChannel.appendLine(`Upload cartridges on start is disabled via config`);
-					return Observable.of(1);
+					return Observable.of('');
 				}
 			}).do(() => {
 				if (config.cleanOnStart) {
@@ -215,9 +200,9 @@ function uploadWithProgress(webdav: WebDav, outputChannel: OutputChannel, config
 					resolve = null;
 				}
 			}).subscribe(
-			() => observer.next(),
-			error => observer.error(error),
-			() => observer.complete()
+				() => observer.next(),
+				error => observer.error(error),
+				() => observer.complete()
 			);
 
 		return () => {
