@@ -102,6 +102,12 @@ export default class Uploader {
 								}
 							}));
 
+							context.subscriptions.push(commands.registerCommand('extension.prophet.command.filter.logview', () => {
+								if (logsView) {
+									logsView.showFilterBox();
+								}
+							}));
+
 							context.subscriptions.push(commands.registerCommand('extension.prophet.command.log.open', (filename) => {
 								if (logsView) {
 									logsView.openLog(filename);

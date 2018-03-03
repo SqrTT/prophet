@@ -1,0 +1,2396 @@
+{
+    "Require Class ABTest": {
+        "prefix": "reqABTest",
+        "body": [
+            "const ABTest = require('dw/campaign/ABTest');"
+        ],
+        "description": "Require Class ABTest"
+    },
+    "Require Class ABTestMgr": {
+        "prefix": "reqABTestMgr",
+        "body": [
+            "const ABTestMgr = require('dw/campaign/ABTestMgr');"
+        ],
+        "description": "Require Class ABTestMgr"
+    },
+    "Require Class ABTestSegment": {
+        "prefix": "reqABTestSegment",
+        "body": [
+            "const ABTestSegment = require('dw/campaign/ABTestSegment');"
+        ],
+        "description": "Require Class ABTestSegment"
+    },
+    "Require Class AmountDiscount": {
+        "prefix": "reqAmountDiscount",
+        "body": [
+            "const AmountDiscount = require('dw/campaign/AmountDiscount');"
+        ],
+        "description": "Require Class AmountDiscount"
+    },
+    "Require Class ApproachingDiscount": {
+        "prefix": "reqApproachingDiscount",
+        "body": [
+            "const ApproachingDiscount = require('dw/campaign/ApproachingDiscount');"
+        ],
+        "description": "Require Class ApproachingDiscount"
+    },
+    "Require Class BonusChoiceDiscount": {
+        "prefix": "reqBonusChoiceDiscount",
+        "body": [
+            "const BonusChoiceDiscount = require('dw/campaign/BonusChoiceDiscount');"
+        ],
+        "description": "Require Class BonusChoiceDiscount"
+    },
+    "Require Class BonusDiscount": {
+        "prefix": "reqBonusDiscount",
+        "body": [
+            "const BonusDiscount = require('dw/campaign/BonusDiscount');"
+        ],
+        "description": "Require Class BonusDiscount"
+    },
+    "Require Class Campaign": {
+        "prefix": "reqCampaign",
+        "body": [
+            "const Campaign = require('dw/campaign/Campaign');"
+        ],
+        "description": "Require Class Campaign"
+    },
+    "Require Class CampaignMgr": {
+        "prefix": "reqCampaignMgr",
+        "body": [
+            "const CampaignMgr = require('dw/campaign/CampaignMgr');"
+        ],
+        "description": "Require Class CampaignMgr"
+    },
+    "Require Class CampaignStatusCodes": {
+        "prefix": "reqCampaignStatusCodes",
+        "body": [
+            "const CampaignStatusCodes = require('dw/campaign/CampaignStatusCodes');"
+        ],
+        "description": "Require Class CampaignStatusCodes"
+    },
+    "Require Class Coupon": {
+        "prefix": "reqCoupon",
+        "body": [
+            "const Coupon = require('dw/campaign/Coupon');"
+        ],
+        "description": "Require Class Coupon"
+    },
+    "Require Class CouponMgr": {
+        "prefix": "reqCouponMgr",
+        "body": [
+            "const CouponMgr = require('dw/campaign/CouponMgr');"
+        ],
+        "description": "Require Class CouponMgr"
+    },
+    "Require Class CouponRedemption": {
+        "prefix": "reqCouponRedemption",
+        "body": [
+            "const CouponRedemption = require('dw/campaign/CouponRedemption');"
+        ],
+        "description": "Require Class CouponRedemption"
+    },
+    "Require Class CouponStatusCodes": {
+        "prefix": "reqCouponStatusCodes",
+        "body": [
+            "const CouponStatusCodes = require('dw/campaign/CouponStatusCodes');"
+        ],
+        "description": "Require Class CouponStatusCodes"
+    },
+    "Require Class Discount": {
+        "prefix": "reqDiscount",
+        "body": [
+            "const Discount = require('dw/campaign/Discount');"
+        ],
+        "description": "Require Class Discount"
+    },
+    "Require Class DiscountPlan": {
+        "prefix": "reqDiscountPlan",
+        "body": [
+            "const DiscountPlan = require('dw/campaign/DiscountPlan');"
+        ],
+        "description": "Require Class DiscountPlan"
+    },
+    "Require Class FixedPriceDiscount": {
+        "prefix": "reqFixedPriceDiscount",
+        "body": [
+            "const FixedPriceDiscount = require('dw/campaign/FixedPriceDiscount');"
+        ],
+        "description": "Require Class FixedPriceDiscount"
+    },
+    "Require Class FixedPriceShippingDiscount": {
+        "prefix": "reqFixedPriceShippingDiscount",
+        "body": [
+            "const FixedPriceShippingDiscount = require('dw/campaign/FixedPriceShippingDiscount');"
+        ],
+        "description": "Require Class FixedPriceShippingDiscount"
+    },
+    "Require Class FreeDiscount": {
+        "prefix": "reqFreeDiscount",
+        "body": [
+            "const FreeDiscount = require('dw/campaign/FreeDiscount');"
+        ],
+        "description": "Require Class FreeDiscount"
+    },
+    "Require Class FreeShippingDiscount": {
+        "prefix": "reqFreeShippingDiscount",
+        "body": [
+            "const FreeShippingDiscount = require('dw/campaign/FreeShippingDiscount');"
+        ],
+        "description": "Require Class FreeShippingDiscount"
+    },
+    "Require Class PercentageDiscount": {
+        "prefix": "reqPercentageDiscount",
+        "body": [
+            "const PercentageDiscount = require('dw/campaign/PercentageDiscount');"
+        ],
+        "description": "Require Class PercentageDiscount"
+    },
+    "Require Class PercentageOptionDiscount": {
+        "prefix": "reqPercentageOptionDiscount",
+        "body": [
+            "const PercentageOptionDiscount = require('dw/campaign/PercentageOptionDiscount');"
+        ],
+        "description": "Require Class PercentageOptionDiscount"
+    },
+    "Require Class PriceBookPriceDiscount": {
+        "prefix": "reqPriceBookPriceDiscount",
+        "body": [
+            "const PriceBookPriceDiscount = require('dw/campaign/PriceBookPriceDiscount');"
+        ],
+        "description": "Require Class PriceBookPriceDiscount"
+    },
+    "Require Class Promotion": {
+        "prefix": "reqPromotion",
+        "body": [
+            "const Promotion = require('dw/campaign/Promotion');"
+        ],
+        "description": "Require Class Promotion"
+    },
+    "Require Class PromotionMgr": {
+        "prefix": "reqPromotionMgr",
+        "body": [
+            "const PromotionMgr = require('dw/campaign/PromotionMgr');"
+        ],
+        "description": "Require Class PromotionMgr"
+    },
+    "Require Class PromotionPlan": {
+        "prefix": "reqPromotionPlan",
+        "body": [
+            "const PromotionPlan = require('dw/campaign/PromotionPlan');"
+        ],
+        "description": "Require Class PromotionPlan"
+    },
+    "Require Class SlotContent": {
+        "prefix": "reqSlotContent",
+        "body": [
+            "const SlotContent = require('dw/campaign/SlotContent');"
+        ],
+        "description": "Require Class SlotContent"
+    },
+    "Require Class SourceCodeGroup": {
+        "prefix": "reqSourceCodeGroup",
+        "body": [
+            "const SourceCodeGroup = require('dw/campaign/SourceCodeGroup');"
+        ],
+        "description": "Require Class SourceCodeGroup"
+    },
+    "Require Class SourceCodeInfo": {
+        "prefix": "reqSourceCodeInfo",
+        "body": [
+            "const SourceCodeInfo = require('dw/campaign/SourceCodeInfo');"
+        ],
+        "description": "Require Class SourceCodeInfo"
+    },
+    "Require Class SourceCodeStatusCodes": {
+        "prefix": "reqSourceCodeStatusCodes",
+        "body": [
+            "const SourceCodeStatusCodes = require('dw/campaign/SourceCodeStatusCodes');"
+        ],
+        "description": "Require Class SourceCodeStatusCodes"
+    },
+    "Require Class TotalFixedPriceDiscount": {
+        "prefix": "reqTotalFixedPriceDiscount",
+        "body": [
+            "const TotalFixedPriceDiscount = require('dw/campaign/TotalFixedPriceDiscount');"
+        ],
+        "description": "Require Class TotalFixedPriceDiscount"
+    },
+    "Require Class Catalog": {
+        "prefix": "reqCatalog",
+        "body": [
+            "const Catalog = require('dw/catalog/Catalog');"
+        ],
+        "description": "Require Class Catalog"
+    },
+    "Require Class CatalogMgr": {
+        "prefix": "reqCatalogMgr",
+        "body": [
+            "const CatalogMgr = require('dw/catalog/CatalogMgr');"
+        ],
+        "description": "Require Class CatalogMgr"
+    },
+    "Require Class Category": {
+        "prefix": "reqCategory",
+        "body": [
+            "const Category = require('dw/catalog/Category');"
+        ],
+        "description": "Require Class Category"
+    },
+    "Require Class CategoryAssignment": {
+        "prefix": "reqCategoryAssignment",
+        "body": [
+            "const CategoryAssignment = require('dw/catalog/CategoryAssignment');"
+        ],
+        "description": "Require Class CategoryAssignment"
+    },
+    "Require Class CategoryLink": {
+        "prefix": "reqCategoryLink",
+        "body": [
+            "const CategoryLink = require('dw/catalog/CategoryLink');"
+        ],
+        "description": "Require Class CategoryLink"
+    },
+    "Require Class PriceBook": {
+        "prefix": "reqPriceBook",
+        "body": [
+            "const PriceBook = require('dw/catalog/PriceBook');"
+        ],
+        "description": "Require Class PriceBook"
+    },
+    "Require Class PriceBookMgr": {
+        "prefix": "reqPriceBookMgr",
+        "body": [
+            "const PriceBookMgr = require('dw/catalog/PriceBookMgr');"
+        ],
+        "description": "Require Class PriceBookMgr"
+    },
+    "Require Class Product": {
+        "prefix": "reqProduct",
+        "body": [
+            "const Product = require('dw/catalog/Product');"
+        ],
+        "description": "Require Class Product"
+    },
+    "Require Class ProductActiveData": {
+        "prefix": "reqProductActiveData",
+        "body": [
+            "const ProductActiveData = require('dw/catalog/ProductActiveData');"
+        ],
+        "description": "Require Class ProductActiveData"
+    },
+    "Require Class ProductAttributeModel": {
+        "prefix": "reqProductAttributeModel",
+        "body": [
+            "const ProductAttributeModel = require('dw/catalog/ProductAttributeModel');"
+        ],
+        "description": "Require Class ProductAttributeModel"
+    },
+    "Require Class ProductAvailabilityLevels": {
+        "prefix": "reqProductAvailabilityLevels",
+        "body": [
+            "const ProductAvailabilityLevels = require('dw/catalog/ProductAvailabilityLevels');"
+        ],
+        "description": "Require Class ProductAvailabilityLevels"
+    },
+    "Require Class ProductAvailabilityModel": {
+        "prefix": "reqProductAvailabilityModel",
+        "body": [
+            "const ProductAvailabilityModel = require('dw/catalog/ProductAvailabilityModel');"
+        ],
+        "description": "Require Class ProductAvailabilityModel"
+    },
+    "Require Class ProductInventoryList": {
+        "prefix": "reqProductInventoryList",
+        "body": [
+            "const ProductInventoryList = require('dw/catalog/ProductInventoryList');"
+        ],
+        "description": "Require Class ProductInventoryList"
+    },
+    "Require Class ProductInventoryMgr": {
+        "prefix": "reqProductInventoryMgr",
+        "body": [
+            "const ProductInventoryMgr = require('dw/catalog/ProductInventoryMgr');"
+        ],
+        "description": "Require Class ProductInventoryMgr"
+    },
+    "Require Class ProductInventoryRecord": {
+        "prefix": "reqProductInventoryRecord",
+        "body": [
+            "const ProductInventoryRecord = require('dw/catalog/ProductInventoryRecord');"
+        ],
+        "description": "Require Class ProductInventoryRecord"
+    },
+    "Require Class ProductLink": {
+        "prefix": "reqProductLink",
+        "body": [
+            "const ProductLink = require('dw/catalog/ProductLink');"
+        ],
+        "description": "Require Class ProductLink"
+    },
+    "Require Class ProductMgr": {
+        "prefix": "reqProductMgr",
+        "body": [
+            "const ProductMgr = require('dw/catalog/ProductMgr');"
+        ],
+        "description": "Require Class ProductMgr"
+    },
+    "Require Class ProductOption": {
+        "prefix": "reqProductOption",
+        "body": [
+            "const ProductOption = require('dw/catalog/ProductOption');"
+        ],
+        "description": "Require Class ProductOption"
+    },
+    "Require Class ProductOptionModel": {
+        "prefix": "reqProductOptionModel",
+        "body": [
+            "const ProductOptionModel = require('dw/catalog/ProductOptionModel');"
+        ],
+        "description": "Require Class ProductOptionModel"
+    },
+    "Require Class ProductOptionValue": {
+        "prefix": "reqProductOptionValue",
+        "body": [
+            "const ProductOptionValue = require('dw/catalog/ProductOptionValue');"
+        ],
+        "description": "Require Class ProductOptionValue"
+    },
+    "Require Class ProductPriceInfo": {
+        "prefix": "reqProductPriceInfo",
+        "body": [
+            "const ProductPriceInfo = require('dw/catalog/ProductPriceInfo');"
+        ],
+        "description": "Require Class ProductPriceInfo"
+    },
+    "Require Class ProductPriceModel": {
+        "prefix": "reqProductPriceModel",
+        "body": [
+            "const ProductPriceModel = require('dw/catalog/ProductPriceModel');"
+        ],
+        "description": "Require Class ProductPriceModel"
+    },
+    "Require Class ProductPriceTable": {
+        "prefix": "reqProductPriceTable",
+        "body": [
+            "const ProductPriceTable = require('dw/catalog/ProductPriceTable');"
+        ],
+        "description": "Require Class ProductPriceTable"
+    },
+    "Require Class ProductSearchHit": {
+        "prefix": "reqProductSearchHit",
+        "body": [
+            "const ProductSearchHit = require('dw/catalog/ProductSearchHit');"
+        ],
+        "description": "Require Class ProductSearchHit"
+    },
+    "Require Class ProductSearchModel": {
+        "prefix": "reqProductSearchModel",
+        "body": [
+            "const ProductSearchModel = require('dw/catalog/ProductSearchModel');"
+        ],
+        "description": "Require Class ProductSearchModel"
+    },
+    "Require Class ProductSearchRefinementDefinition": {
+        "prefix": "reqProductSearchRefinementDefinition",
+        "body": [
+            "const ProductSearchRefinementDefinition = require('dw/catalog/ProductSearchRefinementDefinition');"
+        ],
+        "description": "Require Class ProductSearchRefinementDefinition"
+    },
+    "Require Class ProductSearchRefinements": {
+        "prefix": "reqProductSearchRefinements",
+        "body": [
+            "const ProductSearchRefinements = require('dw/catalog/ProductSearchRefinements');"
+        ],
+        "description": "Require Class ProductSearchRefinements"
+    },
+    "Require Class ProductSearchRefinementValue": {
+        "prefix": "reqProductSearchRefinementValue",
+        "body": [
+            "const ProductSearchRefinementValue = require('dw/catalog/ProductSearchRefinementValue');"
+        ],
+        "description": "Require Class ProductSearchRefinementValue"
+    },
+    "Require Class ProductVariationAttribute": {
+        "prefix": "reqProductVariationAttribute",
+        "body": [
+            "const ProductVariationAttribute = require('dw/catalog/ProductVariationAttribute');"
+        ],
+        "description": "Require Class ProductVariationAttribute"
+    },
+    "Require Class ProductVariationAttributeValue": {
+        "prefix": "reqProductVariationAttributeValue",
+        "body": [
+            "const ProductVariationAttributeValue = require('dw/catalog/ProductVariationAttributeValue');"
+        ],
+        "description": "Require Class ProductVariationAttributeValue"
+    },
+    "Require Class ProductVariationModel": {
+        "prefix": "reqProductVariationModel",
+        "body": [
+            "const ProductVariationModel = require('dw/catalog/ProductVariationModel');"
+        ],
+        "description": "Require Class ProductVariationModel"
+    },
+    "Require Class Recommendation": {
+        "prefix": "reqRecommendation",
+        "body": [
+            "const Recommendation = require('dw/catalog/Recommendation');"
+        ],
+        "description": "Require Class Recommendation"
+    },
+    "Require Class SearchModel": {
+        "prefix": "reqSearchModel",
+        "body": [
+            "const SearchModel = require('dw/catalog/SearchModel');"
+        ],
+        "description": "Require Class SearchModel"
+    },
+    "Require Class SearchRefinementDefinition": {
+        "prefix": "reqSearchRefinementDefinition",
+        "body": [
+            "const SearchRefinementDefinition = require('dw/catalog/SearchRefinementDefinition');"
+        ],
+        "description": "Require Class SearchRefinementDefinition"
+    },
+    "Require Class SearchRefinements": {
+        "prefix": "reqSearchRefinements",
+        "body": [
+            "const SearchRefinements = require('dw/catalog/SearchRefinements');"
+        ],
+        "description": "Require Class SearchRefinements"
+    },
+    "Require Class SearchRefinementValue": {
+        "prefix": "reqSearchRefinementValue",
+        "body": [
+            "const SearchRefinementValue = require('dw/catalog/SearchRefinementValue');"
+        ],
+        "description": "Require Class SearchRefinementValue"
+    },
+    "Require Class SortingOption": {
+        "prefix": "reqSortingOption",
+        "body": [
+            "const SortingOption = require('dw/catalog/SortingOption');"
+        ],
+        "description": "Require Class SortingOption"
+    },
+    "Require Class SortingRule": {
+        "prefix": "reqSortingRule",
+        "body": [
+            "const SortingRule = require('dw/catalog/SortingRule');"
+        ],
+        "description": "Require Class SortingRule"
+    },
+    "Require Class Store": {
+        "prefix": "reqStore",
+        "body": [
+            "const Store = require('dw/catalog/Store');"
+        ],
+        "description": "Require Class Store"
+    },
+    "Require Class StoreGroup": {
+        "prefix": "reqStoreGroup",
+        "body": [
+            "const StoreGroup = require('dw/catalog/StoreGroup');"
+        ],
+        "description": "Require Class StoreGroup"
+    },
+    "Require Class StoreMgr": {
+        "prefix": "reqStoreMgr",
+        "body": [
+            "const StoreMgr = require('dw/catalog/StoreMgr');"
+        ],
+        "description": "Require Class StoreMgr"
+    },
+    "Require Class Variant": {
+        "prefix": "reqVariant",
+        "body": [
+            "const Variant = require('dw/catalog/Variant');"
+        ],
+        "description": "Require Class Variant"
+    },
+    "Require Class VariationGroup": {
+        "prefix": "reqVariationGroup",
+        "body": [
+            "const VariationGroup = require('dw/catalog/VariationGroup');"
+        ],
+        "description": "Require Class VariationGroup"
+    },
+    "Require Class Content": {
+        "prefix": "reqContent",
+        "body": [
+            "const Content = require('dw/content/Content');"
+        ],
+        "description": "Require Class Content"
+    },
+    "Require Class ContentMgr": {
+        "prefix": "reqContentMgr",
+        "body": [
+            "const ContentMgr = require('dw/content/ContentMgr');"
+        ],
+        "description": "Require Class ContentMgr"
+    },
+    "Require Class ContentSearchModel": {
+        "prefix": "reqContentSearchModel",
+        "body": [
+            "const ContentSearchModel = require('dw/content/ContentSearchModel');"
+        ],
+        "description": "Require Class ContentSearchModel"
+    },
+    "Require Class ContentSearchRefinementDefinition": {
+        "prefix": "reqContentSearchRefinementDefinition",
+        "body": [
+            "const ContentSearchRefinementDefinition = require('dw/content/ContentSearchRefinementDefinition');"
+        ],
+        "description": "Require Class ContentSearchRefinementDefinition"
+    },
+    "Require Class ContentSearchRefinements": {
+        "prefix": "reqContentSearchRefinements",
+        "body": [
+            "const ContentSearchRefinements = require('dw/content/ContentSearchRefinements');"
+        ],
+        "description": "Require Class ContentSearchRefinements"
+    },
+    "Require Class ContentSearchRefinementValue": {
+        "prefix": "reqContentSearchRefinementValue",
+        "body": [
+            "const ContentSearchRefinementValue = require('dw/content/ContentSearchRefinementValue');"
+        ],
+        "description": "Require Class ContentSearchRefinementValue"
+    },
+    "Require Class Folder": {
+        "prefix": "reqFolder",
+        "body": [
+            "const Folder = require('dw/content/Folder');"
+        ],
+        "description": "Require Class Folder"
+    },
+    "Require Class Library": {
+        "prefix": "reqLibrary",
+        "body": [
+            "const Library = require('dw/content/Library');"
+        ],
+        "description": "Require Class Library"
+    },
+    "Require Class MarkupText": {
+        "prefix": "reqMarkupText",
+        "body": [
+            "const MarkupText = require('dw/content/MarkupText');"
+        ],
+        "description": "Require Class MarkupText"
+    },
+    "Require Class MediaFile": {
+        "prefix": "reqMediaFile",
+        "body": [
+            "const MediaFile = require('dw/content/MediaFile');"
+        ],
+        "description": "Require Class MediaFile"
+    },
+    "Require Class CertificateRef": {
+        "prefix": "reqCertificateRef",
+        "body": [
+            "const CertificateRef = require('dw/crypto/CertificateRef');"
+        ],
+        "description": "Require Class CertificateRef"
+    },
+    "Require Class Cipher": {
+        "prefix": "reqCipher",
+        "body": [
+            "const Cipher = require('dw/crypto/Cipher');"
+        ],
+        "description": "Require Class Cipher"
+    },
+    "Require Class Encoding": {
+        "prefix": "reqEncoding",
+        "body": [
+            "const Encoding = require('dw/crypto/Encoding');"
+        ],
+        "description": "Require Class Encoding"
+    },
+    "Require Class KeyRef": {
+        "prefix": "reqKeyRef",
+        "body": [
+            "const KeyRef = require('dw/crypto/KeyRef');"
+        ],
+        "description": "Require Class KeyRef"
+    },
+    "Require Class Mac": {
+        "prefix": "reqMac",
+        "body": [
+            "const Mac = require('dw/crypto/Mac');"
+        ],
+        "description": "Require Class Mac"
+    },
+    "Require Class MessageDigest": {
+        "prefix": "reqMessageDigest",
+        "body": [
+            "const MessageDigest = require('dw/crypto/MessageDigest');"
+        ],
+        "description": "Require Class MessageDigest"
+    },
+    "Require Class SecureRandom": {
+        "prefix": "reqSecureRandom",
+        "body": [
+            "const SecureRandom = require('dw/crypto/SecureRandom');"
+        ],
+        "description": "Require Class SecureRandom"
+    },
+    "Require Class Signature": {
+        "prefix": "reqSignature",
+        "body": [
+            "const Signature = require('dw/crypto/Signature');"
+        ],
+        "description": "Require Class Signature"
+    },
+    "Require Class AddressBook": {
+        "prefix": "reqAddressBook",
+        "body": [
+            "const AddressBook = require('dw/customer/AddressBook');"
+        ],
+        "description": "Require Class AddressBook"
+    },
+    "Require Class AgentUserMgr": {
+        "prefix": "reqAgentUserMgr",
+        "body": [
+            "const AgentUserMgr = require('dw/customer/AgentUserMgr');"
+        ],
+        "description": "Require Class AgentUserMgr"
+    },
+    "Require Class AgentUserStatusCodes": {
+        "prefix": "reqAgentUserStatusCodes",
+        "body": [
+            "const AgentUserStatusCodes = require('dw/system/AgentUserStatusCodes');"
+        ],
+        "description": "Require Class AgentUserStatusCodes"
+    },
+    "Require Class Credentials": {
+        "prefix": "reqCredentials",
+        "body": [
+            "const Credentials = require('dw/customer/Credentials');"
+        ],
+        "description": "Require Class Credentials"
+    },
+    "Require Class Customer": {
+        "prefix": "reqCustomer",
+        "body": [
+            "const Customer = require('dw/customer/Customer');"
+        ],
+        "description": "Require Class Customer"
+    },
+    "Require Class CustomerActiveData": {
+        "prefix": "reqCustomerActiveData",
+        "body": [
+            "const CustomerActiveData = require('dw/customer/CustomerActiveData');"
+        ],
+        "description": "Require Class CustomerActiveData"
+    },
+    "Require Class CustomerAddress": {
+        "prefix": "reqCustomerAddress",
+        "body": [
+            "const CustomerAddress = require('dw/customer/CustomerAddress');"
+        ],
+        "description": "Require Class CustomerAddress"
+    },
+    "Require Class CustomerGroup": {
+        "prefix": "reqCustomerGroup",
+        "body": [
+            "const CustomerGroup = require('dw/customer/CustomerGroup');"
+        ],
+        "description": "Require Class CustomerGroup"
+    },
+    "Require Class CustomerList": {
+        "prefix": "reqCustomerList",
+        "body": [
+            "const CustomerList = require('dw/customer/CustomerList');"
+        ],
+        "description": "Require Class CustomerList"
+    },
+    "Require Class CustomerMgr": {
+        "prefix": "reqCustomerMgr",
+        "body": [
+            "const CustomerMgr = require('dw/customer/CustomerMgr');"
+        ],
+        "description": "Require Class CustomerMgr"
+    },
+    "Require Class CustomerPasswordConstraints": {
+        "prefix": "reqCustomerPasswordConstraints",
+        "body": [
+            "const CustomerPasswordConstraints = require('dw/customer/CustomerPasswordConstraints');"
+        ],
+        "description": "Require Class CustomerPasswordConstraints"
+    },
+    "Require Class CustomerPaymentInstrument": {
+        "prefix": "reqCustomerPaymentInstrument",
+        "body": [
+            "const CustomerPaymentInstrument = require('dw/customer/CustomerPaymentInstrument');"
+        ],
+        "description": "Require Class CustomerPaymentInstrument"
+    },
+    "Require Class CustomerStatusCodes": {
+        "prefix": "reqCustomerStatusCodes",
+        "body": [
+            "const CustomerStatusCodes = require('dw/customer/CustomerStatusCodes');"
+        ],
+        "description": "Require Class CustomerStatusCodes"
+    },
+    "Require Class EncryptedObject": {
+        "prefix": "reqEncryptedObject",
+        "body": [
+            "const EncryptedObject = require('dw/customer/EncryptedObject');"
+        ],
+        "description": "Require Class EncryptedObject"
+    },
+    "Require Class ExternalProfile": {
+        "prefix": "reqExternalProfile",
+        "body": [
+            "const ExternalProfile = require('dw/customer/ExternalProfile');"
+        ],
+        "description": "Require Class ExternalProfile"
+    },
+    "Require Class OrderHistory": {
+        "prefix": "reqOrderHistory",
+        "body": [
+            "const OrderHistory = require('dw/customer/OrderHistory');"
+        ],
+        "description": "Require Class OrderHistory"
+    },
+    "Require Class ProductList": {
+        "prefix": "reqProductList",
+        "body": [
+            "const ProductList = require('dw/customer/ProductList');"
+        ],
+        "description": "Require Class ProductList"
+    },
+    "Require Class ProductListItem": {
+        "prefix": "reqProductListItem",
+        "body": [
+            "const ProductListItem = require('dw/customer/ProductListItem');"
+        ],
+        "description": "Require Class ProductListItem"
+    },
+    "Require Class ProductListItemPurchase": {
+        "prefix": "reqProductListItemPurchase",
+        "body": [
+            "const ProductListItemPurchase = require('dw/customer/ProductListItemPurchase');"
+        ],
+        "description": "Require Class ProductListItemPurchase"
+    },
+    "Require Class ProductListMgr": {
+        "prefix": "reqProductListMgr",
+        "body": [
+            "const ProductListMgr = require('dw/customer/ProductListMgr');"
+        ],
+        "description": "Require Class ProductListMgr"
+    },
+    "Require Class ProductListRegistrant": {
+        "prefix": "reqProductListRegistrant",
+        "body": [
+            "const ProductListRegistrant = require('dw/customer/ProductListRegistrant');"
+        ],
+        "description": "Require Class ProductListRegistrant"
+    },
+    "Require Class Profile": {
+        "prefix": "reqProfile",
+        "body": [
+            "const Profile = require('dw/customer/Profile');"
+        ],
+        "description": "Require Class Profile"
+    },
+    "Require Class Wallet": {
+        "prefix": "reqWallet",
+        "body": [
+            "const Wallet = require('dw/customer/Wallet');"
+        ],
+        "description": "Require Class Wallet"
+    },
+    "Require Class OAuthAccessTokenResponse": {
+        "prefix": "reqOAuthAccessTokenResponse",
+        "body": [
+            "const OAuthAccessTokenResponse = require('dw/customer.oauth/OAuthAccessTokenResponse');"
+        ],
+        "description": "Require Class OAuthAccessTokenResponse"
+    },
+    "Require Class OAuthFinalizedResponse": {
+        "prefix": "reqOAuthFinalizedResponse",
+        "body": [
+            "const OAuthFinalizedResponse = require('dw/customer.oauth/OAuthFinalizedResponse');"
+        ],
+        "description": "Require Class OAuthFinalizedResponse"
+    },
+    "Require Class OAuthLoginFlowMgr": {
+        "prefix": "reqOAuthLoginFlowMgr",
+        "body": [
+            "const OAuthLoginFlowMgr = require('dw/customer.oauth/OAuthLoginFlowMgr');"
+        ],
+        "description": "Require Class OAuthLoginFlowMgr"
+    },
+    "Require Class OAuthUserInfoResponse": {
+        "prefix": "reqOAuthUserInfoResponse",
+        "body": [
+            "const OAuthUserInfoResponse = require('dw/customer.oauth/OAuthUserInfoResponse');"
+        ],
+        "description": "Require Class OAuthUserInfoResponse"
+    },
+    "Require Class CSVStreamReader": {
+        "prefix": "reqCSVStreamReader",
+        "body": [
+            "const CSVStreamReader = require('dw/io/CSVStreamReader');"
+        ],
+        "description": "Require Class CSVStreamReader"
+    },
+    "Require Class CSVStreamWriter": {
+        "prefix": "reqCSVStreamWriter",
+        "body": [
+            "const CSVStreamWriter = require('dw/io/CSVStreamWriter');"
+        ],
+        "description": "Require Class CSVStreamWriter"
+    },
+    "Require Class File": {
+        "prefix": "reqFile",
+        "body": [
+            "const File = require('dw/io/File');"
+        ],
+        "description": "Require Class File"
+    },
+    "Require Class FileReader": {
+        "prefix": "reqFileReader",
+        "body": [
+            "const FileReader = require('dw/io/FileReader');"
+        ],
+        "description": "Require Class FileReader"
+    },
+    "Require Class FileWriter": {
+        "prefix": "reqFileWriter",
+        "body": [
+            "const FileWriter = require('dw/io/FileWriter');"
+        ],
+        "description": "Require Class FileWriter"
+    },
+    "Require Class InputStream": {
+        "prefix": "reqInputStream",
+        "body": [
+            "const InputStream = require('dw/io/InputStream');"
+        ],
+        "description": "Require Class InputStream"
+    },
+    "Require Class OutputStream": {
+        "prefix": "reqOutputStream",
+        "body": [
+            "const OutputStream = require('dw/io/OutputStream');"
+        ],
+        "description": "Require Class OutputStream"
+    },
+    "Require Class PrintWriter": {
+        "prefix": "reqPrintWriter",
+        "body": [
+            "const PrintWriter = require('dw/io/PrintWriter');"
+        ],
+        "description": "Require Class PrintWriter"
+    },
+    "Require Class RandomAccessFileReader": {
+        "prefix": "reqRandomAccessFileReader",
+        "body": [
+            "const RandomAccessFileReader = require('dw/io/RandomAccessFileReader');"
+        ],
+        "description": "Require Class RandomAccessFileReader"
+    },
+    "Require Class Reader": {
+        "prefix": "reqReader",
+        "body": [
+            "const Reader = require('dw/io/Reader');"
+        ],
+        "description": "Require Class Reader"
+    },
+    "Require Class StringWriter": {
+        "prefix": "reqStringWriter",
+        "body": [
+            "const StringWriter = require('dw/io/StringWriter');"
+        ],
+        "description": "Require Class StringWriter"
+    },
+    "Require Class Writer": {
+        "prefix": "reqWriter",
+        "body": [
+            "const Writer = require('dw/io/Writer');"
+        ],
+        "description": "Require Class Writer"
+    },
+    "Require Class XMLIndentingStreamWriter": {
+        "prefix": "reqXMLIndentingStreamWriter",
+        "body": [
+            "const XMLIndentingStreamWriter = require('dw/io/XMLIndentingStreamWriter');"
+        ],
+        "description": "Require Class XMLIndentingStreamWriter"
+    },
+    "Require Class XMLStreamConstants": {
+        "prefix": "reqXMLStreamConstants",
+        "body": [
+            "const XMLStreamConstants = require('dw/io/XMLStreamConstants');"
+        ],
+        "description": "Require Class XMLStreamConstants"
+    },
+    "Require Class XMLStreamReader": {
+        "prefix": "reqXMLStreamReader",
+        "body": [
+            "const XMLStreamReader = require('dw/io/XMLStreamReader');"
+        ],
+        "description": "Require Class XMLStreamReader"
+    },
+    "Require Class XMLStreamWriter": {
+        "prefix": "reqXMLStreamWriter",
+        "body": [
+            "const XMLStreamWriter = require('dw/io/XMLStreamWriter');"
+        ],
+        "description": "Require Class XMLStreamWriter"
+    },
+    "Require Class JobExecution": {
+        "prefix": "reqJobExecution",
+        "body": [
+            "const JobExecution = require('dw/job/JobExecution');"
+        ],
+        "description": "Require Class JobExecution"
+    },
+    "Require Class JobStepExecution": {
+        "prefix": "reqJobStepExecution",
+        "body": [
+            "const JobStepExecution = require('dw/job/JobStepExecution');"
+        ],
+        "description": "Require Class JobStepExecution"
+    },
+    "Require Class FTPClient": {
+        "prefix": "reqFTPClient",
+        "body": [
+            "const FTPClient = require('dw/net/FTPClient');"
+        ],
+        "description": "Require Class FTPClient"
+    },
+    "Require Class FTPFileInfo": {
+        "prefix": "reqFTPFileInfo",
+        "body": [
+            "const FTPFileInfo = require('dw/net/FTPFileInfo');"
+        ],
+        "description": "Require Class FTPFileInfo"
+    },
+    "Require Class HTTPClient": {
+        "prefix": "reqHTTPClient",
+        "body": [
+            "const HTTPClient = require('dw/net/HTTPClient');"
+        ],
+        "description": "Require Class HTTPClient"
+    },
+    "Require Class HTTPRequestPart": {
+        "prefix": "reqHTTPRequestPart",
+        "body": [
+            "const HTTPRequestPart = require('dw/net/HTTPRequestPart');"
+        ],
+        "description": "Require Class HTTPRequestPart"
+    },
+    "Require Class Mail": {
+        "prefix": "reqMail",
+        "body": [
+            "const Mail = require('dw/net/Mail');"
+        ],
+        "description": "Require Class Mail"
+    },
+    "Require Class SFTPClient": {
+        "prefix": "reqSFTPClient",
+        "body": [
+            "const SFTPClient = require('dw/net/SFTPClient');"
+        ],
+        "description": "Require Class SFTPClient"
+    },
+    "Require Class SFTPFileInfo": {
+        "prefix": "reqSFTPFileInfo",
+        "body": [
+            "const SFTPFileInfo = require('dw/net/SFTPFileInfo');"
+        ],
+        "description": "Require Class SFTPFileInfo"
+    },
+    "Require Class WebDAVClient": {
+        "prefix": "reqWebDAVClient",
+        "body": [
+            "const WebDAVClient = require('dw/net/WebDAVClient');"
+        ],
+        "description": "Require Class WebDAVClient"
+    },
+    "Require Class WebDAVFileInfo": {
+        "prefix": "reqWebDAVFileInfo",
+        "body": [
+            "const WebDAVFileInfo = require('dw/net/WebDAVFileInfo');"
+        ],
+        "description": "Require Class WebDAVFileInfo"
+    },
+    "Require Class ActiveData": {
+        "prefix": "reqActiveData",
+        "body": [
+            "const ActiveData = require('dw/object/ActiveData');"
+        ],
+        "description": "Require Class ActiveData"
+    },
+    "Require Class CustomAttributes": {
+        "prefix": "reqCustomAttributes",
+        "body": [
+            "const CustomAttributes = require('dw/object/CustomAttributes');"
+        ],
+        "description": "Require Class CustomAttributes"
+    },
+    "Require Class CustomObject": {
+        "prefix": "reqCustomObject",
+        "body": [
+            "const CustomObject = require('dw/object/CustomObject');"
+        ],
+        "description": "Require Class CustomObject"
+    },
+    "Require Class CustomObjectMgr": {
+        "prefix": "reqCustomObjectMgr",
+        "body": [
+            "const CustomObjectMgr = require('dw/object/CustomObjectMgr');"
+        ],
+        "description": "Require Class CustomObjectMgr"
+    },
+    "Require Class Extensible": {
+        "prefix": "reqExtensible",
+        "body": [
+            "const Extensible = require('dw/object/Extensible');"
+        ],
+        "description": "Require Class Extensible"
+    },
+    "Require Class ExtensibleObject": {
+        "prefix": "reqExtensibleObject",
+        "body": [
+            "const ExtensibleObject = require('dw/object/ExtensibleObject');"
+        ],
+        "description": "Require Class ExtensibleObject"
+    },
+    "Require Class Note": {
+        "prefix": "reqNote",
+        "body": [
+            "const Note = require('dw/object/Note');"
+        ],
+        "description": "Require Class Note"
+    },
+    "Require Class ObjectAttributeDefinition": {
+        "prefix": "reqObjectAttributeDefinition",
+        "body": [
+            "const ObjectAttributeDefinition = require('dw/object/ObjectAttributeDefinition');"
+        ],
+        "description": "Require Class ObjectAttributeDefinition"
+    },
+    "Require Class ObjectAttributeGroup": {
+        "prefix": "reqObjectAttributeGroup",
+        "body": [
+            "const ObjectAttributeGroup = require('dw/object/ObjectAttributeGroup');"
+        ],
+        "description": "Require Class ObjectAttributeGroup"
+    },
+    "Require Class ObjectAttributeValueDefinition": {
+        "prefix": "reqObjectAttributeValueDefinition",
+        "body": [
+            "const ObjectAttributeValueDefinition = require('dw/object/ObjectAttributeValueDefinition');"
+        ],
+        "description": "Require Class ObjectAttributeValueDefinition"
+    },
+    "Require Class ObjectTypeDefinition": {
+        "prefix": "reqObjectTypeDefinition",
+        "body": [
+            "const ObjectTypeDefinition = require('dw/object/ObjectTypeDefinition');"
+        ],
+        "description": "Require Class ObjectTypeDefinition"
+    },
+    "Require Class PersistentObject": {
+        "prefix": "reqPersistentObject",
+        "body": [
+            "const PersistentObject = require('dw/object/PersistentObject');"
+        ],
+        "description": "Require Class PersistentObject"
+    },
+    "Require Class SimpleExtensible": {
+        "prefix": "reqSimpleExtensible",
+        "body": [
+            "const SimpleExtensible = require('dw/object/SimpleExtensible');"
+        ],
+        "description": "Require Class SimpleExtensible"
+    },
+    "Require Class SystemObjectMgr": {
+        "prefix": "reqSystemObjectMgr",
+        "body": [
+            "const SystemObjectMgr = require('dw/object/SystemObjectMgr');"
+        ],
+        "description": "Require Class SystemObjectMgr"
+    },
+    "Require Class AbstractItem": {
+        "prefix": "reqAbstractItem",
+        "body": [
+            "const AbstractItem = require('dw/order/AbstractItem');"
+        ],
+        "description": "Require Class AbstractItem"
+    },
+    "Require Class AbstractItemCtnr": {
+        "prefix": "reqAbstractItemCtnr",
+        "body": [
+            "const AbstractItemCtnr = require('dw/order/AbstractItemCtnr');"
+        ],
+        "description": "Require Class AbstractItemCtnr"
+    },
+    "Require Class Appeasement": {
+        "prefix": "reqAppeasement",
+        "body": [
+            "const Appeasement = require('dw/order/Appeasement');"
+        ],
+        "description": "Require Class Appeasement"
+    },
+    "Require Class AppeasementItem": {
+        "prefix": "reqAppeasementItem",
+        "body": [
+            "const AppeasementItem = require('dw/order/AppeasementItem');"
+        ],
+        "description": "Require Class AppeasementItem"
+    },
+    "Require Class Basket": {
+        "prefix": "reqBasket",
+        "body": [
+            "const Basket = require('dw/order/Basket');"
+        ],
+        "description": "Require Class Basket"
+    },
+    "Require Class BasketMgr": {
+        "prefix": "reqBasketMgr",
+        "body": [
+            "const BasketMgr = require('dw/order/BasketMgr');"
+        ],
+        "description": "Require Class BasketMgr"
+    },
+    "Require Class BonusDiscountLineItem": {
+        "prefix": "reqBonusDiscountLineItem",
+        "body": [
+            "const BonusDiscountLineItem = require('dw/order/BonusDiscountLineItem');"
+        ],
+        "description": "Require Class BonusDiscountLineItem"
+    },
+    "Require Class CouponLineItem": {
+        "prefix": "reqCouponLineItem",
+        "body": [
+            "const CouponLineItem = require('dw/order/CouponLineItem');"
+        ],
+        "description": "Require Class CouponLineItem"
+    },
+    "Require Class CreateBasketFromOrderException": {
+        "prefix": "reqCreateBasketFromOrderException",
+        "body": [
+            "const CreateBasketFromOrderException = require('dw/order/CreateBasketFromOrderException');"
+        ],
+        "description": "Require Class CreateBasketFromOrderException"
+    },
+    "Require Class CreateCouponLineItemException": {
+        "prefix": "reqCreateCouponLineItemException",
+        "body": [
+            "const CreateCouponLineItemException = require('dw/order/CreateCouponLineItemException');"
+        ],
+        "description": "Require Class CreateCouponLineItemException"
+    },
+    "Require Class CreateOrderException": {
+        "prefix": "reqCreateOrderException",
+        "body": [
+            "const CreateOrderException = require('dw/order/CreateOrderException');"
+        ],
+        "description": "Require Class CreateOrderException"
+    },
+    "Require Class GiftCertificate": {
+        "prefix": "reqGiftCertificate",
+        "body": [
+            "const GiftCertificate = require('dw/order/GiftCertificate');"
+        ],
+        "description": "Require Class GiftCertificate"
+    },
+    "Require Class GiftCertificateLineItem": {
+        "prefix": "reqGiftCertificateLineItem",
+        "body": [
+            "const GiftCertificateLineItem = require('dw/order/GiftCertificateLineItem');"
+        ],
+        "description": "Require Class GiftCertificateLineItem"
+    },
+    "Require Class GiftCertificateMgr": {
+        "prefix": "reqGiftCertificateMgr",
+        "body": [
+            "const GiftCertificateMgr = require('dw/order/GiftCertificateMgr');"
+        ],
+        "description": "Require Class GiftCertificateMgr"
+    },
+    "Require Class GiftCertificateStatusCodes": {
+        "prefix": "reqGiftCertificateStatusCodes",
+        "body": [
+            "const GiftCertificateStatusCodes = require('dw/order/GiftCertificateStatusCodes');"
+        ],
+        "description": "Require Class GiftCertificateStatusCodes"
+    },
+    "Require Class Invoice": {
+        "prefix": "reqInvoice",
+        "body": [
+            "const Invoice = require('dw/order/Invoice');"
+        ],
+        "description": "Require Class Invoice"
+    },
+    "Require Class InvoiceItem": {
+        "prefix": "reqInvoiceItem",
+        "body": [
+            "const InvoiceItem = require('dw/order/InvoiceItem');"
+        ],
+        "description": "Require Class InvoiceItem"
+    },
+    "Require Class LineItem": {
+        "prefix": "reqLineItem",
+        "body": [
+            "const LineItem = require('dw/order/LineItem');"
+        ],
+        "description": "Require Class LineItem"
+    },
+    "Require Class LineItemCtnr": {
+        "prefix": "reqLineItemCtnr",
+        "body": [
+            "const LineItemCtnr = require('dw/order/LineItemCtnr');"
+        ],
+        "description": "Require Class LineItemCtnr"
+    },
+    "Require Class Order": {
+        "prefix": "reqOrder",
+        "body": [
+            "const Order = require('dw/order/Order');"
+        ],
+        "description": "Require Class Order"
+    },
+    "Require Class OrderAddress": {
+        "prefix": "reqOrderAddress",
+        "body": [
+            "const OrderAddress = require('dw/order/OrderAddress');"
+        ],
+        "description": "Require Class OrderAddress"
+    },
+    "Require Class OrderItem": {
+        "prefix": "reqOrderItem",
+        "body": [
+            "const OrderItem = require('dw/order/OrderItem');"
+        ],
+        "description": "Require Class OrderItem"
+    },
+    "Require Class OrderMgr": {
+        "prefix": "reqOrderMgr",
+        "body": [
+            "const OrderMgr = require('dw/order/OrderMgr');"
+        ],
+        "description": "Require Class OrderMgr"
+    },
+    "Require Class OrderPaymentInstrument": {
+        "prefix": "reqOrderPaymentInstrument",
+        "body": [
+            "const OrderPaymentInstrument = require('dw/order/OrderPaymentInstrument');"
+        ],
+        "description": "Require Class OrderPaymentInstrument"
+    },
+    "Require Class OrderProcessStatusCodes": {
+        "prefix": "reqOrderProcessStatusCodes",
+        "body": [
+            "const OrderProcessStatusCodes = require('dw/order/OrderProcessStatusCodes');"
+        ],
+        "description": "Require Class OrderProcessStatusCodes"
+    },
+    "Require Class PaymentCard": {
+        "prefix": "reqPaymentCard",
+        "body": [
+            "const PaymentCard = require('dw/order/PaymentCard');"
+        ],
+        "description": "Require Class PaymentCard"
+    },
+    "Require Class PaymentInstrument": {
+        "prefix": "reqPaymentInstrument",
+        "body": [
+            "const PaymentInstrument = require('dw/order/PaymentInstrument');"
+        ],
+        "description": "Require Class PaymentInstrument"
+    },
+    "Require Class PaymentMethod": {
+        "prefix": "reqPaymentMethod",
+        "body": [
+            "const PaymentMethod = require('dw/order/PaymentMethod');"
+        ],
+        "description": "Require Class PaymentMethod"
+    },
+    "Require Class PaymentMgr": {
+        "prefix": "reqPaymentMgr",
+        "body": [
+            "const PaymentMgr = require('dw/order/PaymentMgr');"
+        ],
+        "description": "Require Class PaymentMgr"
+    },
+    "Require Class PaymentProcessor": {
+        "prefix": "reqPaymentProcessor",
+        "body": [
+            "const PaymentProcessor = require('dw/order/PaymentProcessor');"
+        ],
+        "description": "Require Class PaymentProcessor"
+    },
+    "Require Class PaymentStatusCodes": {
+        "prefix": "reqPaymentStatusCodes",
+        "body": [
+            "const PaymentStatusCodes = require('dw/order/PaymentStatusCodes');"
+        ],
+        "description": "Require Class PaymentStatusCodes"
+    },
+    "Require Class PaymentTransaction": {
+        "prefix": "reqPaymentTransaction",
+        "body": [
+            "const PaymentTransaction = require('dw/order/PaymentTransaction');"
+        ],
+        "description": "Require Class PaymentTransaction"
+    },
+    "Require Class PriceAdjustment": {
+        "prefix": "reqPriceAdjustment",
+        "body": [
+            "const PriceAdjustment = require('dw/order/PriceAdjustment');"
+        ],
+        "description": "Require Class PriceAdjustment"
+    },
+    "Require Class PriceAdjustmentLimitTypes": {
+        "prefix": "reqPriceAdjustmentLimitTypes",
+        "body": [
+            "const PriceAdjustmentLimitTypes = require('dw/order/PriceAdjustmentLimitTypes');"
+        ],
+        "description": "Require Class PriceAdjustmentLimitTypes"
+    },
+    "Require Class ProductLineItem": {
+        "prefix": "reqProductLineItem",
+        "body": [
+            "const ProductLineItem = require('dw/order/ProductLineItem');"
+        ],
+        "description": "Require Class ProductLineItem"
+    },
+    "Require Class ProductShippingCost": {
+        "prefix": "reqProductShippingCost",
+        "body": [
+            "const ProductShippingCost = require('dw/order/ProductShippingCost');"
+        ],
+        "description": "Require Class ProductShippingCost"
+    },
+    "Require Class ProductShippingLineItem": {
+        "prefix": "reqProductShippingLineItem",
+        "body": [
+            "const ProductShippingLineItem = require('dw/order/ProductShippingLineItem');"
+        ],
+        "description": "Require Class ProductShippingLineItem"
+    },
+    "Require Class ProductShippingModel": {
+        "prefix": "reqProductShippingModel",
+        "body": [
+            "const ProductShippingModel = require('dw/order/ProductShippingModel');"
+        ],
+        "description": "Require Class ProductShippingModel"
+    },
+    "Require Class Return": {
+        "prefix": "reqReturn",
+        "body": [
+            "const Return = require('dw/order/Return');"
+        ],
+        "description": "Require Class Return"
+    },
+    "Require Class ReturnCase": {
+        "prefix": "reqReturnCase",
+        "body": [
+            "const ReturnCase = require('dw/order/ReturnCase');"
+        ],
+        "description": "Require Class ReturnCase"
+    },
+    "Require Class ReturnCaseItem": {
+        "prefix": "reqReturnCaseItem",
+        "body": [
+            "const ReturnCaseItem = require('dw/order/ReturnCaseItem');"
+        ],
+        "description": "Require Class ReturnCaseItem"
+    },
+    "Require Class ReturnItem": {
+        "prefix": "reqReturnItem",
+        "body": [
+            "const ReturnItem = require('dw/order/ReturnItem');"
+        ],
+        "description": "Require Class ReturnItem"
+    },
+    "Require Class Shipment": {
+        "prefix": "reqShipment",
+        "body": [
+            "const Shipment = require('dw/order/Shipment');"
+        ],
+        "description": "Require Class Shipment"
+    },
+    "Require Class ShipmentShippingCost": {
+        "prefix": "reqShipmentShippingCost",
+        "body": [
+            "const ShipmentShippingCost = require('dw/order/ShipmentShippingCost');"
+        ],
+        "description": "Require Class ShipmentShippingCost"
+    },
+    "Require Class ShipmentShippingModel": {
+        "prefix": "reqShipmentShippingModel",
+        "body": [
+            "const ShipmentShippingModel = require('dw/order/ShipmentShippingModel');"
+        ],
+        "description": "Require Class ShipmentShippingModel"
+    },
+    "Require Class ShippingLineItem": {
+        "prefix": "reqShippingLineItem",
+        "body": [
+            "const ShippingLineItem = require('dw/order/ShippingLineItem');"
+        ],
+        "description": "Require Class ShippingLineItem"
+    },
+    "Require Class ShippingLocation": {
+        "prefix": "reqShippingLocation",
+        "body": [
+            "const ShippingLocation = require('dw/order/ShippingLocation');"
+        ],
+        "description": "Require Class ShippingLocation"
+    },
+    "Require Class ShippingMethod": {
+        "prefix": "reqShippingMethod",
+        "body": [
+            "const ShippingMethod = require('dw/order/ShippingMethod');"
+        ],
+        "description": "Require Class ShippingMethod"
+    },
+    "Require Class ShippingMgr": {
+        "prefix": "reqShippingMgr",
+        "body": [
+            "const ShippingMgr = require('dw/order/ShippingMgr');"
+        ],
+        "description": "Require Class ShippingMgr"
+    },
+    "Require Class ShippingOrder": {
+        "prefix": "reqShippingOrder",
+        "body": [
+            "const ShippingOrder = require('dw/order/ShippingOrder');"
+        ],
+        "description": "Require Class ShippingOrder"
+    },
+    "Require Class ShippingOrderItem": {
+        "prefix": "reqShippingOrderItem",
+        "body": [
+            "const ShippingOrderItem = require('dw/order/ShippingOrderItem');"
+        ],
+        "description": "Require Class ShippingOrderItem"
+    },
+    "Require Class SumItem": {
+        "prefix": "reqSumItem",
+        "body": [
+            "const SumItem = require('dw/order/SumItem');"
+        ],
+        "description": "Require Class SumItem"
+    },
+    "Require Class TaxGroup": {
+        "prefix": "reqTaxGroup",
+        "body": [
+            "const TaxGroup = require('dw/order/TaxGroup');"
+        ],
+        "description": "Require Class TaxGroup"
+    },
+    "Require Class TaxItem": {
+        "prefix": "reqTaxItem",
+        "body": [
+            "const TaxItem = require('dw/order/TaxItem');"
+        ],
+        "description": "Require Class TaxItem"
+    },
+    "Require Class TaxMgr": {
+        "prefix": "reqTaxMgr",
+        "body": [
+            "const TaxMgr = require('dw/order/TaxMgr');"
+        ],
+        "description": "Require Class TaxMgr"
+    },
+    "Require Class TrackingInfo": {
+        "prefix": "reqTrackingInfo",
+        "body": [
+            "const TrackingInfo = require('dw/order/TrackingInfo');"
+        ],
+        "description": "Require Class TrackingInfo"
+    },
+    "Require Class TrackingRef": {
+        "prefix": "reqTrackingRef",
+        "body": [
+            "const TrackingRef = require('dw/order/TrackingRef');"
+        ],
+        "description": "Require Class TrackingRef"
+    },
+    "Require Class SOAPUtil": {
+        "prefix": "reqSOAPUtil",
+        "body": [
+            "const SOAPUtil = require('dw/rpc/SOAPUtil');"
+        ],
+        "description": "Require Class SOAPUtil"
+    },
+    "Require Class Stub": {
+        "prefix": "reqStub",
+        "body": [
+            "const Stub = require('dw/rpc/Stub');"
+        ],
+        "description": "Require Class Stub"
+    },
+    "Require Class WebReference": {
+        "prefix": "reqWebReference",
+        "body": [
+            "const WebReference = require('dw/rpc/WebReference');"
+        ],
+        "description": "Require Class WebReference"
+    },
+    "Require Class SitemapFile": {
+        "prefix": "reqSitemapFile",
+        "body": [
+            "const SitemapFile = require('dw/sitemap/SitemapFile');"
+        ],
+        "description": "Require Class SitemapFile"
+    },
+    "Require Class SitemapMgr": {
+        "prefix": "reqSitemapMgr",
+        "body": [
+            "const SitemapMgr = require('dw/sitemap/SitemapMgr');"
+        ],
+        "description": "Require Class SitemapMgr"
+    },
+    "Require Class BrandSuggestions": {
+        "prefix": "reqBrandSuggestions",
+        "body": [
+            "const BrandSuggestions = require('dw/suggest/BrandSuggestions');"
+        ],
+        "description": "Require Class BrandSuggestions"
+    },
+    "Require Class CategorySuggestions": {
+        "prefix": "reqCategorySuggestions",
+        "body": [
+            "const CategorySuggestions = require('dw/suggest/CategorySuggestions');"
+        ],
+        "description": "Require Class CategorySuggestions"
+    },
+    "Require Class ContentSuggestions": {
+        "prefix": "reqContentSuggestions",
+        "body": [
+            "const ContentSuggestions = require('dw/suggest/ContentSuggestions');"
+        ],
+        "description": "Require Class ContentSuggestions"
+    },
+    "Require Class CustomSuggestions": {
+        "prefix": "reqCustomSuggestions",
+        "body": [
+            "const CustomSuggestions = require('dw/suggest/CustomSuggestions');"
+        ],
+        "description": "Require Class CustomSuggestions"
+    },
+    "Require Class ProductSuggestions": {
+        "prefix": "reqProductSuggestions",
+        "body": [
+            "const ProductSuggestions = require('dw/suggest/ProductSuggestions');"
+        ],
+        "description": "Require Class ProductSuggestions"
+    },
+    "Require Class SearchPhraseSuggestions": {
+        "prefix": "reqSearchPhraseSuggestions",
+        "body": [
+            "const SearchPhraseSuggestions = require('dw/suggest/SearchPhraseSuggestions');"
+        ],
+        "description": "Require Class SearchPhraseSuggestions"
+    },
+    "Require Class SuggestedCategory": {
+        "prefix": "reqSuggestedCategory",
+        "body": [
+            "const SuggestedCategory = require('dw/suggest/SuggestedCategory');"
+        ],
+        "description": "Require Class SuggestedCategory"
+    },
+    "Require Class SuggestedContent": {
+        "prefix": "reqSuggestedContent",
+        "body": [
+            "const SuggestedContent = require('dw/suggest/SuggestedContent');"
+        ],
+        "description": "Require Class SuggestedContent"
+    },
+    "Require Class SuggestedPhrase": {
+        "prefix": "reqSuggestedPhrase",
+        "body": [
+            "const SuggestedPhrase = require('dw/suggest/SuggestedPhrase');"
+        ],
+        "description": "Require Class SuggestedPhrase"
+    },
+    "Require Class SuggestedProduct": {
+        "prefix": "reqSuggestedProduct",
+        "body": [
+            "const SuggestedProduct = require('dw/suggest/SuggestedProduct');"
+        ],
+        "description": "Require Class SuggestedProduct"
+    },
+    "Require Class SuggestedTerm": {
+        "prefix": "reqSuggestedTerm",
+        "body": [
+            "const SuggestedTerm = require('dw/suggest/SuggestedTerm');"
+        ],
+        "description": "Require Class SuggestedTerm"
+    },
+    "Require Class SuggestedTerms": {
+        "prefix": "reqSuggestedTerms",
+        "body": [
+            "const SuggestedTerms = require('dw/suggest/SuggestedTerms');"
+        ],
+        "description": "Require Class SuggestedTerms"
+    },
+    "Require Class Suggestions": {
+        "prefix": "reqSuggestions",
+        "body": [
+            "const Suggestions = require('dw/suggest/Suggestions');"
+        ],
+        "description": "Require Class Suggestions"
+    },
+    "Require Class SuggestModel": {
+        "prefix": "reqSuggestModel",
+        "body": [
+            "const SuggestModel = require('dw/suggest/SuggestModel');"
+        ],
+        "description": "Require Class SuggestModel"
+    },
+    "Require Class FTPService": {
+        "prefix": "reqFTPService",
+        "body": [
+            "const FTPService = require('dw/svc/FTPService');"
+        ],
+        "description": "Require Class FTPService"
+    },
+    "Require Class FTPServiceDefinition": {
+        "prefix": "reqFTPServiceDefinition",
+        "body": [
+            "const FTPServiceDefinition = require('dw/svc/FTPServiceDefinition');"
+        ],
+        "description": "Require Class FTPServiceDefinition"
+    },
+    "Require Class HTTPFormService": {
+        "prefix": "reqHTTPFormService",
+        "body": [
+            "const HTTPFormService = require('dw/svc/HTTPFormService');"
+        ],
+        "description": "Require Class HTTPFormService"
+    },
+    "Require Class HTTPFormServiceDefinition": {
+        "prefix": "reqHTTPFormServiceDefinition",
+        "body": [
+            "const HTTPFormServiceDefinition = require('dw/svc/HTTPFormServiceDefinition');"
+        ],
+        "description": "Require Class HTTPFormServiceDefinition"
+    },
+    "Require Class HTTPService": {
+        "prefix": "reqHTTPService",
+        "body": [
+            "const HTTPService = require('dw/svc/HTTPService');"
+        ],
+        "description": "Require Class HTTPService"
+    },
+    "Require Class HTTPServiceDefinition": {
+        "prefix": "reqHTTPServiceDefinition",
+        "body": [
+            "const HTTPServiceDefinition = require('dw/svc/HTTPServiceDefinition');"
+        ],
+        "description": "Require Class HTTPServiceDefinition"
+    },
+    "Require Class LocalServiceRegistry": {
+        "prefix": "reqLocalServiceRegistry",
+        "body": [
+            "const LocalServiceRegistry = require('dw/svc/LocalServiceRegistry');"
+        ],
+        "description": "Require Class LocalServiceRegistry"
+    },
+    "Require Class Result": {
+        "prefix": "reqResult",
+        "body": [
+            "const Result = require('dw/svc/Result');"
+        ],
+        "description": "Require Class Result"
+    },
+    "Require Class Service": {
+        "prefix": "reqService",
+        "body": [
+            "const Service = require('dw/svc/Service');"
+        ],
+        "description": "Require Class Service"
+    },
+    "Require Class ServiceCallback": {
+        "prefix": "reqServiceCallback",
+        "body": [
+            "const ServiceCallback = require('dw/svc/ServiceCallback');"
+        ],
+        "description": "Require Class ServiceCallback"
+    },
+    "Require Class ServiceConfig": {
+        "prefix": "reqServiceConfig",
+        "body": [
+            "const ServiceConfig = require('dw/svc/ServiceConfig');"
+        ],
+        "description": "Require Class ServiceConfig"
+    },
+    "Require Class ServiceCredential": {
+        "prefix": "reqServiceCredential",
+        "body": [
+            "const ServiceCredential = require('dw/svc/ServiceCredential');"
+        ],
+        "description": "Require Class ServiceCredential"
+    },
+    "Require Class ServiceDefinition": {
+        "prefix": "reqServiceDefinition",
+        "body": [
+            "const ServiceDefinition = require('dw/svc/ServiceDefinition');"
+        ],
+        "description": "Require Class ServiceDefinition"
+    },
+    "Require Class ServiceProfile": {
+        "prefix": "reqServiceProfile",
+        "body": [
+            "const ServiceProfile = require('dw/svc/ServiceProfile');"
+        ],
+        "description": "Require Class ServiceProfile"
+    },
+    "Require Class ServiceRegistry": {
+        "prefix": "reqServiceRegistry",
+        "body": [
+            "const ServiceRegistry = require('dw/svc/ServiceRegistry');"
+        ],
+        "description": "Require Class ServiceRegistry"
+    },
+    "Require Class SOAPService": {
+        "prefix": "reqSOAPService",
+        "body": [
+            "const SOAPService = require('dw/svc/SOAPService');"
+        ],
+        "description": "Require Class SOAPService"
+    },
+    "Require Class SOAPServiceDefinition": {
+        "prefix": "reqSOAPServiceDefinition",
+        "body": [
+            "const SOAPServiceDefinition = require('dw/svc/SOAPServiceDefinition');"
+        ],
+        "description": "Require Class SOAPServiceDefinition"
+    },
+    "Require Class HookMgr": {
+        "prefix": "reqHookMgr",
+        "body": [
+            "const HookMgr = require('dw/system/HookMgr');"
+        ],
+        "description": "Require Class HookMgr"
+    },
+    "Require Class InternalObject": {
+        "prefix": "reqInternalObject",
+        "body": [
+            "const InternalObject = require('dw/system/InternalObject');"
+        ],
+        "description": "Require Class InternalObject"
+    },
+    "Require Class JobProcessMonitor": {
+        "prefix": "reqJobProcessMonitor",
+        "body": [
+            "const JobProcessMonitor = require('dw/system/JobProcessMonitor');"
+        ],
+        "description": "Require Class JobProcessMonitor"
+    },
+    "Require Class Log": {
+        "prefix": "reqLog",
+        "body": [
+            "const Log = require('dw/system/Log');"
+        ],
+        "description": "Require Class Log"
+    },
+    "Require Class Logger": {
+        "prefix": "reqLogger",
+        "body": [
+            "const Logger = require('dw/system/Logger');"
+        ],
+        "description": "Require Class Logger"
+    },
+    "Require Class LogNDC": {
+        "prefix": "reqLogNDC",
+        "body": [
+            "const LogNDC = require('dw/system/LogNDC');"
+        ],
+        "description": "Require Class LogNDC"
+    },
+    "Require Class OrganizationPreferences": {
+        "prefix": "reqOrganizationPreferences",
+        "body": [
+            "const OrganizationPreferences = require('dw/system/OrganizationPreferences');"
+        ],
+        "description": "Require Class OrganizationPreferences"
+    },
+    "Require Class Pipeline": {
+        "prefix": "reqPipeline",
+        "body": [
+            "const Pipeline = require('dw/system/Pipeline');"
+        ],
+        "description": "Require Class Pipeline"
+    },
+    "Require Class PipelineDictionary": {
+        "prefix": "reqPipelineDictionary",
+        "body": [
+            "const PipelineDictionary = require('dw/system/PipelineDictionary');"
+        ],
+        "description": "Require Class PipelineDictionary"
+    },
+    "Require Class Request": {
+        "prefix": "reqRequest",
+        "body": [
+            "const Request = require('dw/system/Request');"
+        ],
+        "description": "Require Class Request"
+    },
+    "Require Class RequestHooks": {
+        "prefix": "reqRequestHooks",
+        "body": [
+            "const RequestHooks = require('dw/system/RequestHooks');"
+        ],
+        "description": "Require Class RequestHooks"
+    },
+    "Require Class Response": {
+        "prefix": "reqResponse",
+        "body": [
+            "const Response = require('dw/system/Response');"
+        ],
+        "description": "Require Class Response"
+    },
+    "Require Class Session": {
+        "prefix": "reqSession",
+        "body": [
+            "const Session = require('dw/system/Session');"
+        ],
+        "description": "Require Class Session"
+    },
+    "Require Class Site": {
+        "prefix": "reqSite",
+        "body": [
+            "const Site = require('dw/system/Site');"
+        ],
+        "description": "Require Class Site"
+    },
+    "Require Class SitePreferences": {
+        "prefix": "reqSitePreferences",
+        "body": [
+            "const SitePreferences = require('dw/system/SitePreferences');"
+        ],
+        "description": "Require Class SitePreferences"
+    },
+    "Require Class Status": {
+        "prefix": "reqStatus",
+        "body": [
+            "const Status = require('dw/system/Status');"
+        ],
+        "description": "Require Class Status"
+    },
+    "Require Class StatusItem": {
+        "prefix": "reqStatusItem",
+        "body": [
+            "const StatusItem = require('dw/system/StatusItem');"
+        ],
+        "description": "Require Class StatusItem"
+    },
+    "Require Class System": {
+        "prefix": "reqSystem",
+        "body": [
+            "const System = require('dw/system/System');"
+        ],
+        "description": "Require Class System"
+    },
+    "Require Class Transaction": {
+        "prefix": "reqTransaction",
+        "body": [
+            "const Transaction = require('dw/system/Transaction');"
+        ],
+        "description": "Require Class Transaction"
+    },
+    "Require Class ISML": {
+        "prefix": "reqISML",
+        "body": [
+            "const ISML = require('dw/template/ISML');"
+        ],
+        "description": "Require Class ISML"
+    },
+    "Require Class Velocity": {
+        "prefix": "reqVelocity",
+        "body": [
+            "const Velocity = require('dw/template/Velocity');"
+        ],
+        "description": "Require Class Velocity"
+    },
+    "Require Class ArrayList": {
+        "prefix": "reqArrayList",
+        "body": [
+            "const ArrayList = require('dw/util/ArrayList');"
+        ],
+        "description": "Require Class ArrayList"
+    },
+    "Require Class Assert": {
+        "prefix": "reqAssert",
+        "body": [
+            "const Assert = require('dw/util/Assert');"
+        ],
+        "description": "Require Class Assert"
+    },
+    "Require Class BigInteger": {
+        "prefix": "reqBigInteger",
+        "body": [
+            "const BigInteger = require('dw/util/BigInteger');"
+        ],
+        "description": "Require Class BigInteger"
+    },
+    "Require Class Bytes": {
+        "prefix": "reqBytes",
+        "body": [
+            "const Bytes = require('dw/util/Bytes');"
+        ],
+        "description": "Require Class Bytes"
+    },
+    "Require Class Calendar": {
+        "prefix": "reqCalendar",
+        "body": [
+            "const Calendar = require('dw/util/Calendar');"
+        ],
+        "description": "Require Class Calendar"
+    },
+    "Require Class Collection": {
+        "prefix": "reqCollection",
+        "body": [
+            "const Collection = require('dw/util/Collection');"
+        ],
+        "description": "Require Class Collection"
+    },
+    "Require Class Currency": {
+        "prefix": "reqCurrency",
+        "body": [
+            "const Currency = require('dw/util/Currency');"
+        ],
+        "description": "Require Class Currency"
+    },
+    "Require Class DateUtils": {
+        "prefix": "reqDateUtils",
+        "body": [
+            "const DateUtils = require('dw/util/DateUtils');"
+        ],
+        "description": "Require Class DateUtils"
+    },
+    "Require Class Decimal": {
+        "prefix": "reqDecimal",
+        "body": [
+            "const Decimal = require('dw/util/Decimal');"
+        ],
+        "description": "Require Class Decimal"
+    },
+    "Require Class FilteringCollection": {
+        "prefix": "reqFilteringCollection",
+        "body": [
+            "const FilteringCollection = require('dw/util/FilteringCollection');"
+        ],
+        "description": "Require Class FilteringCollection"
+    },
+    "Require Class Geolocation": {
+        "prefix": "reqGeolocation",
+        "body": [
+            "const Geolocation = require('dw/util/Geolocation');"
+        ],
+        "description": "Require Class Geolocation"
+    },
+    "Require Class HashMap": {
+        "prefix": "reqHashMap",
+        "body": [
+            "const HashMap = require('dw/util/HashMap');"
+        ],
+        "description": "Require Class HashMap"
+    },
+    "Require Class HashSet": {
+        "prefix": "reqHashSet",
+        "body": [
+            "const HashSet = require('dw/util/HashSet');"
+        ],
+        "description": "Require Class HashSet"
+    },
+    "Require Class Iterator": {
+        "prefix": "reqIterator",
+        "body": [
+            "const Iterator = require('dw/util/Iterator');"
+        ],
+        "description": "Require Class Iterator"
+    },
+    "Require Class LinkedHashMap": {
+        "prefix": "reqLinkedHashMap",
+        "body": [
+            "const LinkedHashMap = require('dw/util/LinkedHashMap');"
+        ],
+        "description": "Require Class LinkedHashMap"
+    },
+    "Require Class LinkedHashSet": {
+        "prefix": "reqLinkedHashSet",
+        "body": [
+            "const LinkedHashSet = require('dw/util/LinkedHashSet');"
+        ],
+        "description": "Require Class LinkedHashSet"
+    },
+    "Require Class List": {
+        "prefix": "reqList",
+        "body": [
+            "const List = require('dw/util/List');"
+        ],
+        "description": "Require Class List"
+    },
+    "Require Class Locale": {
+        "prefix": "reqLocale",
+        "body": [
+            "const Locale = require('dw/util/Locale');"
+        ],
+        "description": "Require Class Locale"
+    },
+    "Require Class Map": {
+        "prefix": "reqMap",
+        "body": [
+            "const Map = require('dw/util/Map');"
+        ],
+        "description": "Require Class Map"
+    },
+    "Require Class MapEntry": {
+        "prefix": "reqMapEntry",
+        "body": [
+            "const MapEntry = require('dw/util/MapEntry');"
+        ],
+        "description": "Require Class MapEntry"
+    },
+    "Require Class MappingKey": {
+        "prefix": "reqMappingKey",
+        "body": [
+            "const MappingKey = require('dw/util/MappingKey');"
+        ],
+        "description": "Require Class MappingKey"
+    },
+    "Require Class MappingMgr": {
+        "prefix": "reqMappingMgr",
+        "body": [
+            "const MappingMgr = require('dw/util/MappingMgr');"
+        ],
+        "description": "Require Class MappingMgr"
+    },
+    "Require Class PropertyComparator": {
+        "prefix": "reqPropertyComparator",
+        "body": [
+            "const PropertyComparator = require('dw/util/PropertyComparator');"
+        ],
+        "description": "Require Class PropertyComparator"
+    },
+    "Require Class SecureEncoder": {
+        "prefix": "reqSecureEncoder",
+        "body": [
+            "const SecureEncoder = require('dw/util/SecureEncoder');"
+        ],
+        "description": "Require Class SecureEncoder"
+    },
+    "Require Class SecureFilter": {
+        "prefix": "reqSecureFilter",
+        "body": [
+            "const SecureFilter = require('dw/util/SecureFilter');"
+        ],
+        "description": "Require Class SecureFilter"
+    },
+    "Require Class SeekableIterator": {
+        "prefix": "reqSeekableIterator",
+        "body": [
+            "const SeekableIterator = require('dw/util/SeekableIterator');"
+        ],
+        "description": "Require Class SeekableIterator"
+    },
+    "Require Class Set": {
+        "prefix": "reqSet",
+        "body": [
+            "const Set = require('dw/util/Set');"
+        ],
+        "description": "Require Class Set"
+    },
+    "Require Class SortedMap": {
+        "prefix": "reqSortedMap",
+        "body": [
+            "const SortedMap = require('dw/util/SortedMap');"
+        ],
+        "description": "Require Class SortedMap"
+    },
+    "Require Class SortedSet": {
+        "prefix": "reqSortedSet",
+        "body": [
+            "const SortedSet = require('dw/util/SortedSet');"
+        ],
+        "description": "Require Class SortedSet"
+    },
+    "Require Class StringUtils": {
+        "prefix": "reqStringUtils",
+        "body": [
+            "const StringUtils = require('dw/util/StringUtils');"
+        ],
+        "description": "Require Class StringUtils"
+    },
+    "Require Class Template": {
+        "prefix": "reqTemplate",
+        "body": [
+            "const Template = require('dw/util/Template');"
+        ],
+        "description": "Require Class Template"
+    },
+    "Require Class UUIDUtils": {
+        "prefix": "reqUUIDUtils",
+        "body": [
+            "const UUIDUtils = require('dw/util/UUIDUtils');"
+        ],
+        "description": "Require Class UUIDUtils"
+    },
+    "Require Class EnumValue": {
+        "prefix": "reqEnumValue",
+        "body": [
+            "const EnumValue = require('dw/value/EnumValue');"
+        ],
+        "description": "Require Class EnumValue"
+    },
+    "Require Class MimeEncodedText": {
+        "prefix": "reqMimeEncodedText",
+        "body": [
+            "const MimeEncodedText = require('dw/value/MimeEncodedText');"
+        ],
+        "description": "Require Class MimeEncodedText"
+    },
+    "Require Class Money": {
+        "prefix": "reqMoney",
+        "body": [
+            "const Money = require('dw/value/Money');"
+        ],
+        "description": "Require Class Money"
+    },
+    "Require Class Quantity": {
+        "prefix": "reqQuantity",
+        "body": [
+            "const Quantity = require('dw/value/Quantity');"
+        ],
+        "description": "Require Class Quantity"
+    },
+    "Require Class ClickStream": {
+        "prefix": "reqClickStream",
+        "body": [
+            "const ClickStream = require('dw/web/ClickStream');"
+        ],
+        "description": "Require Class ClickStream"
+    },
+    "Require Class ClickStreamEntry": {
+        "prefix": "reqClickStreamEntry",
+        "body": [
+            "const ClickStreamEntry = require('dw/web/ClickStreamEntry');"
+        ],
+        "description": "Require Class ClickStreamEntry"
+    },
+    "Require Class Cookie": {
+        "prefix": "reqCookie",
+        "body": [
+            "const Cookie = require('dw/web/Cookie');"
+        ],
+        "description": "Require Class Cookie"
+    },
+    "Require Class Cookies": {
+        "prefix": "reqCookies",
+        "body": [
+            "const Cookies = require('dw/web/Cookies');"
+        ],
+        "description": "Require Class Cookies"
+    },
+    "Require Class CSRFProtection": {
+        "prefix": "reqCSRFProtection",
+        "body": [
+            "const CSRFProtection = require('dw/web/CSRFProtection');"
+        ],
+        "description": "Require Class CSRFProtection"
+    },
+    "Require Class Form": {
+        "prefix": "reqForm",
+        "body": [
+            "const Form = require('dw/web/Form');"
+        ],
+        "description": "Require Class Form"
+    },
+    "Require Class FormAction": {
+        "prefix": "reqFormAction",
+        "body": [
+            "const FormAction = require('dw/web/FormAction');"
+        ],
+        "description": "Require Class FormAction"
+    },
+    "Require Class FormElement": {
+        "prefix": "reqFormElement",
+        "body": [
+            "const FormElement = require('dw/web/FormElement');"
+        ],
+        "description": "Require Class FormElement"
+    },
+    "Require Class FormElementValidationResult": {
+        "prefix": "reqFormElementValidationResult",
+        "body": [
+            "const FormElementValidationResult = require('dw/web/FormElementValidationResult');"
+        ],
+        "description": "Require Class FormElementValidationResult"
+    },
+    "Require Class FormField": {
+        "prefix": "reqFormField",
+        "body": [
+            "const FormField = require('dw/web/FormField');"
+        ],
+        "description": "Require Class FormField"
+    },
+    "Require Class FormFieldOption": {
+        "prefix": "reqFormFieldOption",
+        "body": [
+            "const FormFieldOption = require('dw/web/FormFieldOption');"
+        ],
+        "description": "Require Class FormFieldOption"
+    },
+    "Require Class FormFieldOptions": {
+        "prefix": "reqFormFieldOptions",
+        "body": [
+            "const FormFieldOptions = require('dw/web/FormFieldOptions');"
+        ],
+        "description": "Require Class FormFieldOptions"
+    },
+    "Require Class FormGroup": {
+        "prefix": "reqFormGroup",
+        "body": [
+            "const FormGroup = require('dw/web/FormGroup');"
+        ],
+        "description": "Require Class FormGroup"
+    },
+    "Require Class FormList": {
+        "prefix": "reqFormList",
+        "body": [
+            "const FormList = require('dw/web/FormList');"
+        ],
+        "description": "Require Class FormList"
+    },
+    "Require Class FormListItem": {
+        "prefix": "reqFormListItem",
+        "body": [
+            "const FormListItem = require('dw/web/FormListItem');"
+        ],
+        "description": "Require Class FormListItem"
+    },
+    "Require Class Forms": {
+        "prefix": "reqForms",
+        "body": [
+            "const Forms = require('dw/web/Forms');"
+        ],
+        "description": "Require Class Forms"
+    },
+    "Require Class HttpParameter": {
+        "prefix": "reqHttpParameter",
+        "body": [
+            "const HttpParameter = require('dw/web/HttpParameter');"
+        ],
+        "description": "Require Class HttpParameter"
+    },
+    "Require Class HttpParameterMap": {
+        "prefix": "reqHttpParameterMap",
+        "body": [
+            "const HttpParameterMap = require('dw/web/HttpParameterMap');"
+        ],
+        "description": "Require Class HttpParameterMap"
+    },
+    "Require Class LoopIterator": {
+        "prefix": "reqLoopIterator",
+        "body": [
+            "const LoopIterator = require('dw/web/LoopIterator');"
+        ],
+        "description": "Require Class LoopIterator"
+    },
+    "Require Class PageMetaData": {
+        "prefix": "reqPageMetaData",
+        "body": [
+            "const PageMetaData = require('dw/web/PageMetaData');"
+        ],
+        "description": "Require Class PageMetaData"
+    },
+    "Require Class PageMetaTag": {
+        "prefix": "reqPageMetaTag",
+        "body": [
+            "const PageMetaTag = require('dw/web/PageMetaTag');"
+        ],
+        "description": "Require Class PageMetaTag"
+    },
+    "Require Class PagingModel": {
+        "prefix": "reqPagingModel",
+        "body": [
+            "const PagingModel = require('dw/web/PagingModel');"
+        ],
+        "description": "Require Class PagingModel"
+    },
+    "Require Class Resource": {
+        "prefix": "reqResource",
+        "body": [
+            "const Resource = require('dw/web/Resource');"
+        ],
+        "description": "Require Class Resource"
+    },
+    "Require Class URL": {
+        "prefix": "reqURL",
+        "body": [
+            "const URL = require('dw/web/URL');"
+        ],
+        "description": "Require Class URL"
+    },
+    "Require Class URLAction": {
+        "prefix": "reqURLAction",
+        "body": [
+            "const URLAction = require('dw/web/URLAction');"
+        ],
+        "description": "Require Class URLAction"
+    },
+    "Require Class URLParameter": {
+        "prefix": "reqURLParameter",
+        "body": [
+            "const URLParameter = require('dw/web/URLParameter');"
+        ],
+        "description": "Require Class URLParameter"
+    },
+    "Require Class URLRedirect": {
+        "prefix": "reqURLRedirect",
+        "body": [
+            "const URLRedirect = require('dw/web/URLRedirect');"
+        ],
+        "description": "Require Class URLRedirect"
+    },
+    "Require Class URLRedirectMgr": {
+        "prefix": "reqURLRedirectMgr",
+        "body": [
+            "const URLRedirectMgr = require('dw/web/URLRedirectMgr');"
+        ],
+        "description": "Require Class URLRedirectMgr"
+    },
+    "Require Class URLUtils": {
+        "prefix": "reqURLUtils",
+        "body": [
+            "const URLUtils = require('dw/web/URLUtils');"
+        ],
+        "description": "Require Class URLUtils"
+    },
+    "Require Class Port": {
+        "prefix": "reqPort",
+        "body": [
+            "const Port = require('dw/ws/Port');"
+        ],
+        "description": "Require Class Port"
+    },
+    "Require Class WebReference2": {
+        "prefix": "reqWebReference2",
+        "body": [
+            "const WebReference2 = require('dw/ws/WebReference2');"
+        ],
+        "description": "Require Class WebReference2"
+    },
+    "Require Class WSUtil": {
+        "prefix": "reqWSUtil",
+        "body": [
+            "const WSUtil = require('dw/ws/WSUtil');"
+        ],
+        "description": "Require Class WSUtil"
+    }
+}

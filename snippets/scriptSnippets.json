@@ -1,0 +1,16 @@
+{
+    "Init service": {
+        "prefix": "Init service",
+        "body": [
+            "var $1 = LocalServiceRegistry.createService('$2', {"
+            "    createRequest: function(service, params) {"
+            "        return params;"
+            "    },"
+            "    parseResponse: function(service, client) {"
+            "        return client;"
+            "    }"
+            "});"
+        ],
+        "description": "Init service"
+    }
+}

@@ -1,12 +1,14 @@
 
 import request = require('request');
 
-const justResolve = (resolve) => {resolve()};
+//import { logger } from 'vscode-debugadapter';
 
-interface IThread {
+const justResolve = (resolve, reject, body) => { resolve(body) };
+
+export interface IThread {
 	id: number;
-	status : 'halted' | 'running' | 'done';
-	call_stack: any[];
+	status: 'halted' | 'running' | 'done';
+	call_stack: IStackFrame[];
 }
 
 interface IStackFrameLocation {
@@ -17,21 +19,32 @@ interface IStackFrameLocation {
 
 interface IStackFrame {
 	index: number;
-	location:IStackFrameLocation
+	location: IStackFrameLocation
 }
 
 interface IMember {
-	name : string;
+	name: string;
 	parent: string;
-	type : string;
+	type: string;
 	value: string;
 }
 
-export default class Connection {
-	protected options : any;
-	protected estabilished : boolean;
+export interface IVariable {
+	name: string,
+	parent: string,
+	scope: string,
+	type: string,
+	value: string,
+	frameID: number,
+	threadID: number
+}
 
-	constructor (params = {}) {
+export default class Connection {
+	protected options: any;
+	protected estabilished: boolean;
+	//protected logger : Logger;
+
+	constructor(params = {}) {
 		this.options = Object.assign({}, {
 			hostname: 'some.demandware.net',
 			password: 'password',
@@ -40,9 +53,9 @@ export default class Connection {
 		}, params);
 		this.estabilished = false;
 	}
-	getOptions () {
+	getOptions() {
 		return {
-			baseUrl: 'https://' + this.options.hostname + '/s/-/dw/debugger/v1_0/',
+			baseUrl: 'https://' + this.options.hostname + '/s/-/dw/debugger/v2_0/',
 			uri: '/',
 			auth: {
 				user: this.options.username,
@@ -50,22 +63,28 @@ export default class Connection {
 			},
 			headers: {
 				'x-dw-client-id': this.options.clientId,
-				'Content-Type' : 'application/json'
+				'Content-Type': 'application/json'
 			},
 			strictSSL: false
 		};
 	}
-	makeRequest<T> (options, cb : (resolve, reject, body) => void) : Promise<T> {
+	makeRequest<T>(options, cb: (resolve, reject, body) => void): Promise<T> {
+		// logger.verbose('req -> ' + JSON.stringify(options));
 		return new Promise((resolve, reject) => {
 			if (!this.estabilished) {
 				reject(Error('Connection is not estabilished'));
 				return;
+			}
+			if (typeof options.json === 'undefined') {
+				options.json = true;
 			}
 
 			request(Object.assign(this.getOptions(), options), (err, res, body) => {
 				if (err) {
 					return reject(err);
 				}
+				// logger.verbose('req: ' + JSON.stringify(options));
+				// logger.verbose('res: ' + JSON.stringify(body));
 
 				if (res.statusCode >= 400) {
 					return reject(new Error(res.statusMessage));
@@ -74,7 +93,7 @@ export default class Connection {
 			});
 		});
 	}
-	estabilish () {
+	estabilish() {
 		return new Promise((resolve, reject) => {
 			request(Object.assign(this.getOptions(), {
 				uri: '/client',
@@ -91,11 +110,10 @@ export default class Connection {
 			});
 		});
 	}
-	getStackTrace(threadID) : Promise<IStackFrame[]> {
+	getStackTrace(threadID): Promise<IStackFrame[]> {
 		return this.makeRequest({
 			uri: '/threads/' + threadID,
-			method: 'get',
-			json: true
+			method: 'get'
 		}, (resolve, reject, body) => {
 			if (body.call_stack) {
 				resolve(body.call_stack);
@@ -104,11 +122,10 @@ export default class Connection {
 			}
 		});
 	}
-	getMembers(threadID, frame_index, path?) : Promise<IMember[]>{
+	getMembers(threadID, frame_index, path?): Promise<IMember[]> {
 		return this.makeRequest({
 			uri: `/threads/${threadID}/frames/${frame_index}/members` + (path ? '?object_path=' + path : ''),
-			method: 'get',
-			json: true
+			method: 'get'
 		}, (resolve, reject, body) => {
 			if (body.object_members) {
 				resolve(body.object_members);
@@ -117,7 +134,7 @@ export default class Connection {
 			}
 		});
 	}
-	disconnect () {
+	disconnect() {
 		this.estabilished = false;
 		return new Promise((resolve, reject) => {
 			request(Object.assign(this.getOptions(), {
@@ -135,7 +152,7 @@ export default class Connection {
 		});
 	}
 
-	createBreakpoints(breakpoints) : Promise<{id, file, line}[]> {
+	createBreakpoints(breakpoints): Promise<{ id, file, line }[]> {
 		return this.makeRequest({
 			uri: '/breakpoints',
 			method: 'POST',
@@ -153,11 +170,10 @@ export default class Connection {
 			})));
 		});
 	}
-	getBreakpoints(id?) : Promise<{id, file, line}[]> {
+	getBreakpoints(id?): Promise<{ id, file, line }[]> {
 		return this.makeRequest({
-			uri: '/breakpoints' + ( id ? '/' + id : ''),
-			method: 'get',
-			json: true
+			uri: '/breakpoints' + (id ? '/' + id : ''),
+			method: 'get'
 		}, (resolve, reject, body) => {
 			if (body.breakpoints) {
 
@@ -173,21 +189,20 @@ export default class Connection {
 	}
 	removeBreakpoints(id?) {
 		return this.makeRequest({
-			uri: '/breakpoints' + ( id ? '/' + id : ''),
+			uri: '/breakpoints' + (id ? '/' + id : ''),
 			method: 'DELETE'
 		}, justResolve);
 	}
-	resetThreads () {
+	resetThreads() {
 		return this.makeRequest({
 			uri: '/threads/reset',
 			method: 'POST'
 		}, justResolve)
 	}
-	getThreads () : Promise<IThread[]> {
+	getThreads(): Promise<IThread[]> {
 		return this.makeRequest({
 			uri: '/threads',
-			method: 'GET',
-			json: true
+			method: 'GET'
 		}, (resolve, reject, body) => {
 			if (body.script_threads) {
 				resolve(body.script_threads);
@@ -196,35 +211,52 @@ export default class Connection {
 			}
 		})
 	}
-	stepInto(threadID) {
+	getVariables(threadID: number, frame_index: number): Promise<IVariable[]> {
+		//threads/{thread_id}/variables
+		return this.makeRequest({
+			uri: `/threads/${threadID}/frames/${frame_index}/variables`,
+			method: 'GET'
+		}, (resolve, reject, body) => {
+			if (body.object_members) {
+				resolve(body.object_members.map(member => {
+					member.frameID = frame_index;
+					member.threadID = threadID;
+					return member;
+				}));
+			} else {
+				resolve([]);
+			}
+		});
+	}
+	stepInto(threadID) : Promise<IThread> {
 		//threads/{thread_id}/into
 		return this.makeRequest({
 			uri: '/threads/' + threadID + '/into',
 			method: 'POST'
 		}, justResolve);
 	}
-	stepOut(threadID) {
+	stepOut(threadID) : Promise<IThread>{
 		//threads/{thread_id}/out
 		return this.makeRequest({
 			uri: '/threads/' + threadID + '/out',
 			method: 'POST'
 		}, justResolve);
 	}
-	stepOver(threadID) {
+	stepOver(threadID) : Promise<IThread>{
 		//threads/{thread_id}/over
 		return this.makeRequest({
 			uri: '/threads/' + threadID + '/over',
 			method: 'POST'
 		}, justResolve);
 	}
-	resume (threadID) {
+	resume(threadID) : Promise<IThread>{
 		//threads/{thread_id}/resume
 		return this.makeRequest({
-			uri: '/threads/' + threadID+ '/resume',
+			uri: '/threads/' + threadID + '/resume',
 			method: 'POST'
 		}, justResolve);
 	}
-	stop (threadID) {
+	stop(threadID) {
 		//threads/{thread_id}/stop
 		return this.makeRequest({
 			uri: '/threads/' + threadID + '/stop',
@@ -234,9 +266,8 @@ export default class Connection {
 	evaluate(threadID, expr = 'this', frameNo = 0): Promise<string> {
 		return this.makeRequest({
 			uri: '/threads/' + threadID + '/frames/' + frameNo +
-				'/eval?expr=' + encodeURIComponent(expr),
-			method: 'GET',
-			json: true
+			'/eval?expr=' + encodeURIComponent(expr),
+			method: 'GET'
 		}, (resolve, reject, body) => {
 			resolve(body.result);
 		});

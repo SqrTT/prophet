@@ -296,7 +296,7 @@ export default class WebDav {
 
 			let walker = walk.walk(pathToCartridgesDir, {
 				filters: ignoreList,
-				followLinks: false
+				followLinks: true
 			});
 
 			function dispose() {
@@ -428,7 +428,7 @@ export default class WebDav {
 			return finishWork;
 		});
 	}
-	uploadCartridges(
+	uploadCartridge(
 		pathToCartridgesDir,
 		notify = (string) => { },
 		options = {}

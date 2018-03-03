@@ -1,7 +1,7 @@
 {
     "name": "prophet",
     "displayName": "Prophet Debugger",
-    "version": "0.9.7",
+    "version": "0.10.2",
     "publisher": "SqrTT",
     "description": "Debugger and Uploader for Demandware/Salesforce sandbox",
     "author": {
@@ -9,8 +9,8 @@
         "email": "tolik@sqrtt.pro"
     },
     "engines": {
-        "vscode": "^1.14.0",
-        "node": "^7.0.0"
+        "vscode": "^1.19.0",
+        "node": "^7.9.0"
     },
     "icon": "images/mock-debug-icon.ico",
     "categories": [
@@ -28,27 +28,27 @@
     },
     "dependencies": {
         "glob": "^7.1.2",
-        "request": "^2.81.0",
-        "rimraf": "^2.6.1",
-        "rxjs": "^5.4.3",
+        "request": "^2.83.0",
+        "rimraf": "^2.6.2",
+        "rxjs": "^5.5.6",
         "timeago.js": "^3.0.2",
-        "vscode-debugadapter": "^1.23.0",
-        "vscode-debugprotocol": "^1.23.0",
-        "vscode-languageclient": "^3.3.0",
-        "vscode-languageserver": "^3.3.0",
+        "vscode-debugadapter": "^1.25.0",
+        "vscode-debugprotocol": "^1.25.0",
+        "vscode-languageclient": "^3.5.0",
+        "vscode-languageserver": "^3.5.0",
         "vscode-nls": "^2.0.2",
         "vscode-uri": "^1.0.1",
         "walk": "^2.3.9",
         "xmldom": "^0.1.27",
-        "yazl": "^2.4.2"
+        "yazl": "^2.4.3"
     },
     "devDependencies": {
-        "@types/mocha": "^2.2.41",
-        "@types/node": "^6.0.74",
-        "mocha": "^3.4.2",
-        "typescript": "^2.5.2",
-        "vscode": "^1.1.5",
-        "vscode-debugadapter-testsupport": "^1.23.0"
+        "@types/mocha": "^2.2.45",
+        "@types/node": "^6.0.95",
+        "mocha": "^3.5.3",
+        "typescript": "^2.6.2",
+        "vscode": "^1.1.10",
+        "vscode-debugadapter-testsupport": "^1.25.0"
     },
     "scripts": {
         "vscode:prepublish": "npm install && npm run compile && npm run test",
@@ -100,6 +100,11 @@
                 {
                     "command": "extension.prophet.command.create.cartridge",
                     "when": "view == cartridgesView"
+                },
+                {
+                    "command": "extension.prophet.command.filter.logview",
+                    "when": "view == dwLogsView",
+                    "group": "navigation"
                 },
                 {
                     "command": "extension.prophet.command.refresh.logview",
@@ -167,6 +172,15 @@
                 "description": "New file"
             },
             {
+                "command": "extension.prophet.command.filter.logview",
+                "title": "Filter",
+                "description": "Filter log view",
+                "icon": {
+                    "light": "resources/light/search.svg",
+                    "dark": "resources/dark/search.svg"
+                }
+            },
+            {
                 "command": "extension.prophet.command.refresh.logview",
                 "title": "Refresh",
                 "description": "Refresh log view",
@@ -201,6 +215,14 @@
             {
                 "language": "isml",
                 "path": "./snippets/snippets.json"
+            },
+            {
+                "language": "javascript",
+                "path": "./snippets/requireSnippets.json"
+            },
+            {
+                "language": "javascript",
+                "path": "./snippets/scriptSnippets.json"
             }
         ],
         "languages": [
@@ -287,7 +309,7 @@
                             "password": "${5}",
                             "codeversion": "${6:version1}",
                             "cartridgeroot": "auto",
-                            "workspaceroot": ""
+                            "workspaceroot": "^\"\\${workspaceFolder}\""
                         }
                     }
                 ],
@@ -339,8 +361,7 @@
                             }
                         }
                     }
-                },
-                "initialConfigurations": "extension.prophet.provideInitialConfigurations"
+                }
             }
         ],
         "configuration": {

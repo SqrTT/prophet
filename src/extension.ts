@@ -1,42 +1,22 @@
 
 'use strict';
 import { join } from 'path';
-import { workspace, Disposable, ExtensionContext, commands, window, Uri, WorkspaceConfiguration } from 'vscode';
+import { workspace, Disposable, ExtensionContext, commands, window, Uri, WorkspaceConfiguration, debug } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
 import { CartridgesView } from './providers/CartridgesView';
 import { CartridgeCreator } from './lib/CartridgeHelper';
 import { existsSync } from 'fs';
 import { createServer } from 'http';
 import Uploader from "./providers/Uploader";
-
-const initialConfigurations = {
-	version: '0.1.0',
-	configurations: [
-		{
-			'type': 'prophet',
-			'request': 'launch',
-			'name': 'Attach to Sandbox',
-			'hostname': '*.demandware.net',
-			'username': '<username>',
-			'password': '<password>',
-			'codeversion': 'version1',
-			'cartridgeroot': 'auto',
-			'workspaceroot': '${workspaceRoot}'
-		}
-	]
-};
+import { ProphetConfigurationProvider } from './providers/ConfigurationProvider';
 
 let cartridgesView: CartridgesView | undefined;
 
 export function activate(context: ExtensionContext) {
 	const configuration = workspace.getConfiguration('extension.prophet');
-	context.subscriptions.push(commands.registerCommand('extension.prophet.provideInitialConfigurations', () => {
-		return [
-			'// Use IntelliSense to learn about possible Prophet attributes.',
-			'// Hover to view descriptions of existing attributes.',
-			JSON.stringify(initialConfigurations, null, '\t')
-		].join('\n');
-	}));
+	// register a configuration provider
+	context.subscriptions.push(debug.registerDebugConfigurationProvider('prophet', new ProphetConfigurationProvider()));
+
 
 	var ismlLanguageServer = createIsmlLanguageServer(context, configuration);
 	const disposable = ismlLanguageServer.start();

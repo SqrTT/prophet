@@ -1,6 +1,6 @@
-<h2 align="center">Work your Demandware/Salesforce Cloud code</h4>
+<h2 align="center">Work your Demandware/Salesforce Cloud code</h2>
 
-A VS Code extension to work with Demandware/Salesforce Cloud code on Sandbox that support the Script Debugger API (SDAPI) 1.0
+A VS Code extension to work with Demandware/Salesforce Cloud code on Sandbox that support the Script Debugger API (SDAPI) 2.0
 
 **Supported features**
 * Upload cartridges and watch changes
@@ -67,7 +67,7 @@ If you want to use a different sandboxes, you can also setup several configurati
 
 
 ### Other optional launch config fields
-* `trace`: When true, the adapter logs its own diagnostic info to console. This is often useful info to include when filing an issue on GitHub. 
+* `trace`: When true, the adapter logs its own diagnostic info to console. This is often useful info to include when filing an issue on GitHub.
 
 
 ## Using the uploader
