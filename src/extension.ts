@@ -243,3 +243,11 @@ function createIsmlLanguageServer(context : ExtensionContext, configuration : Wo
 export function deactivate() {
 	// nothing to do
 }
+
+commands.registerCommand('extension.prophet.command.open.documentation', () => {
+	commands.executeCommand('vscode.open', Uri.parse('https://documentation.demandware.com'));
+});
+
+commands.registerCommand('extension.prophet.command.open.xchange', () => {
+	commands.executeCommand('vscode.open', Uri.parse('https://xchange.demandware.com'));
+});

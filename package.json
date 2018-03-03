@@ -179,6 +179,16 @@
                 "command": "extension.prophet.command.clean.log",
                 "title": "Clean",
                 "description": "Clean log file"
+            },
+            {
+                "command": "extension.prophet.command.open.documentation",
+                "title": "Prophet: Open Documentation",
+                "description": "Open Documentation"
+            },
+            {
+                "command": "extension.prophet.command.open.xchange",
+                "title": "Prophet: Open Xchange",
+                "description": "Open Xchange"
             }
         ],
         "jsonValidation": [
