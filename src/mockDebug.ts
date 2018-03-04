@@ -16,7 +16,7 @@ import path = require('path');
 const VARIABLE_SEPARATOR = '%';
 
 function isComplexType(type: string) {
-	return ['Class', 'dw.', 'dw/', 'Object', 'Array'].some(ctype => type.includes(ctype));
+	return ['Class', 'dw.', 'dw/', 'object', 'Object', 'Array'].some(ctype => type.includes(ctype));
 }
 
 
@@ -356,7 +356,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 									presentationHint = {
 										kind: 'class'
 									};
-								} else if (member.type === 'Object' && member.value !== 'null') {
+								} else if (member.type === 'Object' || member.type === 'object' && member.value !== 'null') {
 									presentationHint = {
 										kind: 'data'
 									};
@@ -394,7 +394,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 							presentationHint = {
 								kind: 'class'
 							};
-						} else if (member.type === 'Object' && member.value !== 'null') {
+						} else if (member.type === 'Object' || member.type === 'object' && member.value !== 'null') {
 							presentationHint = {
 								kind: 'data'
 							};
