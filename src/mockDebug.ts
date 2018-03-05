@@ -348,7 +348,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 							var variablesReference = 0;
 							var presentationHint;
 
-							if (isComplexType(member.type)) {
+							if (isComplexType(member.type) && member.value !== 'null') {
 								const encPath = frameReferenceStr + VARIABLE_SEPARATOR + (path ? path + '.' : '') + member.name;
 								variablesReference = this._variableHandles.create(encPath);
 
@@ -356,7 +356,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 									presentationHint = {
 										kind: 'class'
 									};
-								} else if ((member.type === 'Object' || member.type === 'object') && member.value !== 'null') {
+								} else if (member.type === 'Object' || member.type === 'object') {
 									presentationHint = {
 										kind: 'data'
 									};
@@ -386,7 +386,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 				variables: variables.map(member => {
 					var variablesReference = 0;
 					var presentationHint;
-					if (member.scope === 'local' && isComplexType(member.type)) {
+					if (member.scope === 'local' && isComplexType(member.type) && member.value !== 'null') {
 						const encPath = ((member.threadID * 100000) + member.frameID) + VARIABLE_SEPARATOR + member.name;
 						variablesReference = this._variableHandles.create(encPath)
 
@@ -394,7 +394,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 							presentationHint = {
 								kind: 'class'
 							};
-						} else if ((member.type === 'Object' || member.type === 'object') && member.value !== 'null') {
+						} else if (member.type === 'Object' || member.type === 'object') {
 							presentationHint = {
 								kind: 'data'
 							};
