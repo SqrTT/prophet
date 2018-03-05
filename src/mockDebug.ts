@@ -356,7 +356,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 									presentationHint = {
 										kind: 'class'
 									};
-								} else if (member.type === 'Object' || member.type === 'object' && member.value !== 'null') {
+								} else if ((member.type === 'Object' || member.type === 'object') && member.value !== 'null') {
 									presentationHint = {
 										kind: 'data'
 									};
@@ -394,7 +394,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 							presentationHint = {
 								kind: 'class'
 							};
-						} else if (member.type === 'Object' || member.type === 'object' && member.value !== 'null') {
+						} else if ((member.type === 'Object' || member.type === 'object') && member.value !== 'null') {
 							presentationHint = {
 								kind: 'data'
 							};
