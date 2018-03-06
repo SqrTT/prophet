@@ -1,14 +1,9 @@
 
 import * as request from 'request';
 import { relative, sep, resolve, join } from 'path';
-import { Observable } from 'rxjs/Observable';
-import { Subscription  } from 'rxjs/Subscription';
-import 'rxjs/add/operator/mergeMap';
-import 'rxjs/add/operator/do';
-import 'rxjs/add/operator/map';
-import 'rxjs/add/operator/filter';
+import { Observable, Subscription } from 'rxjs';
 import * as yazl from 'yazl';
-import * as fs  from 'fs';
+import * as fs from 'fs';
 import * as walk from 'walk';
 import * as rimraf from 'rimraf';
 
@@ -21,6 +16,14 @@ export interface DavOptions {
 	debug?: boolean
 }
 
+function getMatches(string: string, regex: RegExp, index = 1) {
+	var matches: string[] = [];
+	var match: RegExpExecArray | null;
+	while (match = regex.exec(string)) {
+		matches.push(match[index]);
+	}
+	return matches;
+}
 export default class WebDav {
 	config: DavOptions;
 	log: (...string) => any;
@@ -73,7 +76,7 @@ export default class WebDav {
 			strictSSL: false
 		};
 	}
-	makeRequest(options) : Observable<string>{
+	makeRequest(options): Observable<string> {
 		return Observable.create(observer => {
 			this.log('request', options, this.getOptions());
 
@@ -98,7 +101,7 @@ export default class WebDav {
 			};
 		});
 	}
-	postBody(uriPath : string, bodyOfFile: string) : Observable<string>{
+	postBody(uriPath: string, bodyOfFile: string): Observable<string> {
 		this.log('postBody', uriPath);
 
 		return Observable.create(observer => {
@@ -124,7 +127,7 @@ export default class WebDav {
 			};
 		});
 	}
-	post(filePath, root = this.config.root) : Observable<string>{
+	post(filePath, root = this.config.root): Observable<string> {
 		const uriPath = relative(root, filePath);
 
 		this.log('post', uriPath);
@@ -163,7 +166,7 @@ export default class WebDav {
 			};
 		});
 	}
-	mkdir(filePath, root = this.config.root) : Observable<string>{
+	mkdir(filePath, root = this.config.root): Observable<string> {
 		const uriPath = relative(root, filePath);
 
 		this.log('mkdir', uriPath);
@@ -191,7 +194,7 @@ export default class WebDav {
 
 		});
 	}
-	unzip(filePath, root = this.config.root) : Observable<string>{
+	unzip(filePath, root = this.config.root): Observable<string> {
 		const uriPath = relative(root, filePath);
 
 		this.log('unzip', uriPath);
@@ -216,7 +219,7 @@ export default class WebDav {
 			this.log('get-response', data);
 		});
 	}
-	getActiveCodeVersion() : Observable<string>{
+	getActiveCodeVersion(): Observable<string> {
 		return this.makeRequest({
 			uri: '/../.version',
 			method: 'GET'
@@ -255,10 +258,28 @@ export default class WebDav {
 			return activeVersion;
 		});
 	}
-	postAndUnzip(filePath : string) {
+	postAndUnzip(filePath: string) {
 		return this.post(filePath).flatMap(() => this.unzip(filePath));
 	}
-	delete(filePath, optionalRoot) : Observable<string>{
+	cleanUpCodeVersion(notify: (...string) => void, mode: 'all' | 'list' | 'none' = 'all', list?: string[]) {
+		notify('mode ' + mode);
+		if (mode === 'all') {
+			return this.dirList('/', '/').flatMap((res: string) => {
+				const matches = getMatches(res, /<displayname>(.+?)<\/displayname>/g);
+				const filteredPath = matches.filter(match => match !== this.config.version);
+				const delete$ = filteredPath.map(path => this.delete('/' + path, '/').do(() => {notify(`Deleted ${path}`)}));
+
+				return Observable.forkJoin(...delete$);
+			});
+		} else if (mode === 'list' && list) {
+			const delete$ = list.map(path => this.delete('/' + path, '/').do(() => {notify(`Deleted ${path}`)}));
+
+			return Observable.forkJoin(...delete$);
+		} else {
+			return Observable.of(['']);
+		}
+	}
+	delete(filePath, optionalRoot): Observable<string> {
 		const uriPath = relative(optionalRoot || this.config.root, filePath);
 
 		return Observable.create(observer => {
@@ -286,7 +307,7 @@ export default class WebDav {
 			};
 		});
 	}
-	getFileList(pathToCartridgesDir, options) : Observable<string[]>{
+	getFileList(pathToCartridgesDir, options): Observable<string[]> {
 		const { isCartridge = false } = options;
 		const { isDirectory = false } = options;
 		const { ignoreList = ['node_modules', '\\.git'] } = options;
@@ -327,7 +348,7 @@ export default class WebDav {
 				walker.on('file', (root, fileStat, next) => {
 					const file = resolve(root, fileStat.name);
 					const toFile = relative(isCartridge ?
-						pathToCartridgesDir.replace(new RegExp(processingFolder+'$'), '') :
+						pathToCartridgesDir.replace(new RegExp(processingFolder + '$'), '') :
 						pathToCartridgesDir, resolve(root, fileStat.name));
 
 					//this.log('adding to zip:', file);
@@ -354,7 +375,7 @@ export default class WebDav {
 			return dispose;
 		});
 	}
-	deleteLocalFile(fileName) : Observable<undefined>{
+	deleteLocalFile(fileName): Observable<undefined> {
 		return Observable.create(observer => {
 			let isCanceled = false;
 
@@ -373,18 +394,18 @@ export default class WebDav {
 			return () => { isCanceled = true }
 		});
 	}
-	zipFiles(pathToCartridgesDir, cartridgesPackagePath, options) : Observable<undefined> {
+	zipFiles(pathToCartridgesDir, cartridgesPackagePath, options): Observable<undefined> {
 
 		return Observable.create(observer => {
 			let zipFile = new yazl.ZipFile();
-			var inputStream : fs.WriteStream, outputStream : fs.ReadStream;
+			var inputStream: fs.WriteStream, outputStream: fs.ReadStream;
 
 			zipFile.on('error', (error) => {
 				finishWork();
 				observer.error(error);
 			});
 
-			let subscription : Subscription | null = this.getFileList(pathToCartridgesDir, options).subscribe(
+			let subscription: Subscription | null = this.getFileList(pathToCartridgesDir, options).subscribe(
 				// next
 				files => {
 					if (files.length === 1) {

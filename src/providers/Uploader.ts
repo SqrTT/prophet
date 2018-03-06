@@ -13,6 +13,9 @@ const rootPath = workspace.rootPath || '';
  * Class for handling the server upload integration
  */
 export default class Uploader {
+	getCleanUpCodeVersionMode():  "all" | "list" | "none" | "auto"  {
+		return workspace.getConfiguration('extension.prophet').get('clean.up.code.version.mode') || 'auto';
+	}
 	private outputChannel : OutputChannel;
 	private configuration;
 	private prevState;
@@ -71,7 +74,8 @@ export default class Uploader {
 						configFilename,
 						this.outputChannel,
 						{
-							cleanOnStart: this.cleanOnStart
+							cleanOnStart: this.cleanOnStart,
+							cleanUpCodeVersionMode: this.getCleanUpCodeVersionMode()
 						})
 						.subscribe(
 						() => {
