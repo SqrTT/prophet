@@ -34,6 +34,14 @@ export interface DavOptions {
 	debug?: boolean
 }
 
+function getMatches(string: string, regex: RegExp, index = 1) {
+	var matches: string[] = [];
+	var match: RegExpExecArray | null;
+	while (match = regex.exec(string)) {
+		matches.push(match[index]);
+	}
+	return matches;
+}
 export default class WebDav {
 	config: DavOptions;
 	log: (...string) => any;
@@ -177,7 +185,25 @@ export default class WebDav {
 	postAndUnzip(filePath: string) {
 		return this.post(filePath).flatMap(() => this.unzip(filePath));
 	}
-	delete(filePath: string, optionalRoot?: string): Observable<string> {
+	cleanUpCodeVersion(notify: (...string) => void, mode: 'all' | 'list' | 'none' = 'all', list?: string[]) {
+		notify('mode ' + mode);
+		if (mode === 'all') {
+			return this.dirList('/', '/').flatMap((res: string) => {
+				const matches = getMatches(res, /<displayname>(.+?)<\/displayname>/g);
+				const filteredPath = matches.filter(match => match !== this.config.version);
+				const delete$ = filteredPath.map(path => this.delete('/' + path, '/').do(() => {notify(`Deleted ${path}`)}));
+
+				return Observable.forkJoin(...delete$);
+			});
+		} else if (mode === 'list' && list) {
+			const delete$ = list.map(path => this.delete('/' + path, '/').do(() => {notify(`Deleted ${path}`)}));
+
+			return Observable.forkJoin(...delete$);
+		} else {
+			return Observable.of(['']);
+		}
+	}
+	delete(filePath, optionalRoot): Observable<string> {
 		const uriPath = relative(optionalRoot || this.config.root, filePath);
 
 		this.log('delete', uriPath);

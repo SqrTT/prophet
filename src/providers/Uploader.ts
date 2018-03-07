@@ -13,6 +13,9 @@ const commandBus = new Subject<'enable.upload' | 'clean.upload' | 'disable.uploa
  */
 export default class Uploader {
 	private outputChannel: OutputChannel;
+	getCleanUpCodeVersionMode():  "all" | "list" | "none" | "auto"  {
+		return workspace.getConfiguration('extension.prophet').get('clean.up.code.version.mode') || 'auto';
+	}
 	private configuration;
 	private prevState;
 	private uploaderSubscription: Subscription | null;
