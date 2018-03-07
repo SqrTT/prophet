@@ -1,7 +1,7 @@
 {
     "name": "prophet",
     "displayName": "Prophet Debugger",
-    "version": "0.10.2",
+    "version": "0.10.3",
     "publisher": "SqrTT",
     "description": "Debugger and Uploader for Demandware/Salesforce sandbox",
     "author": {
@@ -394,9 +394,9 @@
                     "default": true,
                     "description": "Enable/Disable cartridges view"
                 },
-                "extension.prophet.clean.up.code.version.mode" : {
-                    "type" :"string",
-                    "default" : "auto",
+                "extension.prophet.clean.up.code.version.mode": {
+                    "type": "string",
+                    "default": "auto",
                     "enum": [
                         "auto",
                         "all",
