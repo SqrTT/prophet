@@ -118,7 +118,7 @@ export default class WebDav {
 			this.log('mkcol-response', uriPath, body);
 		});
 	}
-	unzip(filePath, root = this.config.root): Observable<string> {
+	unzip(filePath : string, root = this.config.root): Observable<string> {
 		const uriPath = relative(root, filePath);
 
 		this.log('unzip', uriPath);
@@ -132,7 +132,7 @@ export default class WebDav {
 			this.log('unzip-response', data);
 		});
 	}
-	get(filePath, root = this.config.root): Observable<string> {
+	get(filePath : string, root = this.config.root): Observable<string> {
 		const uriPath = relative(root, filePath);
 
 		this.log('get', uriPath);
@@ -186,7 +186,6 @@ export default class WebDav {
 		return this.post(filePath).flatMap(() => this.unzip(filePath));
 	}
 	cleanUpCodeVersion(notify: (...string) => void, mode: 'all' | 'list' | 'none' = 'all', list?: string[]) {
-		notify('mode ' + mode);
 		if (mode === 'all') {
 			return this.dirList('/', '/').flatMap((res: string) => {
 				const matches = getMatches(res, /<displayname>(.+?)<\/displayname>/g);
@@ -203,8 +202,8 @@ export default class WebDav {
 			return Observable.of(['']);
 		}
 	}
-	delete(filePath, optionalRoot): Observable<string> {
-		const uriPath = relative(optionalRoot || this.config.root, filePath);
+	delete(filePath: string, optionalRoot : string = this.config.root): Observable<string> {
+		const uriPath = relative(optionalRoot, filePath);
 
 		this.log('delete', uriPath);
 		return request$(Object.assign(this.getOptions(), {

@@ -31,10 +31,10 @@
         "request": "^2.83.0",
         "rxjs": "^5.5.6",
         "timeago.js": "^3.0.2",
-        "vscode-debugadapter": "^1.26.0",
-        "vscode-debugprotocol": "^1.26.0",
-        "vscode-languageclient": "^3.5.0",
-        "vscode-languageserver": "^3.5.0",
+        "vscode-debugadapter": "^1.27.0",
+        "vscode-debugprotocol": "^1.27.0",
+        "vscode-languageclient": "^4.0.0",
+        "vscode-languageserver": "^4.0.0",
         "vscode-nls": "^3.2.1",
         "vscode-uri": "^1.0.1",
         "walk": "^2.3.9",
@@ -44,10 +44,10 @@
     "devDependencies": {
         "@types/mocha": "^2.2.48",
         "@types/node": "^7.0.55",
-        "mocha": "^5.0.1",
-        "typescript": "^2.7.1",
-        "vscode": "^1.1.10",
-        "vscode-debugadapter-testsupport": "^1.26.0"
+        "mocha": "^5.0.3",
+        "typescript": "^2.7.2",
+        "vscode": "^1.1.11",
+        "vscode-debugadapter-testsupport": "^1.27.0"
     },
     "scripts": {
         "vscode:prepublish": "npm install && npm run compile && npm run test",
