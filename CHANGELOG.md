@@ -1,3 +1,9 @@
+### 0.10.3
+
+* Add cleanup code version folder before upload #60
+* Add warning for missed cartridges from `dw.json` #69
+* Fix displaying properties of classes in debugger #82 (thanks to [Galen Goforth](https://github.com/ghgofort)
+
 ### 0.10.0
 
 * Add support of SDAPI v2
