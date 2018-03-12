@@ -1,11 +1,11 @@
 import { Observable } from 'rxjs';
 
-
 import { OutputChannel, workspace, window, ProgressLocation, FileSystemWatcher, Uri, Progress, RelativePattern } from 'vscode';
 import { default as WebDav, DavOptions } from './WebDav';
-import { getDirectories, getDirectoriesSync } from '../lib/FileHelper';
+import { getDirectories, stat, access } from '../lib/FileHelper';
 import { dirname, join, sep } from 'path';
-import { createReadStream, statSync, accessSync } from 'fs';
+import { createReadStream } from 'fs';
+
 
 const CONCURENT_CARTRIDGES_UPLOADS: number = 3;
 const CONCURENT_FILE_UPLOADS: number = 5;
@@ -59,7 +59,7 @@ export function getWebDavClient(config: DavOptions, outputChannel: OutputChannel
 	});
 }
 
-function fileWatcher(config, cartRoot: string, outputChannel: OutputChannel) : Observable<[string, string]>{
+function fileWatcher(config, cartRoot: string, outputChannel: OutputChannel): Observable<[string, string]> {
 	return Observable.create(observer => {
 		const watchers: FileSystemWatcher[] = [];
 		let cartridges: Promise<string[]>;
@@ -113,44 +113,47 @@ const uploadCartridges = (
 	cartRoot: string,
 	progress: Progress<{ message?: string }>['report'] | undefined
 ) => {
-	let cartridges: string[];
+	let cartridges: Promise<string[]>;
 	if (Array.isArray(config.cartridge) && config.cartridge.length) {
-		cartridges = config.cartridge.filter(cartridge => {
-			try {
-				accessSync(join(cartRoot, cartridge));
-				return true;
-			} catch (e) {
+		cartridges = Promise.all(config.cartridge.map((cartridge : string) => {
+			return access(join(cartRoot, cartridge))
+			.then(() => cartridge)
+			.catch(e => {
 				window.showWarningMessage(`Cartridge "${cartridge}" doesn't exist. Ignoring. (${e})`);
-				return false;
-			}
+				return '';
+			});
+		})).then((args) => {
+			return args.map(str => str.trim()).filter(Boolean);
 		});
 
 	} else {
-		cartridges = getDirectoriesSync(cartRoot).filter(dirName => !['node_modules', '.git', '.vscode'].includes(dirName));
+		cartridges = getDirectories(cartRoot).then(dirs => {
+			return dirs.filter(dirName => !['node_modules', '.git', '.vscode'].includes(dirName));
+		});
 	}
 	var count = 0;
 
-	const cartridgesList = cartridges
-		.map(str => str.trim())
-		.filter(Boolean);
 
 	const notify = (...msgs: string[]) => {
 		outputChannel.appendLine(msgs.join(' '));
 	};
 
-	const toUpload = cartridgesList
-		.map(cartridge => webdav
-			.uploadCartridge(join(cartRoot, cartridge), notify, { isCartridge: true }).do (
+	const toUpload = Observable.fromPromise(cartridges)
+		.flatMap(cartridges => {
+		return cartridges.map(cartridge => webdav
+			.uploadCartridge(join(cartRoot, cartridge), notify, { isCartridge: true }).do(
 				(data) => { },
 				(error) => { },
 				() => {
 					count++;
 					if (progress) {
-						progress({ message: `Uploading cartridges: ${count} of ${cartridgesList.length}` })
+						progress({ message: `Uploading cartridges: ${count} of ${cartridges.length}` })
 					}
 				}
 			)
 		);
+	}).mergeAll();
+
 	let mode: "all" | "list" | "none" = 'all';
 	if (config.cleanUpCodeVersionMode === 'auto' || !config.cleanUpCodeVersionMode) {
 		mode = Array.isArray(config.cartridge) && config.cartridge.length ? 'list' : 'all';
@@ -160,7 +163,7 @@ const uploadCartridges = (
 
 	notify('Cleanup code version...');
 	return webdav.cleanUpCodeVersion(notify, mode, config.cartridge)
-		.flatMap(res => Observable.merge(...toUpload, 3).concat(Observable.of('')));
+		.flatMap(res => Observable.merge(toUpload, 3).concat(Observable.of('')));
 };
 
 function uploadWithProgress(webdav: WebDav, outputChannel: OutputChannel, config: ({ cartridge, version, cleanOnStart: boolean, cleanUpCodeVersionMode: "all" | "list" | "none" | "auto" }), rootDir: string) {
@@ -217,9 +220,9 @@ function uploadWithProgress(webdav: WebDav, outputChannel: OutputChannel, config
 					resolve = null;
 				}
 			}).subscribe(
-			() => observer.next(),
-			error => observer.error(error),
-			() => observer.complete()
+				() => observer.next(),
+				error => observer.error(error),
+				() => observer.complete()
 			);
 
 		return () => {
@@ -239,30 +242,25 @@ function uploadAndWatch(webdav: WebDav, outputChannel: OutputChannel, config: ({
 				.delay(300)// delay uploading file (allow finish writting for large files)
 				.mergeMap(([action, fileName]) => {
 					const date = new Date().toTimeString().split(' ').shift();
-					var davAction: 'mkdir' | 'post' | 'delete',
-						actionChar: string = '';
 
 					if (action === 'upload') {
-						// @TODO make async or create separate
-						// directory watchers with own commands
-						if (statSync(fileName).isDirectory()) {
-							davAction = 'mkdir';
-							actionChar = 'C';
-						} else {
-							davAction = 'post';
-							actionChar = 'U';
-						}
+						return Observable.fromPromise(stat(fileName))
+							.flatMap(stats => {
+								if (stats.isDirectory()) {
+									outputChannel.appendLine(`[C ${date}] ${fileName}`);
+									return webdav.mkdir(fileName, rootDir);
+								} else {
+									outputChannel.appendLine(`[U ${date}] ${fileName}`);
+									return webdav.post(fileName, rootDir);
+								}
+							});
 					} else if (action === 'delete') {
-						davAction = 'delete';
-						actionChar = 'D';
+						outputChannel.appendLine(`[D ${date}] ${fileName}`);
+						return webdav.delete(fileName, rootDir);
 					} else {
-						throw Error('Unknown action');
+						return Observable.throw(Error('Unknown action'))
 					}
-					outputChannel.appendLine(
-						`[${actionChar} ${date}] ${fileName}`
-					);
 
-					return webdav[davAction](fileName, rootDir);
 				}, CONCURENT_FILE_UPLOADS);
 		});
 }
