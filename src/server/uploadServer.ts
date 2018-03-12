@@ -114,7 +114,7 @@ const uploadCartridges = (
 	progress: Progress<{ message?: string }>['report'] | undefined
 ) => {
 	let cartridges: string[];
-	if (config.cartridge && Array.isArray(config.cartridge)) {
+	if (Array.isArray(config.cartridge) && config.cartridge.length) {
 		cartridges = config.cartridge.filter(cartridge => {
 			try {
 				accessSync(join(cartRoot, cartridge));
@@ -126,7 +126,7 @@ const uploadCartridges = (
 		});
 
 	} else {
-		cartridges = getDirectoriesSync(cartRoot);
+		cartridges = getDirectoriesSync(cartRoot).filter(dirName => !['node_modules', '.git', '.vscode'].includes(dirName));
 	}
 	var count = 0;
 
@@ -139,25 +139,21 @@ const uploadCartridges = (
 	};
 
 	const toUpload = cartridgesList
-		.map(cartridge => {
-			const dirToUpload = join(cartRoot, cartridge);
-
-			return webdav
-				.uploadCartridge(dirToUpload, notify, { isCartridge: true }).do(
-					(data) => { },
-					(error) => { },
-					() => {
-						count++;
-						if (progress) {
-							progress({ message: `Uploading cartridges: ${count} of ${cartridgesList.length}` })
-						}
+		.map(cartridge => webdav
+			.uploadCartridge(join(cartRoot, cartridge), notify, { isCartridge: true }).do (
+				(data) => { },
+				(error) => { },
+				() => {
+					count++;
+					if (progress) {
+						progress({ message: `Uploading cartridges: ${count} of ${cartridgesList.length}` })
 					}
-				);
-
-		});
+				}
+			)
+		);
 	let mode: "all" | "list" | "none" = 'all';
 	if (config.cleanUpCodeVersionMode === 'auto' || !config.cleanUpCodeVersionMode) {
-		mode = config.cartridge && Array.isArray(config.cartridge) ? 'list' : 'all';
+		mode = Array.isArray(config.cartridge) && config.cartridge.length ? 'list' : 'all';
 	} else {
 		mode = config.cleanUpCodeVersionMode;
 	}
