@@ -1,7 +1,7 @@
 'use strict';
 import { readdir, access as nativeAccess, lstat as nativeLStat, Stats } from 'fs';
 import { join } from 'path';
-import { GlobPattern, Uri, CancellationTokenSource, workspace } from 'vscode';
+import { Uri, CancellationTokenSource, workspace, RelativePattern } from 'vscode';
 import { Observable } from 'rxjs';
 
 
@@ -81,7 +81,7 @@ export async function pathExists(location: string): Promise<boolean> {
 	});
 }
 
-export function findFiles(include: GlobPattern, maxResults?: number, errIfNoFound?: boolean) {
+export function findFiles(include: RelativePattern, maxResults?: number, errIfNoFound?: boolean) {
 	return new Observable<Uri>(observer => {
 		const tokenSource = new CancellationTokenSource();
 
@@ -92,7 +92,7 @@ export function findFiles(include: GlobPattern, maxResults?: number, errIfNoFoun
 			tokenSource.token
 		).then(files => {
 			if (errIfNoFound && !files.length) {
-				observer.error(new Error('Unable find files: ' + include));
+				observer.error(new Error('Unable find files: ' + include.pattern));
 			} else {
 				files.forEach(file => {
 					observer.next(file);

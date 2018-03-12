@@ -1,7 +1,7 @@
 'use strict';
-import { TreeItemCollapsibleState, workspace, RelativePattern } from 'vscode';
+import { workspace, RelativePattern } from 'vscode';
 import { exists, readFile, existsSync, mkdirSync, writeFile, mkdir } from 'fs';
-import { dirname, join, basename, sep } from 'path';
+import { join, sep } from 'path';
 import { pathExists } from '../lib/FileHelper';
 
 /**

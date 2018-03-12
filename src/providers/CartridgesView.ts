@@ -1,14 +1,14 @@
 'use strict';
-import { TreeItemCollapsibleState, EventEmitter, TreeDataProvider, Event, window, TreeItem, Uri, workspace, ViewColumn, ExtensionContext, commands, RelativePattern, WorkspaceFolder } from 'vscode';
+import { TreeItemCollapsibleState, EventEmitter, TreeDataProvider, Event, window, TreeItem, Uri, workspace, ViewColumn, ExtensionContext, commands, RelativePattern } from 'vscode';
 
 import { join, basename, dirname } from 'path';
-import { mkdir, open, close, exists } from 'fs';
+import { mkdir, open, close } from 'fs';
 
 import { getDirectories, getFiles, pathExists } from '../lib/FileHelper';
 import { checkIfCartridge, getPathsCartridges } from '../lib/CartridgeHelper';
 import { filterAsync } from '../lib/CollectionUtil';
 import { GenericTreeItem, DirectoryTreeItem, FileTreeItem, CartridgeTreeItem, WorkspaceTreeItem } from '../lib/CartridgeViewsItem';
-import { Observable } from 'rxjs';
+
 
 
 const cartridgeViewOutputChannel = window.createOutputChannel('Cartridges List (Prophet)');
@@ -20,26 +20,24 @@ const cartridgeViewOutputChannel = window.createOutputChannel('Cartridges List (
  * @param projectFile The absolute path to the file location of the Eclipse project file.
  * @param activeFile The active file in the current workspace.
  */
-export const createCardridgeElement = (projectFile: string, activeFile?: string): Promise<CartridgeTreeItem> => {
-	return new Promise((resolve, reject) => {
-		const projectFileDirectory = dirname(projectFile);
-		const projectName = basename(projectFileDirectory);
+export async function createCardridgeElement(projectFile: string, activeFile?: string): Promise<CartridgeTreeItem> {
+	const projectFileDirectory = dirname(projectFile);
+	const projectName = basename(projectFileDirectory);
 
-		let subFolder = '';
-		exists(join(projectFileDirectory, 'cartridge'), (existsDirectory) => {
-			if (existsDirectory) {
-				subFolder = 'cartridge';
-			}
+	let subFolder = '';
+	const existsDirectory = await pathExists(join(projectFileDirectory, 'cartridge'));
 
-			const actualCartridgeLocation = join(projectFileDirectory, subFolder);
+	if (existsDirectory) {
+		subFolder = 'cartridge';
+	}
 
-			resolve(new CartridgeTreeItem(
-				projectName || 'Unknown project name',
-				actualCartridgeLocation,
-				(activeFile && activeFile.startsWith(actualCartridgeLocation))
-					? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.Collapsed));
-		});
-	});
+	const actualCartridgeLocation = join(projectFileDirectory, subFolder);
+
+	return new CartridgeTreeItem(
+		projectName || 'Unknown project name',
+		actualCartridgeLocation,
+		(activeFile && activeFile.startsWith(actualCartridgeLocation))
+			? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.Collapsed);
 };
 
 /**
@@ -192,7 +190,7 @@ export class CartridgesView implements TreeDataProvider<GenericTreeItem> {
 					return [];
 				}
 			} else {
-				return await workspace.workspaceFolders.map(workspaceFolder => 
+				return await workspace.workspaceFolders.map(workspaceFolder =>
 					new WorkspaceTreeItem(
 						workspaceFolder.name,
 						workspaceFolder.uri.fsPath,
@@ -216,7 +214,7 @@ export class CartridgesView implements TreeDataProvider<GenericTreeItem> {
 			const files = await getFiles(element.location);
 			const directories = await getDirectories(element.location);
 			const activeFile = this.activeFile;
-	
+
 			if (files.length || directories.length) {
 				return directories
 					.map(dir => createFolderElement(dir, element, activeFile))
@@ -224,7 +222,7 @@ export class CartridgesView implements TreeDataProvider<GenericTreeItem> {
 						file => createFileElement(file, element)
 					));
 			}
-	
+
 			return [GenericTreeItem.NoFiles];
 		}
 	}

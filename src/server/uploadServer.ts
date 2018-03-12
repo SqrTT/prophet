@@ -1,45 +1,14 @@
 import { Observable } from 'rxjs';
 
 import { OutputChannel, workspace, window, ProgressLocation, FileSystemWatcher, Uri, Progress, RelativePattern } from 'vscode';
-import { default as WebDav, DavOptions } from './WebDav';
+import { default as WebDav, DavOptions, readConfigFile } from './WebDav';
 import { getDirectories, stat, access } from '../lib/FileHelper';
 import { dirname, join, sep } from 'path';
-import { createReadStream } from 'fs';
 
 
 const CONCURENT_CARTRIDGES_UPLOADS: number = 3;
 const CONCURENT_FILE_UPLOADS: number = 5;
 
-export function readConfigFile(configFilename: string): Observable<DavOptions> {
-	return Observable.create(observer => {
-		const stream = createReadStream(configFilename);
-		let chunks: Buffer[] = [];
-
-		// Listen for data
-		stream.on('data', chunk => {
-			chunks.push(chunk);
-		});
-
-		stream.on('error', err => {
-			observer.error(err);
-		}); // Handle the error
-
-		// File is done being read
-		stream.on('close', () => {
-			try {
-				observer.next(JSON.parse(Buffer.concat(chunks).toString()));
-				chunks = <any>null;
-			} catch (err) {
-				observer.error(err);
-			}
-		});
-
-		return () => {
-			chunks = <any>null;
-			stream.close();
-		};
-	});
-}
 
 export function getWebDavClient(config: DavOptions, outputChannel: OutputChannel, rootDir: string): Observable<WebDav> {
 	return Observable.create(observer => {
@@ -163,7 +132,7 @@ const uploadCartridges = (
 
 	notify('Cleanup code version...');
 	return webdav.cleanUpCodeVersion(notify, mode, config.cartridge)
-		.flatMap(res => Observable.merge(toUpload, 3).concat(Observable.of('')));
+		.flatMap(res => Observable.merge(toUpload, CONCURENT_CARTRIDGES_UPLOADS).concat(Observable.of('')));
 };
 
 function uploadWithProgress(webdav: WebDav, outputChannel: OutputChannel, config: ({ cartridge, version, cleanOnStart: boolean, cleanUpCodeVersionMode: "all" | "list" | "none" | "auto" }), rootDir: string) {

@@ -11,6 +11,6 @@
 		"removeComments": false,
 		"preserveConstEnums": true,
 		"strictNullChecks": true,
-		"noUnusedLocals": false
+		"noUnusedLocals": true
 	}
 }

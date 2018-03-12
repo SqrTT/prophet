@@ -1,7 +1,7 @@
 
 'use strict';
 import { join } from 'path';
-import { workspace, ExtensionContext, commands, window, Uri, WorkspaceConfiguration, debug, WorkspaceFolder, GlobPattern, CancellationTokenSource } from 'vscode';
+import { workspace, ExtensionContext, commands, window, Uri, WorkspaceConfiguration, debug, WorkspaceFolder, RelativePattern } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
 import { CartridgesView } from './providers/CartridgesView';
 import { LogsView } from './providers/LogsView';
@@ -98,21 +98,19 @@ export function activate(context: ExtensionContext) {
 	/// uploader
 	Uploader.initialize(context, workspaceFolders$$);
 
-
-
 	// CartridgesView
 	CartridgesView.initialize(context);
 
-	const dwConfig = workspaceFolders$$.map(workspaceFolder$ => {
+	const dwConfig$$ = workspaceFolders$$.map(workspaceFolder$ => {
 		const end$ = new Subject();
 		return workspaceFolder$
 		.do(() => {}, undefined, () => {end$.next();end$.complete()})
 		.flatMap(workspaceFolder => {
-			return findFiles('dw.json', 1)
+			return findFiles(new RelativePattern(workspaceFolder, 'dw.json'), 1)
 		}).takeUntil(end$);
-	})
-	.mergeAll()
+	});
 
+	subscribe2disposable(LogsView.initialize(commands, context, dwConfig$$).mergeAll());
 }
 
 function initializeToolkitActions() {
