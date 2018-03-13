@@ -125,7 +125,11 @@ const uploadCartridges = (
 
 	let mode: "all" | "list" | "none" = 'all';
 	if (config.cleanUpCodeVersionMode === 'auto' || !config.cleanUpCodeVersionMode) {
-		mode = Array.isArray(config.cartridge) && config.cartridge.length ? 'list' : 'all';
+		if (workspace.workspaceFolders && workspace.workspaceFolders.length > 1) {
+			mode = 'none';// FIXME: find better way with for uploaders conflict 
+		} else {
+			mode = Array.isArray(config.cartridge) && config.cartridge.length ? 'list' : 'all';
+		}
 	} else {
 		mode = config.cleanUpCodeVersionMode;
 	}

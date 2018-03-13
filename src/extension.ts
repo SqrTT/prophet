@@ -13,6 +13,99 @@ import { ProphetConfigurationProvider } from './providers/ConfigurationProvider'
 import { Subject, Observable } from 'rxjs';
 import { findFiles } from './lib/FileHelper';
 
+
+/**
+ * Create the ISML language server with the proper parameters
+ *
+ * @param context the extension context
+ * @param configuration the extension configuration
+ */
+function createIsmlLanguageServer(context: ExtensionContext, configuration: WorkspaceConfiguration = workspace.getConfiguration('extension.prophet', null)) {
+	// The server is implemented in node
+	const serverModule = context.asAbsolutePath(join('out', 'server', 'ismlServer.js'));
+	// The debug options for the server
+	const debugOptions = { execArgv: ['--nolazy', '--debug=6004'] };
+
+	// If the extension is launched in debug mode then the debug server options are used
+	// Otherwise the run options are used
+	const serverOptions: ServerOptions = {
+		run: { module: serverModule, transport: TransportKind.ipc },
+		debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions }
+	};
+	const htmlConf = workspace.getConfiguration('html.format', null);
+	// Options to control the language client
+	const clientOptions: LanguageClientOptions = {
+		// Register the server for plain text documents
+		documentSelector: (configuration.get('ismlServer.activateOn', ['isml'])).map(type => ({
+			language: type,
+			scheme: 'file'
+		})),
+		synchronize: {
+			// Synchronize the setting section 'languageServerExample' to the server
+			configurationSection: 'ismlLanguageServer',
+			// Notify the server about file changes to '.clientrc files contain in the workspace
+			// fileEvents: workspace.createFileSystemWatcher('**/*.isml')
+		},
+		initializationOptions: {
+			formatParams: {
+				wrapLineLength: htmlConf.get('wrapLineLength'),
+				unformatted: htmlConf.get('unformatted'),
+				contentUnformatted: htmlConf.get('contentUnformatted'),
+				indentInnerHtml: htmlConf.get('indentInnerHtml'),
+				preserveNewLines: htmlConf.get('preserveNewLines'),
+				maxPreserveNewLines: htmlConf.get('maxPreserveNewLines'),
+				indentHandlebars: htmlConf.get('indentHandlebars'),
+				endWithNewline: htmlConf.get('endWithNewline'),
+				extraLiners: htmlConf.get('extraLiners'),
+				wrapAttributes: htmlConf.get('wrapAttributes')
+			}
+
+		}
+	};
+
+	// Create the language client and start the client.
+	const ismlLanguageServer = new LanguageClient('ismlLanguageServer', 'ISML Language Server', serverOptions, clientOptions);
+
+	ismlLanguageServer.onReady().then(() => {
+		ismlLanguageServer.onNotification('isml:selectfiles', (test) => {
+			const prophetConfiguration = workspace.getConfiguration('extension.prophet');
+			const cartPath = String(prophetConfiguration.get('cartridges.path'));
+
+			if (cartPath.trim().length) {
+				const cartridges = cartPath.split(':');
+
+				const cartridge = cartridges.find(cartridgeItem =>
+					(test.data || []).some(filename => filename.includes(cartridgeItem)));
+
+				if (cartridge) {
+					ismlLanguageServer.sendNotification('isml:selectedfile', test.data.find(
+						filename => filename.includes(cartridge)
+					));
+					return;
+				}
+
+			}
+			window.showQuickPick(test.data).then(selected => {
+				ismlLanguageServer.sendNotification('isml:selectedfile', selected);
+			}, err => {
+				ismlLanguageServer.sendNotification('isml:selectedfile', undefined);
+			});
+		});
+		ismlLanguageServer.onNotification('find:files', ({searchID, workspacePath, pattern}) => {
+			workspace.findFiles(
+				new RelativePattern(workspacePath, pattern),
+				//'{node_modules,.git}'
+			).then(result => {
+				ismlLanguageServer.sendNotification('find:filesFound', {searchID, result: (result || []).map(uri => uri.fsPath)});
+			})
+		});
+	}).catch(err => {
+		window.showErrorMessage(JSON.stringify(err));
+	});
+
+	return ismlLanguageServer;
+}
+
 function getWorkspaceFolders$$(context: ExtensionContext) : Observable<Observable<WorkspaceFolder>>{
 	return new Observable(observer => {
 
@@ -82,7 +175,9 @@ export function activate(context: ExtensionContext) {
 	// context.subscriptions.push(ismlLanguageServer.start());
 
 	function subscribe2disposable($: Observable<any>) {
-		const subscr = $.subscribe();
+		const subscr = $.subscribe(() => {}, err => {
+			window.showErrorMessage(JSON.stringify(err));
+		});
 
 		context.subscriptions.push({
 			dispose() {
@@ -111,6 +206,8 @@ export function activate(context: ExtensionContext) {
 	});
 
 	subscribe2disposable(LogsView.initialize(commands, context, dwConfig$$).mergeAll());
+
+	context.subscriptions.push(createIsmlLanguageServer(context).start());
 }
 
 function initializeToolkitActions() {
@@ -156,88 +253,7 @@ function initializeToolkitActions() {
 
 }
 
-/**
- * Create the ISML language server with the proper parameters
- *
- * @param context the extension context
- * @param configuration the extension configuration
- */
-function createIsmlLanguageServer(context: ExtensionContext, configuration: WorkspaceConfiguration) {
-	// The server is implemented in node
-	const serverModule = context.asAbsolutePath(join('out', 'server', 'ismlServer.js'));
-	// The debug options for the server
-	const debugOptions = { execArgv: ['--nolazy', '--debug=6004'] };
 
-	// If the extension is launched in debug mode then the debug server options are used
-	// Otherwise the run options are used
-	const serverOptions: ServerOptions = {
-		run: { module: serverModule, transport: TransportKind.ipc },
-		debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions }
-	};
-	const htmlConf = workspace.getConfiguration('html.format');
-	// Options to control the language client
-	const clientOptions: LanguageClientOptions = {
-		// Register the server for plain text documents
-		documentSelector: (configuration.get('ismlServer.activateOn') as string[] || ['isml']).map(type => ({
-			language: type,
-			scheme: 'file'
-		})),
-		synchronize: {
-			// Synchronize the setting section 'languageServerExample' to the server
-			configurationSection: 'ismlLanguageServer',
-			// Notify the server about file changes to '.clientrc files contain in the workspace
-			// fileEvents: workspace.createFileSystemWatcher('**/*.isml')
-		},
-		initializationOptions: {
-			formatParams: {
-				wrapLineLength: htmlConf.get('wrapLineLength'),
-				unformatted: htmlConf.get('unformatted'),
-				contentUnformatted: htmlConf.get('contentUnformatted'),
-				indentInnerHtml: htmlConf.get('indentInnerHtml'),
-				preserveNewLines: htmlConf.get('preserveNewLines'),
-				maxPreserveNewLines: htmlConf.get('maxPreserveNewLines'),
-				indentHandlebars: htmlConf.get('indentHandlebars'),
-				endWithNewline: htmlConf.get('endWithNewline'),
-				extraLiners: htmlConf.get('extraLiners'),
-				wrapAttributes: htmlConf.get('wrapAttributes')
-			}
-
-		}
-	};
-
-	// Create the language client and start the client.
-	const ismlLanguageServer = new LanguageClient('ismlLanguageServer', 'ISML Language Server', serverOptions, clientOptions);
-
-	ismlLanguageServer.onReady().then(() => {
-		ismlLanguageServer.onNotification('isml:selectfiles', (test) => {
-			const prophetConfiguration = workspace.getConfiguration('extension.prophet');
-			const cartPath = String(prophetConfiguration.get('cartridges.path'));
-
-			if (cartPath.trim().length) {
-				const cartridges = cartPath.split(':');
-
-				const cartridge = cartridges.find(cartridgeItem =>
-					(test.data || []).some(filename => filename.includes(cartridgeItem)));
-
-				if (cartridge) {
-					ismlLanguageServer.sendNotification('isml:selectedfile', test.data.find(
-						filename => filename.includes(cartridge)
-					));
-					return;
-				}
-
-			}
-			window.showQuickPick(test.data).then(selected => {
-				ismlLanguageServer.sendNotification('isml:selectedfile', selected);
-			}, err => {
-				ismlLanguageServer.sendNotification('isml:selectedfile', undefined);
-			});
-		});
-	});
-
-	return ismlLanguageServer;
-
-}
 
 export function deactivate() {
 	// nothing to do
