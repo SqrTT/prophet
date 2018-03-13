@@ -13,13 +13,7 @@ const initialConfigurations = {
 		{
 			'type': 'prophet',
 			'request': 'launch',
-			'name': 'Attach to Sandbox',
-			'hostname': '*.demandware.net',
-			'username': '<username>',
-			'password': '<password>',
-			'codeversion': 'version1',
-			'cartridgeroot': 'auto',
-			'workspaceroot': '${workspaceFolder}'
+			'name': 'Attach to Sandbox'
 		}
 	]
 };

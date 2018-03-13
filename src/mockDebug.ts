@@ -28,8 +28,6 @@ export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArgum
 	username: string
 	password: string
 	codeversion: string
-	cartridgeroot: string
-	workspaceroot: string
 	/** enable logging the Debug Adapter Protocol */
 	trace?: boolean;
 	__sessionId: string
@@ -38,11 +36,12 @@ export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArgum
 
 class ProphetDebugSession extends LoggingDebugSession {
 
+	cartridgesList: string[];
 	// maps from sourceFile to array of Breakpoints
 	private _breakPoints = new Map<string, Array<number>>();
 	//private threadsArray = new Array<number>();
 	private connection: Connection;
-	private config: LaunchRequestArguments
+	private config: LaunchRequestArguments;
 	private threadsTimer: NodeJS.Timer;
 	private awaitThreadsTimer: NodeJS.Timer;
 	private isAwaitingThreads = false;
@@ -94,24 +93,45 @@ class ProphetDebugSession extends LoggingDebugSession {
 			response.body.supportsValueFormattingOptions = true;
 			response.body.exceptionBreakpointFilters = [];
 		}
+		this.sendEvent({event: 'prophet.getdebugger.config', type: "event", seq: 1});
 
-		this.sendResponse(response);
+		this.once('prophet.debugger.config', (options) => {
+			//this.log('gotData:' + JSON.stringify(options, null, '  '));
+
+			this.config = options.config;
+			this.config.codeversion = options.config.version;
+
+			this.cartridgesList = options.cartridges;
+
+			this.sendResponse(response);
+		});
+
 	}
+	protected customRequest(command: string, response: DebugProtocol.Response, args: any): void {
 
+		switch (command) {
+			case 'DebuggerConfig':
+				this.emit('prophet.debugger.config', args);
+				response.success = true;
+				this.sendResponse(response);
+				break;
+			default:
+				super.customRequest(command, response, args);
+				break;
+		}
+	}
 	protected launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments): void {
 
 		if (args.trace) {
 			logger.setup(Logger.LogLevel.Verbose, /*logToFile=*/ true);
 		}
 
-		this.config = args;
-
 		// since this debug adapter can accept configuration requests like 'setBreakpoint' at any time,
 		// we request them early by sending an 'initializeRequest' to the frontend.
 		// The frontend will end the configuration sequence by calling 'configurationDone' request.
 
 		if (!this.connection) {
-			this.connection = new Connection(args);
+			this.connection = new Connection(this.config);
 
 			this.connection
 				.estabilish()
@@ -561,36 +581,63 @@ class ProphetDebugSession extends LoggingDebugSession {
 
 	protected convertClientPathToDebugger(clientPath: string): string {
 
-		if (this.config.cartridgeroot === 'auto') {
-			var workingPath = clientPath;
+		const cartPath = this.cartridgesList.find(cartridge => clientPath.startsWith(cartridge));
 
-			while (
-				path.parse(workingPath).root !== workingPath &&
-				path.basename(workingPath) !== 'cartridge' &&
-				path.basename(workingPath) !== 'modules'
-			) {
-				workingPath = path.dirname(workingPath);
-			}
-
-			if (path.parse(workingPath).root === workingPath) {
-				this.logError('Unable detect "cartridgeroot"');
-			} else {
-				if (path.basename(workingPath) === 'modules') {
-					this.config.cartridgeroot = path.dirname(workingPath);
-				} else {
-					this.config.cartridgeroot = path.dirname(path.dirname(workingPath));
-				}
-			}
-			this.log(`"cartridgeroot" is set to "${this.config.cartridgeroot}"`);
+		if (cartPath) {
+			const cartridgeName = basename(cartPath);
+			const cPath = clientPath.substr(cartPath.length - cartridgeName.length);
+			const tmp = '/' + cPath.split(path.sep).join('/'); 
+			return tmp;
+		} else {
+			this.logError("Unable detect cartridge");
+			return '';
 		}
 
-		const relPath = path.relative(this.config.cartridgeroot, clientPath);
-		const sepPath = relPath.split(path.sep);
+		// if (this.config.cartridgeroot === 'auto') {
+		// 	var workingPath = clientPath;
 
-		return '/' + sepPath.join('/');
+		// 	while (
+		// 		path.parse(workingPath).root !== workingPath &&
+		// 		path.basename(workingPath) !== 'cartridge' &&
+		// 		path.basename(workingPath) !== 'modules'
+		// 	) {
+		// 		workingPath = path.dirname(workingPath);
+		// 	}
+
+		// 	if (path.parse(workingPath).root === workingPath) {
+		// 		this.logError('Unable detect "cartridgeroot"');
+		// 	} else {
+		// 		if (path.basename(workingPath) === 'modules') {
+		// 			this.config.cartridgeroot = path.dirname(workingPath);
+		// 		} else {
+		// 			this.config.cartridgeroot = path.dirname(path.dirname(workingPath));
+		// 		}
+		// 	}
+		// 	this.log(`"cartridgeroot" is set to "${this.config.cartridgeroot}"`);
+		// }
+
+		// const relPath = path.relative(this.config.cartridgeroot, clientPath);
+		// const sepPath = relPath.split(path.sep);
+
+		
 	}
 	protected convertDebuggerPathToClient(debuggerPath: string): string {
-		return path.join(this.config.cartridgeroot, debuggerPath.split('/').join(path.sep));
+		debuggerPath = debuggerPath.substr(1);
+		const debuggerSep = debuggerPath.split('/');
+		const cartridgeName = debuggerSep.shift() || '';
+		
+		
+		const cartPath = this.cartridgesList.find(cartridge => cartridge.endsWith(cartridgeName));
+		
+		if (cartPath) {
+			const tmp = path.join(cartPath, debuggerSep.join(path.sep)); 
+			return tmp;
+
+		} else {
+			this.logError("Unable match cartridge");
+			return '';
+		}
+
 	}
 	startAwaitThreads() {
 		if (!this.isAwaitingThreads) {

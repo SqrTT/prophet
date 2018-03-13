@@ -1,6 +1,6 @@
 
 'use strict';
-import { join } from 'path';
+import { join, basename, dirname } from 'path';
 import { workspace, ExtensionContext, commands, window, Uri, WorkspaceConfiguration, debug, WorkspaceFolder, RelativePattern } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
 import { CartridgesView } from './providers/CartridgesView';
@@ -12,7 +12,7 @@ import Uploader from "./providers/Uploader";
 import { ProphetConfigurationProvider } from './providers/ConfigurationProvider';
 import { Subject, Observable } from 'rxjs';
 import { findFiles } from './lib/FileHelper';
-
+import { readConfigFile } from './server/WebDav';
 
 /**
  * Create the ISML language server with the proper parameters
@@ -91,12 +91,12 @@ function createIsmlLanguageServer(context: ExtensionContext, configuration: Work
 				ismlLanguageServer.sendNotification('isml:selectedfile', undefined);
 			});
 		});
-		ismlLanguageServer.onNotification('find:files', ({searchID, workspacePath, pattern}) => {
+		ismlLanguageServer.onNotification('find:files', ({ searchID, workspacePath, pattern }) => {
 			workspace.findFiles(
 				new RelativePattern(workspacePath, pattern),
 				//'{node_modules,.git}'
 			).then(result => {
-				ismlLanguageServer.sendNotification('find:filesFound', {searchID, result: (result || []).map(uri => uri.fsPath)});
+				ismlLanguageServer.sendNotification('find:filesFound', { searchID, result: (result || []).map(uri => uri.fsPath) });
 			})
 		});
 	}).catch(err => {
@@ -106,10 +106,10 @@ function createIsmlLanguageServer(context: ExtensionContext, configuration: Work
 	return ismlLanguageServer;
 }
 
-function getWorkspaceFolders$$(context: ExtensionContext) : Observable<Observable<WorkspaceFolder>>{
+function getWorkspaceFolders$$(context: ExtensionContext): Observable<Observable<WorkspaceFolder>> {
 	return new Observable(observer => {
 
-		function createObservableWorkspace(workspaceFolder : WorkspaceFolder) {
+		function createObservableWorkspace(workspaceFolder: WorkspaceFolder) {
 			return new Observable<WorkspaceFolder>(wrkObserver => {
 				const wrkListener = workspace.onDidChangeWorkspaceFolders(event => {
 					try {
@@ -168,6 +168,9 @@ export function activate(context: ExtensionContext) {
 		)
 	);
 
+
+	initDebugger();
+
 	const workspaceFolders$$ = getWorkspaceFolders$$(context);
 
 	// const configuration = workspace.getConfiguration('extension.prophet');
@@ -175,7 +178,7 @@ export function activate(context: ExtensionContext) {
 	// context.subscriptions.push(ismlLanguageServer.start());
 
 	function subscribe2disposable($: Observable<any>) {
-		const subscr = $.subscribe(() => {}, err => {
+		const subscr = $.subscribe(() => { }, err => {
 			window.showErrorMessage(JSON.stringify(err));
 		});
 
@@ -199,15 +202,59 @@ export function activate(context: ExtensionContext) {
 	const dwConfig$$ = workspaceFolders$$.map(workspaceFolder$ => {
 		const end$ = new Subject();
 		return workspaceFolder$
-		.do(() => {}, undefined, () => {end$.next();end$.complete()})
-		.flatMap(workspaceFolder => {
-			return findFiles(new RelativePattern(workspaceFolder, 'dw.json'), 1)
-		}).takeUntil(end$);
+			.do(() => { }, undefined, () => { end$.next(); end$.complete() })
+			.flatMap(workspaceFolder => {
+				return findFiles(new RelativePattern(workspaceFolder, 'dw.json'), 1)
+			}).takeUntil(end$);
 	});
 
 	subscribe2disposable(LogsView.initialize(commands, context, dwConfig$$).mergeAll());
 
 	context.subscriptions.push(createIsmlLanguageServer(context).start());
+}
+
+function initDebugger() {
+	debug.onDidReceiveDebugSessionCustomEvent(event => {
+		if (event.event === 'prophet.getdebugger.config' && workspace.workspaceFolders) {
+			const dwConfigFiles = Promise.all(workspace.workspaceFolders.map(workspaceFolder => findFiles(new RelativePattern(workspaceFolder, 'dw.json'), 1).toPromise()));
+			dwConfigFiles.then(configFiles => {
+				if (!configFiles || !configFiles.length) {
+					return Promise.reject('Unable to find sandbox configuration (dw.json)');
+				} else if (configFiles.length === 1) {
+					return configFiles[0].fsPath;
+				} else {
+					return window.showQuickPick(configFiles.map(config => config.fsPath), { placeHolder: 'Select configuration for debugger' });
+				}
+			}).then(filepath => {
+				if (filepath) {
+					return readConfigFile(filepath).toPromise();
+				} else {
+					return Promise.reject('Please choose configuration first');
+				}
+			}).then(configData => {
+				if (workspace.workspaceFolders) {
+					return Promise.all(workspace.workspaceFolders.map(workspaceFolder => workspace.findFiles(new RelativePattern(workspaceFolder, '**/.project'), '{node_modules,.git}'))).then(projects => {
+						const flattenProjectsPaths = ([] as Uri[]).concat(...projects).map(project => dirname(project.fsPath));
+						if (flattenProjectsPaths.length) {
+							return event.session.customRequest('DebuggerConfig', {
+								config: configData,
+								cartridges: flattenProjectsPaths
+							}).then(d => d, err => {
+
+								debugger;
+							});
+						} else {
+							return Promise.reject('Unable get cartridges list');
+						}
+					});
+				} else {
+					return Promise.reject('Unable detect workspaces');
+				}
+			}).catch(err => {
+				window.showErrorMessage(JSON.stringify(err));
+			});
+		}
+	});
 }
 
 function initializeToolkitActions() {

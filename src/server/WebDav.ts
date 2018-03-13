@@ -376,7 +376,7 @@ export default class WebDav {
 }
 
 export function readConfigFile(configFilename: string): Observable<DavOptions> {
-	return Observable.create(observer => {
+	return new Observable(observer => {
 		const stream = createReadStream(configFilename);
 		let chunks: Buffer[] = [];
 
@@ -393,6 +393,7 @@ export function readConfigFile(configFilename: string): Observable<DavOptions> {
 		stream.on('close', () => {
 			try {
 				observer.next(JSON.parse(Buffer.concat(chunks).toString()));
+				observer.complete();
 				chunks = <any>null;
 			} catch (err) {
 				observer.error(err);

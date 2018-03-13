@@ -2,6 +2,9 @@
     "name": "prophet",
     "displayName": "Prophet Debugger",
     "version": "0.10.4",
+    "keywords": [
+        "multi-root ready"
+    ],
     "publisher": "SqrTT",
     "description": "Debugger and Uploader for Demandware/Salesforce sandbox",
     "author": {
@@ -297,61 +300,19 @@
                 "configurationSnippets": [
                     {
                         "label": "Demandware Debugger",
-                        "description": "A new configuration for connecting to sandbox",
+                        "description": "configuration will look up for dw.json",
                         "body": {
                             "type": "prophet",
                             "request": "launch",
-                            "name": "${2:Attach to Sandbox}",
-                            "hostname": "${3:*.demandware.net}",
-                            "username": "${4:admin}",
-                            "password": "${5}",
-                            "codeversion": "${6:version1}",
-                            "cartridgeroot": "auto",
-                            "workspaceroot": "^\"\\${workspaceFolder}\""
+                            "name": "${2:Attach to Sandbox}"
                         }
                     }
                 ],
                 "configurationAttributes": {
                     "launch": {
                         "required": [
-                            "hostname",
-                            "username",
-                            "password",
-                            "codeversion",
-                            "cartridgeroot",
-                            "workspaceroot"
                         ],
                         "properties": {
-                            "hostname": {
-                                "type": "string",
-                                "description": "Hostname of instance",
-                                "default": "*.demandware.net"
-                            },
-                            "username": {
-                                "type": "string",
-                                "description": "username for instance",
-                                "default": "admin"
-                            },
-                            "password": {
-                                "type": "string",
-                                "description": "password for instance",
-                                "default": ""
-                            },
-                            "codeversion": {
-                                "type": "string",
-                                "description": "version of code on instance",
-                                "default": "vesion1"
-                            },
-                            "cartridgeroot": {
-                                "type": "string",
-                                "description": "cartridges root in workspace",
-                                "default": "auto"
-                            },
-                            "workspaceroot": {
-                                "type": "string",
-                                "description": "root of workspace",
-                                "default": "${workspaceFolder}"
-                            },
                             "trace": {
                                 "type": "boolean",
                                 "description": "Enable logging of the Debug Adapter Protocol.",
