@@ -1,8 +1,9 @@
 'use strict';
 import { readdir, access as nativeAccess, lstat as nativeLStat, Stats } from 'fs';
-import { join } from 'path';
-import { Uri, CancellationTokenSource, workspace, RelativePattern } from 'vscode';
+import { join, dirname } from 'path';
+import { Uri, CancellationTokenSource, workspace, RelativePattern, WorkspaceFolder, window } from 'vscode';
 import { Observable } from 'rxjs';
+import { readConfigFile } from '../server/WebDav';
 
 
 
@@ -107,4 +108,33 @@ export function findFiles(include: RelativePattern, maxResults?: number, errIfNo
 			tokenSource.dispose();
 		}
 	});
+}
+
+export function getCartridgesFolder(workspaceFolder : WorkspaceFolder) {
+	return findFiles(new RelativePattern(workspaceFolder, '**/.project')).map(project => dirname(project.fsPath));
+};
+
+export function getDWConfig(workspaceFolders?: WorkspaceFolder[]) {
+	if (workspaceFolders) {
+		const dwConfigFiles = Promise.all(workspaceFolders.map(
+			workspaceFolder => findFiles(new RelativePattern(workspaceFolder, 'dw.json'), 1).toPromise()
+		));
+		return dwConfigFiles.then(configFiles => {
+			if (!configFiles || !configFiles.length) {
+				return Promise.reject('Unable to find sandbox configuration (dw.json)');
+			} else if (configFiles.length === 1) {
+				return configFiles[0].fsPath;
+			} else {
+				return window.showQuickPick(configFiles.map(config => config.fsPath), { placeHolder: 'Select configuration for debugger' });
+			}
+		}).then(filepath => {
+			if (filepath) {
+				return readConfigFile(filepath).toPromise();
+			} else {
+				return Promise.reject('Please choose configuration first');
+			}
+		})
+	} else {
+		return Promise.reject('Workspaces not found');
+	}
 }

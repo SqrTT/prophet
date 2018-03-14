@@ -1,8 +1,7 @@
-import { Observable, Subscription,  Subject} from 'rxjs';
-import { window, OutputChannel, ExtensionContext, workspace, commands, RelativePattern, WorkspaceFolder, WorkspaceConfiguration } from 'vscode';
+import { Observable, Subscription, Subject } from 'rxjs';
+import { window, OutputChannel, ExtensionContext, workspace, commands, WorkspaceFolder } from 'vscode';
 import * as uploadServer from "../server/uploadServer";
-import { setTimeout } from 'timers';
-import { findFiles } from '../lib/FileHelper';
+import { getCartridgesFolder, getDWConfig } from '../lib/FileHelper';
 
 const commandBus = new Subject<'enable.upload' | 'clean.upload' | 'disable.upload'>();
 
@@ -11,30 +10,29 @@ const commandBus = new Subject<'enable.upload' | 'clean.upload' | 'disable.uploa
  */
 export default class Uploader {
 	private outputChannel: OutputChannel;
-	getCleanUpCodeVersionMode():  "all" | "list" | "none" | "auto"  {
+	getCleanUpCodeVersionMode(): "all" | "list" | "none" | "auto" {
 		return workspace.getConfiguration('extension.prophet').get('clean.up.code.version.mode') || 'auto';
 	}
-	private configuration;
+	//private configuration;
 	private prevState;
 	private uploaderSubscription: Subscription | null;
 	private cleanOnStart: boolean;
 	private commandSubs: Subscription;
-	private readonly workspaceFolder: WorkspaceFolder;
+	private cartridges: Set<string>
 
 	/**
 	 *
 	 * @param configuration the workspace configuration to use
 	 */
-	constructor(configuration : WorkspaceConfiguration, workspaceFolder: WorkspaceFolder) {
-		this.outputChannel = window.createOutputChannel(`Prophet Uploader: ${workspaceFolder.name}`);
-		this.configuration = configuration;
-		this.workspaceFolder = workspaceFolder;
+	constructor(cartridges: Set<string>) {
+		this.outputChannel = window.createOutputChannel(`Prophet Uploader`);
+		this.cartridges = cartridges;
 
-		this.cleanOnStart = Boolean(this.configuration.get('clean.on.start'));
+		this.cleanOnStart = Boolean(workspace.getConfiguration('extension.prophet').get('clean.on.start'));
 
 		this.commandSubs = commandBus.subscribe(command => {
 			if (command === 'clean.upload' || command === 'enable.upload') {
-				this.loadUploaderConfig(this.workspaceFolder.uri.fsPath);
+				this.loadUploaderConfig();
 			} else if (command === 'disable.upload') {
 				if (this.uploaderSubscription) {
 					this.outputChannel.appendLine(`Stopping`);
@@ -49,16 +47,13 @@ export default class Uploader {
 	 * Returns the enabled status from the configuration
 	 */
 	isUploadEnabled() {
-		return !!workspace.getConfiguration('extension.prophet.upload.enabled', this.workspaceFolder.uri);
+		return !!workspace.getConfiguration('extension.prophet').get('upload.enabled');
 	}
 
 	/**
 	 * Loads the uploader configuration and start the server
-	 *
-	 * @param rootPath
-	 * @param context
 	 */
-	loadUploaderConfig(rootPath: string) {
+	loadUploaderConfig() {
 		if (this.uploaderSubscription) {
 			this.uploaderSubscription.unsubscribe();
 			this.uploaderSubscription = null;
@@ -67,34 +62,32 @@ export default class Uploader {
 			this.outputChannel.appendLine(`Starting...`);
 		}
 
-		this.uploaderSubscription = 
-			findFiles(new RelativePattern(rootPath, 'dw.json'), 1, true)
-			.flatMap(file => {
-				const configFilename = file.fsPath;
-				this.outputChannel.appendLine(`Using config file '${configFilename}'`);
+		this.uploaderSubscription = Observable.fromPromise(getDWConfig(workspace.workspaceFolders))
+			.flatMap(dwConf => {
+				this.outputChannel.appendLine(`Using config file '${dwConf.configFilename}'`);
+				dwConf.cartridge = Array.from(this.cartridges.values())
 
 				return uploadServer.init(
-					configFilename,
+					dwConf,
 					this.outputChannel,
-					{
-						cleanOnStart: this.cleanOnStart
-					}).do(() => {
-						this.cleanOnStart = true;
-					});
+					{ cleanOnStart: this.cleanOnStart }
+				).do(() => {
+					this.cleanOnStart = true;
+				});
 			})
 			.subscribe(
-			() => {
-				// DO NOTHING
-			},
-			err => {
-				this.outputChannel.show();
-				this.outputChannel.appendLine(`Error: ${err}`);
-			},
-			() => {
-				this.outputChannel.show();
-				this.outputChannel.appendLine(`Error: completed!`);
-			}
-		);
+				() => {
+					// DO NOTHING
+				},
+				err => {
+					this.outputChannel.show();
+					this.outputChannel.appendLine(`Error: ${err}`);
+				},
+				() => {
+					this.outputChannel.show();
+					this.outputChannel.appendLine(`Error: completed!`);
+				}
+			);
 	}
 	static initialize(context: ExtensionContext, workspaceFolder$$: Observable<Observable<WorkspaceFolder>>) {
 		var subscriptions = context.subscriptions;
@@ -111,23 +104,42 @@ export default class Uploader {
 			commandBus.next('disable.upload');
 		}));
 
-		const subs = workspaceFolder$$.map(workspaceFolder$ => {
-			const end$ = new Subject();
-			return workspaceFolder$
-			.do(() => {}, undefined, () => {end$.next();end$.complete()})
-			.flatMap(workspaceFolder => {
-				const configuration = workspace.getConfiguration('extension.prophet', workspaceFolder.uri);
-				const uploader = new Uploader(configuration, workspaceFolder);
-				return uploader.start();
-			}).takeUntil(end$);
-		})
-		.mergeAll()
-		.subscribe();
+		let subs: Subscription | undefined;
 
+		const updateFolders = () => {
+			if (subs) {
+				subs.unsubscribe();
+				subs = undefined;
+			}
+
+			if (workspace.workspaceFolders) {
+				subs = Observable.of(...workspace.workspaceFolders)
+					.flatMap(workspaceFolder => getCartridgesFolder(workspaceFolder))
+					.reduce((acc, val) => {
+						acc.add(val);
+						return acc;
+					}, new Set<string>())
+					.flatMap(cartridgesList => {
+						const uploader = new Uploader(cartridgesList);
+						return uploader.start();
+					})
+					.subscribe();
+			}
+		};
+
+		workspace.onDidChangeWorkspaceFolders(updateFolders);
+
+		updateFolders();
+
+		// const configuration = workspace.getConfiguration('extension.prophet', workspaceFolder.uri);
+		// const uploader = new Uploader(configuration, workspaceFolder);
+		// return uploader.start();
 		subscriptions.push({
 			dispose: () => {
 				commandBus.unsubscribe();
-				subs.unsubscribe();
+				if (subs) {
+					subs.unsubscribe();
+				}
 			}
 		})
 	}
@@ -144,7 +156,7 @@ export default class Uploader {
 				if (isProphetUploadEnabled !== this.prevState) {
 					this.prevState = isProphetUploadEnabled;
 					if (isProphetUploadEnabled) {
-						this.loadUploaderConfig(this.workspaceFolder.uri.fsPath);
+						this.loadUploaderConfig();
 					} else {
 						if (this.uploaderSubscription) {
 							this.outputChannel.appendLine(`Stopping`);
@@ -159,24 +171,22 @@ export default class Uploader {
 			const isUploadEnabled = this.isUploadEnabled();
 			this.prevState = isUploadEnabled;
 			if (isUploadEnabled) {
-				this.loadUploaderConfig(this.workspaceFolder.uri.fsPath);
+				this.loadUploaderConfig();
 			} else {
 				this.outputChannel.appendLine('Uploader disabled via configuration');
 			}
-			observer.next(this.workspaceFolder.uri.fsPath);
+			observer.next();
 			return () => {
-					this.outputChannel.appendLine('Shutting down...');
-					configSubscription.dispose();
-					this.commandSubs.unsubscribe();
+				this.outputChannel.appendLine('Shutting down...');
+				configSubscription.dispose();
+				this.commandSubs.unsubscribe();
 
-					if (this.uploaderSubscription) {
-						this.uploaderSubscription.unsubscribe();
-					}
-					setTimeout(() => {
-						this.outputChannel.dispose();
-					}, 60 * 1000);// 
+				if (this.uploaderSubscription) {
+					this.uploaderSubscription.unsubscribe();
 				}
+				this.outputChannel.dispose();
 			}
+		}
 		);
 
 	}

@@ -1,5 +1,5 @@
 
-import { relative, sep, resolve, join } from 'path';
+import { relative, sep, resolve, join, basename } from 'path';
 import { Observable } from 'rxjs';
 import { createReadStream, unlink, createWriteStream } from 'fs';
 
@@ -26,6 +26,8 @@ function request$(options) {
 }
 
 export interface DavOptions {
+	cartridge?: string[]
+	configFilename? : string,
 	hostname: string,
 	username: string,
 	password: string,
@@ -190,12 +192,17 @@ export default class WebDav {
 			return this.dirList('/', '/').flatMap((res: string) => {
 				const matches = getMatches(res, /<displayname>(.+?)<\/displayname>/g);
 				const filteredPath = matches.filter(match => match !== this.config.version);
-				const delete$ = filteredPath.map(path => this.delete('/' + path, '/').do(() => {notify(`Deleted ${path}`)}));
 
-				return Observable.forkJoin(...delete$);
+				if (filteredPath.length) {
+					const delete$ = filteredPath.map(path => this.delete('/' + path, '/').do(() => {notify(`Deleted ${path}`)}));
+	
+					return Observable.forkJoin(...delete$);
+				} else {
+					return Observable.empty();
+				}
 			});
 		} else if (mode === 'list' && list) {
-			const delete$ = list.map(path => this.delete('/' + path, '/').do(() => {notify(`Deleted ${path}`)}));
+			const delete$ = list.map(path => this.delete('/' + basename(path), '/').do(() => {notify(`Deleted ${basename(path)}`)}));
 
 			return Observable.forkJoin(...delete$);
 		} else {
@@ -392,7 +399,9 @@ export function readConfigFile(configFilename: string): Observable<DavOptions> {
 		// File is done being read
 		stream.on('close', () => {
 			try {
-				observer.next(JSON.parse(Buffer.concat(chunks).toString()));
+				const conf = JSON.parse(Buffer.concat(chunks).toString());
+				conf.configFilename = configFilename;
+				observer.next(conf);
 				observer.complete();
 				chunks = <any>null;
 			} catch (err) {

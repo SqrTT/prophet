@@ -5,7 +5,7 @@ import { join, basename, dirname } from 'path';
 import { mkdir, open, close } from 'fs';
 
 import { getDirectories, getFiles, pathExists } from '../lib/FileHelper';
-import { checkIfCartridge, getPathsCartridges } from '../lib/CartridgeHelper';
+import { checkIfCartridge, getPathsCartridges, CartridgeCreator } from '../lib/CartridgeHelper';
 import { filterAsync } from '../lib/CollectionUtil';
 import { GenericTreeItem, DirectoryTreeItem, FileTreeItem, CartridgeTreeItem, WorkspaceTreeItem } from '../lib/CartridgeViewsItem';
 
@@ -135,16 +135,22 @@ export class CartridgesView implements TreeDataProvider<GenericTreeItem> {
 				window.showInputBox(cartridgeOptions).then(value => {
 					if (!value) { return; }
 					if (!folderValue) { folderValue = ''; }
-
-					//new CartridgeCreator(rootPath).createCartridge(value.trim().replace(' ', '_'), folderValue.trim());
-
-					if (cartridgesView) {
-						cartridgesView.refresh((window.activeTextEditor) ? window.activeTextEditor.document.fileName : undefined);
+					if (workspace.workspaceFolders && workspace.workspaceFolders.length > 1) {
+						window.showWorkspaceFolderPick().then(workspaceFolder => {
+							if (workspaceFolder && typeof folderValue === 'string') {
+								new CartridgeCreator(workspaceFolder.uri.fsPath).createCartridge(value.trim().replace(' ', '_'), folderValue.trim());
+								if (cartridgesView) {
+									cartridgesView.refresh((window.activeTextEditor) ? window.activeTextEditor.document.fileName : undefined);
+								}
+							}
+						})
+					} else if (workspace.workspaceFolders) {
+						new CartridgeCreator(workspace.workspaceFolders[0].uri.fsPath).createCartridge(value.trim().replace(' ', '_'), folderValue.trim());
+	
+						if (cartridgesView) {
+							cartridgesView.refresh((window.activeTextEditor) ? window.activeTextEditor.document.fileName : undefined);
+						}
 					}
-					// fixme
-					// if (uploader.isUploadEnabled()) {
-					// 	uploader.loadUploaderConfig(rootPath, context);
-					// }
 				});
 			});
 		}));

@@ -1,6 +1,6 @@
 
 'use strict';
-import { join, basename, dirname } from 'path';
+import { join, dirname } from 'path';
 import { workspace, ExtensionContext, commands, window, Uri, WorkspaceConfiguration, debug, WorkspaceFolder, RelativePattern } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
 import { CartridgesView } from './providers/CartridgesView';
@@ -11,8 +11,7 @@ import { createServer } from 'http';
 import Uploader from "./providers/Uploader";
 import { ProphetConfigurationProvider } from './providers/ConfigurationProvider';
 import { Subject, Observable } from 'rxjs';
-import { findFiles } from './lib/FileHelper';
-import { readConfigFile } from './server/WebDav';
+import { findFiles, getDWConfig } from './lib/FileHelper';
 
 /**
  * Create the ISML language server with the proper parameters
@@ -216,43 +215,28 @@ export function activate(context: ExtensionContext) {
 function initDebugger() {
 	debug.onDidReceiveDebugSessionCustomEvent(event => {
 		if (event.event === 'prophet.getdebugger.config' && workspace.workspaceFolders) {
-			const dwConfigFiles = Promise.all(workspace.workspaceFolders.map(workspaceFolder => findFiles(new RelativePattern(workspaceFolder, 'dw.json'), 1).toPromise()));
-			dwConfigFiles.then(configFiles => {
-				if (!configFiles || !configFiles.length) {
-					return Promise.reject('Unable to find sandbox configuration (dw.json)');
-				} else if (configFiles.length === 1) {
-					return configFiles[0].fsPath;
-				} else {
-					return window.showQuickPick(configFiles.map(config => config.fsPath), { placeHolder: 'Select configuration for debugger' });
-				}
-			}).then(filepath => {
-				if (filepath) {
-					return readConfigFile(filepath).toPromise();
-				} else {
-					return Promise.reject('Please choose configuration first');
-				}
-			}).then(configData => {
-				if (workspace.workspaceFolders) {
-					return Promise.all(workspace.workspaceFolders.map(workspaceFolder => workspace.findFiles(new RelativePattern(workspaceFolder, '**/.project'), '{node_modules,.git}'))).then(projects => {
-						const flattenProjectsPaths = ([] as Uri[]).concat(...projects).map(project => dirname(project.fsPath));
-						if (flattenProjectsPaths.length) {
-							return event.session.customRequest('DebuggerConfig', {
-								config: configData,
-								cartridges: flattenProjectsPaths
-							}).then(d => d, err => {
-
-								debugger;
-							});
-						} else {
-							return Promise.reject('Unable get cartridges list');
-						}
-					});
-				} else {
-					return Promise.reject('Unable detect workspaces');
-				}
-			}).catch(err => {
-				window.showErrorMessage(JSON.stringify(err));
-			});
+			getDWConfig(workspace.workspaceFolders)
+				.then(configData => {
+					if (workspace.workspaceFolders) {
+						return Promise.all(workspace.workspaceFolders.map(
+							workspaceFolder => workspace.findFiles(new RelativePattern(workspaceFolder, '**/.project'), '{node_modules,.git}')
+						)).then(projects => {
+							const flattenProjectsPaths = ([] as Uri[]).concat(...projects).map(project => dirname(project.fsPath));
+							if (flattenProjectsPaths.length) {
+								return event.session.customRequest('DebuggerConfig', {
+									config: configData,
+									cartridges: flattenProjectsPaths
+								});
+							} else {
+								return Promise.reject('Unable get cartridges list');
+							}
+						});
+					} else {
+						return Promise.reject('Unable detect workspaces');
+					}
+				}).catch(err => {
+					window.showErrorMessage(JSON.stringify(err));
+				});
 		}
 	});
 }

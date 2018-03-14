@@ -330,13 +330,13 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Enable upload to sandbox",
-                    "scope": "resource"
+                    "scope": "window"
                 },
                 "extension.prophet.clean.on.start": {
                     "type": "boolean",
                     "default": true,
                     "description": "Clean/upload all on editor startup to sandbox",
-                    "scope": "resource"
+                    "scope": "window"
                 },
                 "extension.prophet.ismlServer.activateOn": {
                     "type": "array",
@@ -344,19 +344,19 @@
                         "isml"
                     ],
                     "description": "list of file extention for server activation",
-                    "scope": "resource"
+                    "scope": "window"
                 },
                 "extension.prophet.cartridges.path": {
                     "type": "string",
                     "default": "",
                     "description": "List of cartridges separated by colon. (app_storefront_controllers:app_storefront_core:bc_library)",
-                    "scope": "resource"
+                    "scope": "window"
                 },
                 "extension.prophet.cartridges.view.enabled": {
                     "type": "boolean",
                     "default": true,
                     "description": "Enable/Disable cartridges view",
-                    "scope": "resource"
+                    "scope": "window"
                 },
                 "extension.prophet.clean.up.code.version.mode": {
                     "type": "string",
