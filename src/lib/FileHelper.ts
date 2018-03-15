@@ -120,12 +120,18 @@ export function getDWConfig(workspaceFolders?: WorkspaceFolder[]) {
 			workspaceFolder => findFiles(new RelativePattern(workspaceFolder, 'dw.json'), 1).toPromise()
 		));
 		return dwConfigFiles.then(configFiles => {
-			if (!configFiles || !configFiles.length) {
-				return Promise.reject('Unable to find sandbox configuration (dw.json)');
-			} else if (configFiles.length === 1) {
-				return configFiles[0].fsPath;
+			if (configFiles) {
+				configFiles =  configFiles.filter(Boolean);
+				if (!configFiles.length) {
+					return Promise.reject('Unable to find sandbox configuration (dw.json)');
+				} else if (configFiles.length === 1) {
+					return configFiles[0].fsPath;
+				} else {
+					return window.showQuickPick(configFiles.map(config => config.fsPath), { placeHolder: 'Select configuration for debugger' });
+				}
+
 			} else {
-				return window.showQuickPick(configFiles.map(config => config.fsPath), { placeHolder: 'Select configuration for debugger' });
+				return Promise.reject('Unable to find sandbox configuration (dw.json)');
 			}
 		}).then(filepath => {
 			if (filepath) {
