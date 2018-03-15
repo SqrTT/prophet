@@ -1,7 +1,7 @@
 {
     "name": "prophet",
     "displayName": "Prophet Debugger",
-    "version": "0.10.4",
+    "version": "1.0.0",
     "keywords": [
         "multi-root ready"
     ],
@@ -310,8 +310,7 @@
                 ],
                 "configurationAttributes": {
                     "launch": {
-                        "required": [
-                        ],
+                        "required": [],
                         "properties": {
                             "trace": {
                                 "type": "boolean",

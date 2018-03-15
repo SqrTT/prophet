@@ -580,10 +580,16 @@ class ProphetDebugSession extends LoggingDebugSession {
 	//---- some helpers
 
 	protected convertClientPathToDebugger(clientPath: string): string {
-
-		const cartPath = this.cartridgesList.find(cartridge => clientPath.startsWith(cartridge));
-
-		if (cartPath) {
+		
+		const cartPath = this.cartridgesList.find(cartridge => {
+			if (process.platform === 'win32') {// windows way
+				return clientPath.toLocaleLowerCase().startsWith(cartridge.toLocaleLowerCase())
+			} else {
+				return clientPath.startsWith(cartridge)
+			}
+		});
+		
+		if (cartPath) { 
 			const cartridgeName = basename(cartPath);
 			const cPath = clientPath.substr(cartPath.length - cartridgeName.length);
 			const tmp = '/' + cPath.split(path.sep).join('/'); 
