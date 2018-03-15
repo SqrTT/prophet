@@ -117,7 +117,7 @@ export function getCartridgesFolder(workspaceFolder : WorkspaceFolder) {
 export function getDWConfig(workspaceFolders?: WorkspaceFolder[]) {
 	if (workspaceFolders) {
 		const dwConfigFiles = Promise.all(workspaceFolders.map(
-			workspaceFolder => findFiles(new RelativePattern(workspaceFolder, 'dw.json'), 1).toPromise()
+			workspaceFolder => findFiles(new RelativePattern(workspaceFolder, '**/dw.json'), 1).toPromise()
 		));
 		return dwConfigFiles.then(configFiles => {
 			if (configFiles) {

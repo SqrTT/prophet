@@ -203,7 +203,7 @@ export function activate(context: ExtensionContext) {
 		return workspaceFolder$
 			.do(() => { }, undefined, () => { end$.next(); end$.complete() })
 			.flatMap(workspaceFolder => {
-				return findFiles(new RelativePattern(workspaceFolder, 'dw.json'), 1)
+				return findFiles(new RelativePattern(workspaceFolder, '**/dw.json'), 1)
 			}).takeUntil(end$);
 	});
 
