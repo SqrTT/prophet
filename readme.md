@@ -93,6 +93,8 @@ You can temporarily disable watching or force upload cartridges (i.e. clean proj
 
 (press F1 and select command)
 
+> Note: the extension relies on the `.project` files to detect cartridge so it must not be added to `files.exclude`
+
 #### Other configuration
 
 * `extension.prophet.cartridges.path` - List of cartridges separated by colon. Allows quick open don't ask a user to choose the file. Automatically open file that match first cartridge in list.
