@@ -28,6 +28,7 @@ function request$(options) {
 export interface DavOptions {
 	cartridge?: string[]
 	configFilename? : string,
+	cleanUpCodeVersionMode?: string, 
 	hostname: string,
 	username: string,
 	password: string,
@@ -191,14 +192,14 @@ export default class WebDav {
 		if (mode === 'all') {
 			return this.dirList('/', '/').flatMap((res: string) => {
 				const matches = getMatches(res, /<displayname>(.+?)<\/displayname>/g);
-				const filteredPath = matches.filter(match => match !== this.config.version);
+				const filteredPath = matches.filter(match => match && match !== this.config.version);
 
 				if (filteredPath.length) {
 					const delete$ = filteredPath.map(path => this.delete('/' + path, '/').do(() => {notify(`Deleted ${path}`)}));
 	
 					return Observable.forkJoin(...delete$);
 				} else {
-					return Observable.empty();
+					return Observable.of(['']);
 				}
 			});
 		} else if (mode === 'list' && list) {

@@ -2,11 +2,11 @@ import { Observable } from 'rxjs';
 
 import { OutputChannel, workspace, window, ProgressLocation, FileSystemWatcher, Uri, Progress, RelativePattern } from 'vscode';
 import { default as WebDav, DavOptions } from './WebDav';
-import { getDirectories, stat, access } from '../lib/FileHelper';
+import { getDirectories, stat } from '../lib/FileHelper';
 import { join, sep, dirname } from 'path';
 
 
-const CONCURENT_CARTRIDGES_UPLOADS: number = 3;
+const CONCURENT_CARTRIDGES_UPLOADS: number = 4;
 const CONCURENT_FILE_UPLOADS: number = 5;
 
 export function getWebDavClient(config: DavOptions, outputChannel: OutputChannel, rootDir: string): Observable<WebDav> {
@@ -81,57 +81,34 @@ const uploadCartridges = (
 	cartRoot: string,
 	progress: Progress<{ message?: string }>['report'] | undefined
 ) => {
-	let cartridges: Promise<string[]>;
-	if (Array.isArray(config.cartridge) && config.cartridge.length) {
-		cartridges = Promise.all(config.cartridge.map((cartridge: string) => {
-			return access(join(cartRoot, cartridge))
-				.then(() => cartridge)
-				.catch(e => {
-					window.showWarningMessage(`Cartridge "${cartridge}" doesn't exist. Ignoring. (${e})`);
-					return '';
-				});
-		})).then((args) => {
-			return args.map(str => str.trim()).filter(Boolean);
-		});
-
-	} else {
-		cartridges = getDirectories(cartRoot).then(dirs => {
-			return dirs.filter(dirName => !['node_modules', '.git', '.vscode'].includes(dirName));
-		});
-	}
+	let cartridges: string[] = config.cartridge;
 	var count = 0;
-
 
 	const notify = (...msgs: string[]) => {
 		outputChannel.appendLine(msgs.join(' '));
 	};
 
-	const toUpload = Observable.fromPromise(cartridges)
-		.flatMap(cartridges => {
-			return cartridges.map(cartridge => webdav
-				.uploadCartridge(join(cartRoot, cartridge), notify, { isCartridge: true }).do(
-					(data) => { },
-					(error) => { },
-					() => {
-						count++;
-						if (progress) {
-							progress({ message: `Uploading cartridges: ${count} of ${cartridges.length}` })
-						}
-					}
-				)
-			);
-		}).mergeAll();
+	const toUpload = cartridges.map(cartridge => webdav
+		.uploadCartridge(join(cartRoot, cartridge), notify, { isCartridge: true }).do(
+			(data) => { },
+			(error) => { },
+			() => {
+				count++;
+				if (progress) {
+					progress({ message: `Uploading cartridges: ${count} of ${cartridges.length}` })
+				}
+			}
+		)
+	);
 
 	let mode: "all" | "list" | "none" = 'all';
 	if (config.cleanUpCodeVersionMode === 'auto' || !config.cleanUpCodeVersionMode) {
-		mode = Array.isArray(config.cartridge) && config.cartridge.length ? 'list' : 'all';
-	} else {
-		mode = config.cleanUpCodeVersionMode;
+		mode = 'all'
 	}
 
 	notify('Cleanup code version...');
 	return webdav.cleanUpCodeVersion(notify, mode, config.cartridge)
-		.flatMap(res => Observable.merge(toUpload, CONCURENT_CARTRIDGES_UPLOADS).concat(Observable.of('')));
+		.flatMap(() => Observable.merge(...toUpload, CONCURENT_CARTRIDGES_UPLOADS).concat(Observable.of('')));
 };
 
 function uploadWithProgress(webdav: WebDav, outputChannel: OutputChannel, config: ({ cartridge, version, cleanOnStart: boolean, cleanUpCodeVersionMode: "all" | "list" | "none" | "auto" }), rootDir: string) {

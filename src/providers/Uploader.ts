@@ -66,6 +66,7 @@ export default class Uploader {
 			.flatMap(dwConf => {
 				this.outputChannel.appendLine(`Using config file '${dwConf.configFilename}'`);
 				dwConf.cartridge = Array.from(this.cartridges.values())
+				dwConf.cleanUpCodeVersionMode = this.getCleanUpCodeVersionMode();
 
 				return uploadServer.init(
 					dwConf,
@@ -82,6 +83,9 @@ export default class Uploader {
 				err => {
 					this.outputChannel.show();
 					this.outputChannel.appendLine(`Error: ${err}`);
+					if (err instanceof Error) {
+						this.outputChannel.appendLine(`Error: ${err.stack}`);
+					}
 				},
 				() => {
 					this.outputChannel.show();
