@@ -82,7 +82,7 @@ export default class Uploader {
 			}
 		} else {
 			return new Promise((resolve, reject) => {
-				window.showWarningMessage(`Your sandbox has extra cartridge/s. "${extraOnSB.join('", "')}". What would you like to do with them??`,
+				window.showWarningMessage(`Your sandbox has extra cartridge/s. "${extraOnSB.join('", "')}". What would you like to do?`,
 					'Remove All Always', 'Leave All Always', 'Remove All', 'Leave All')
 					.then(response => {
 						if (response) {
