@@ -159,6 +159,17 @@ function getWorkspaceFolders$$(context: ExtensionContext): Observable<Observable
 
 export function activate(context: ExtensionContext) {
 
+	context.subscriptions.push(
+		commands.registerCommand('extension.prophet.command.open.documentation', () => {
+			commands.executeCommand('vscode.open', Uri.parse('https://documentation.demandware.com'));
+		})
+	);
+	context.subscriptions.push(
+		commands.registerCommand('extension.prophet.command.open.xchange', () => {
+			commands.executeCommand('vscode.open', Uri.parse('https://xchange.demandware.com'));
+		})
+	);
+
 	// register a configuration provider
 	context.subscriptions.push(
 		debug.registerDebugConfigurationProvider(
@@ -307,9 +318,7 @@ function initializeToolkitActions() {
 		} else {
 			return Observable.empty();
 		}
-
 	});
-
 }
 
 function convertDebuggerPathToClient(debuggerPath: string, cartridges: string[]): string {
@@ -334,10 +343,4 @@ export function deactivate() {
 	// nothing to do
 }
 
-commands.registerCommand('extension.prophet.command.open.documentation', () => {
-	commands.executeCommand('vscode.open', Uri.parse('https://documentation.demandware.com'));
-});
 
-commands.registerCommand('extension.prophet.command.open.xchange', () => {
-	commands.executeCommand('vscode.open', Uri.parse('https://xchange.demandware.com'));
-});

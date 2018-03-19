@@ -65,7 +65,24 @@ export default class Uploader {
 		this.uploaderSubscription = Observable.fromPromise(getDWConfig(workspace.workspaceFolders))
 			.flatMap(dwConf => {
 				this.outputChannel.appendLine(`Using config file '${dwConf.configFilename}'`);
-				dwConf.cartridge = Array.from(this.cartridges.values())
+
+				if (Array.isArray(dwConf.cartridge) && dwConf.cartridge.length) {
+					const filtredCartridges = Array.from(this.cartridges)
+							.filter(cartridge => dwConf.cartridge && dwConf.cartridge.some(dwCar => cartridge.endsWith(dwCar))
+						);
+
+					if (filtredCartridges.length !== dwConf.cartridge.length) {
+						const missedCartridges = dwConf.cartridge
+								.filter(dwCar => dwConf.cartridge && !filtredCartridges.some(cartridge => cartridge.endsWith(dwCar))
+							);
+
+						window.showWarningMessage(`Cartridge${missedCartridges.length > 1? 's' : ''} "${missedCartridges.join('", "')}" does not exist and will be ignored, please restart the uploader once this has been resolved.`);
+					}
+					dwConf.cartridge = filtredCartridges;
+				} else {
+					dwConf.cartridge = Array.from(this.cartridges)
+				}
+
 				dwConf.cleanUpCodeVersionMode = this.getCleanUpCodeVersionMode();
 
 				return uploadServer.init(
