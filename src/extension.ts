@@ -92,8 +92,7 @@ function createIsmlLanguageServer(context: ExtensionContext, configuration: Work
 		});
 		ismlLanguageServer.onNotification('find:files', ({ searchID, workspacePath, pattern }) => {
 			workspace.findFiles(
-				new RelativePattern(workspacePath, pattern),
-				//'{node_modules,.git}'
+				new RelativePattern(workspacePath, pattern)
 			).then(result => {
 				ismlLanguageServer.sendNotification('find:filesFound', { searchID, result: (result || []).map(uri => uri.fsPath) });
 			})
@@ -158,6 +157,7 @@ function getWorkspaceFolders$$(context: ExtensionContext): Observable<Observable
 }
 
 export function activate(context: ExtensionContext) {
+
 
 	context.subscriptions.push(
 		commands.registerCommand('extension.prophet.command.open.documentation', () => {

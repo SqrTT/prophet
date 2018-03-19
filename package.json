@@ -356,17 +356,6 @@
                     "default": true,
                     "description": "Enable/Disable cartridges view",
                     "scope": "window"
-                },
-                "extension.prophet.clean.up.code.version.mode": {
-                    "type": "string",
-                    "default": "auto",
-                    "enum": [
-                        "auto",
-                        "all",
-                        "list",
-                        "none"
-                    ],
-                    "description": "Defines the behavior for cleanup the sandbox codeversion before downloading the code"
                 }
             }
         }

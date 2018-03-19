@@ -100,11 +100,6 @@ You can temporarily disable watching or force upload cartridges (i.e. clean proj
 * `extension.prophet.cartridges.path` - List of cartridges separated by colon. Allows quick open don't ask a user to choose the file. Automatically open file that match first cartridge in list.
 * `extension.prophet.ismlServer.activateOn` - allow activate isml server for non standatd (isml) files, ex. `html`
 * `extension.prophet.clean.on.start` - allows to enable/disable code upload on editor startup (enabled by default)
-* `extension.prophet.clean.up.code.version.mode` - Defines the behavior for cleanup the sandbox codeversion before downloading the code
-    * `auto` - extention will detect best behavior
-    * `all` - cleanup all cartridges on sandboc
-    * `list` - cleanup cartridges being listed in `dw.json` cartridge section
-    * `none` - skip cleanup
 
 ### Improve experience
 

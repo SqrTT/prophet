@@ -77,8 +77,9 @@ function fileWatcher(config, cartRoot: string, outputChannel: OutputChannel): Ob
 const uploadCartridges = (
 	webdav: WebDav,
 	outputChannel: OutputChannel,
-	config: ({ cartridge, cleanUpCodeVersionMode: 'auto' | 'all' | 'list' | 'none' }),
+	config: ({ cartridge }),
 	cartRoot: string,
+	ask: (sb: string[], listc: string[]) => Promise<string[]>,
 	progress: Progress<{ message?: string }>['report'] | undefined
 ) => {
 	let cartridges: string[] = config.cartridge;
@@ -101,17 +102,18 @@ const uploadCartridges = (
 		)
 	);
 
-	let mode: "all" | "list" | "none" = 'all';
-	if (config.cleanUpCodeVersionMode === 'auto' || !config.cleanUpCodeVersionMode) {
-		mode = 'all'
-	}
-
 	notify('Cleanup code version...');
-	return webdav.cleanUpCodeVersion(notify, mode, config.cartridge)
+	return webdav.cleanUpCodeVersion(notify, ask, config.cartridge)
 		.flatMap(() => Observable.merge(...toUpload, CONCURENT_CARTRIDGES_UPLOADS).concat(Observable.of('')));
 };
 
-function uploadWithProgress(webdav: WebDav, outputChannel: OutputChannel, config: ({ cartridge, version, cleanOnStart: boolean, cleanUpCodeVersionMode: "all" | "list" | "none" | "auto" }), rootDir: string) {
+function uploadWithProgress(
+	webdav: WebDav,
+	outputChannel: OutputChannel,
+	config: ({ cartridge, version, cleanOnStart: boolean}), 
+	rootDir: string,
+	ask: (sb: string[], listc: string[]) => Promise<string[]>
+) {
 	var resolve;
 	var progress: Progress<{ message?: string }>['report'] | undefined;
 	window.withProgress({
@@ -145,7 +147,7 @@ function uploadWithProgress(webdav: WebDav, outputChannel: OutputChannel, config
 		}).flatMap(() => {
 			if (config.cleanOnStart) {
 				outputChannel.appendLine(`Start uploading cartridges`);
-				return uploadCartridges(webdav, outputChannel, config, rootDir, progress);
+				return uploadCartridges(webdav, outputChannel, config, rootDir, ask, progress);
 			} else {
 				outputChannel.appendLine(`Upload cartridges on start is disabled via config`);
 				return Observable.of('');
@@ -174,8 +176,14 @@ function uploadWithProgress(webdav: WebDav, outputChannel: OutputChannel, config
 
 }
 
-function uploadAndWatch(webdav: WebDav, outputChannel: OutputChannel, config: ({ cartridge, version, cleanOnStart: boolean, cleanUpCodeVersionMode: "all" | "list" | "none" | "auto" }), rootDir: string) {
-	return uploadWithProgress(webdav, outputChannel, config, rootDir)
+function uploadAndWatch(
+	webdav: WebDav, 
+	outputChannel: OutputChannel,
+	config: ({ cartridge, version, cleanOnStart: boolean}),
+	ask: (sb: string[], listc: string[]) => Promise<string[]>,
+	rootDir: string
+) {
+	return uploadWithProgress(webdav, outputChannel, config, rootDir, ask)
 		.flatMap(() => {
 			outputChannel.appendLine(`Watching files`);
 			return fileWatcher(config, rootDir, outputChannel)
@@ -207,12 +215,12 @@ function uploadAndWatch(webdav: WebDav, outputChannel: OutputChannel, config: ({
 		});
 }
 
-export function init(dwConfig: DavOptions, outputChannel: OutputChannel, config) {
+export function init(dwConfig: DavOptions, outputChannel: OutputChannel, config, ask: (sb: string[], listc: string[]) => Promise<string[]>) {
 	return getWebDavClient(dwConfig, outputChannel, '')
 		.flatMap(webdav => {
 			let retryCounter = 0;
 
-			return uploadAndWatch(webdav, outputChannel, Object.assign(config, dwConfig), '')
+			return uploadAndWatch(webdav, outputChannel, Object.assign(config, dwConfig), ask, '')
 				.retryWhen(function (errors) {
 					// retry for some errors, end the stream with an error for others
 					return errors.do(function (e) {

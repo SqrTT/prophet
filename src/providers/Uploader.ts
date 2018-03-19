@@ -2,23 +2,25 @@ import { Observable, Subscription, Subject } from 'rxjs';
 import { window, OutputChannel, ExtensionContext, workspace, commands, WorkspaceFolder } from 'vscode';
 import * as uploadServer from "../server/uploadServer";
 import { getCartridgesFolder, getDWConfig } from '../lib/FileHelper';
+import { basename } from 'path';
 
 const commandBus = new Subject<'enable.upload' | 'clean.upload' | 'disable.upload'>();
 
+const diff = function (a: string[], b: string[]) {
+	return b.filter(function (i) { return a.indexOf(i) < 0; });
+};
 
 let firstClean = true;
+let removeFilesMode : undefined | 'remove' | 'leave';
 /**
  * Class for handling the server upload integration
  */
 export default class Uploader {
 	private outputChannel: OutputChannel;
-	getCleanUpCodeVersionMode(): "all" | "list" | "none" | "auto" {
-		return workspace.getConfiguration('extension.prophet').get('clean.up.code.version.mode') || 'auto';
-	}
 	//private configuration;
 	private prevState;
 	private uploaderSubscription: Subscription | null;
-	private get cleanOnStart() : boolean {
+	private get cleanOnStart(): boolean {
 		if (firstClean) {
 			firstClean = false;
 			return Boolean(workspace.getConfiguration('extension.prophet').get('clean.on.start'));
@@ -57,6 +59,58 @@ export default class Uploader {
 		return !!workspace.getConfiguration('extension.prophet').get('upload.enabled');
 	}
 
+	askCleanCartridge(fileNamesOnSandbox: string[], cartridgesToUpload: string[]): Promise<string[]> {
+		const cartridgesNamesToUpload = cartridgesToUpload.map(cartridge => basename(cartridge));
+
+		const extraOnSB = diff(cartridgesNamesToUpload, fileNamesOnSandbox).filter(name => {
+			if (name.endsWith('.zip')) {
+				cartridgesNamesToUpload.push(name);
+				return false;
+			} else {
+				return true;
+			}
+		});
+
+
+		if (extraOnSB.length === 0) {
+			return Promise.resolve(fileNamesOnSandbox);
+		} else if (removeFilesMode) {
+			if (removeFilesMode === 'remove') {
+				return Promise.resolve(fileNamesOnSandbox);
+			} else {
+				return Promise.resolve(cartridgesNamesToUpload);
+			}
+		} else {
+			return new Promise((resolve, reject) => {
+				window.showWarningMessage(`Your sandbox contain extra folder/s. "${extraOnSB.join('", "')}"`, 'Remove All Always', 'Leave All Always', 'Remove All', 'Leave All')
+					.then(response => {
+						if (response) {
+
+							switch (response) {
+								case 'Remove All Always':
+									resolve(fileNamesOnSandbox);
+									removeFilesMode = "remove";
+									break;
+								case 'Leave All Always':
+									resolve(cartridgesNamesToUpload);
+									removeFilesMode = "leave"
+									break;
+
+								case 'Remove All':
+									resolve(fileNamesOnSandbox);
+									break;
+								default:
+									resolve(cartridgesNamesToUpload);
+									break;
+							}
+						} else {
+							resolve(cartridgesNamesToUpload);
+						}
+					}, reject);
+			})
+
+		}
+	}
 	/**
 	 * Loads the uploader configuration and start the server
 	 */
@@ -75,38 +129,37 @@ export default class Uploader {
 				this.outputChannel.appendLine(`Using config file '${dwConf.configFilename}'`);
 
 				return Observable.of(...this.workspaceFolders)
-				.flatMap(workspaceFolder => getCartridgesFolder(workspaceFolder))
-				.reduce((acc, val) => {
-					acc.add(val);
-					return acc;
-				}, new Set<string>())
-				.flatMap(cartridges => {
+					.flatMap(workspaceFolder => getCartridgesFolder(workspaceFolder))
+					.reduce((acc, val) => {
+						acc.add(val);
+						return acc;
+					}, new Set<string>())
+					.flatMap(cartridges => {
 
-					if (Array.isArray(dwConf.cartridge) && dwConf.cartridge.length) {
-						const filtredCartridges = Array.from(cartridges)
+						if (Array.isArray(dwConf.cartridge) && dwConf.cartridge.length) {
+							const filtredCartridges = Array.from(cartridges)
 								.filter(cartridge => dwConf.cartridge && dwConf.cartridge.some(dwCar => cartridge.endsWith(dwCar))
-							);
-	
-						if (filtredCartridges.length !== dwConf.cartridge.length) {
-							const missedCartridges = dwConf.cartridge
-									.filter(dwCar => dwConf.cartridge && !filtredCartridges.some(cartridge => cartridge.endsWith(dwCar))
 								);
-	
-							window.showWarningMessage(`Cartridge${missedCartridges.length > 1? 's' : ''} "${missedCartridges.join('", "')}" does not exist and will be ignored, please restart the uploader once this has been resolved.`);
+
+							if (filtredCartridges.length !== dwConf.cartridge.length) {
+								const missedCartridges = dwConf.cartridge
+									.filter(dwCar => dwConf.cartridge && !filtredCartridges.some(cartridge => cartridge.endsWith(dwCar))
+									);
+
+								window.showWarningMessage(`Cartridge${missedCartridges.length > 1 ? 's' : ''} "${missedCartridges.join('", "')}" does not exist and will be ignored, please restart the uploader once this has been resolved.`);
+							}
+							dwConf.cartridge = filtredCartridges;
+						} else {
+							dwConf.cartridge = Array.from(cartridges)
 						}
-						dwConf.cartridge = filtredCartridges;
-					} else {
-						dwConf.cartridge = Array.from(cartridges)
-					}
-	
-					dwConf.cleanUpCodeVersionMode = this.getCleanUpCodeVersionMode();
-	
-					return uploadServer.init(
-						dwConf,
-						this.outputChannel,
-						{ cleanOnStart: this.cleanOnStart }
-					);
-				})
+
+						return uploadServer.init(
+							dwConf,
+							this.outputChannel,
+							{ cleanOnStart: this.cleanOnStart },
+							this.askCleanCartridge.bind(this)
+						);
+					})
 			})
 			.subscribe(
 				() => {

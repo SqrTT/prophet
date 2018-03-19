@@ -4,6 +4,7 @@ import { join, dirname } from 'path';
 import { Uri, CancellationTokenSource, workspace, RelativePattern, WorkspaceFolder, window } from 'vscode';
 import { Observable } from 'rxjs';
 import { readConfigFile } from '../server/WebDav';
+import { checkIfCartridge } from './CartridgeHelper';
 
 
 
@@ -110,8 +111,13 @@ export function findFiles(include: RelativePattern, maxResults?: number, errIfNo
 	});
 }
 
-export function getCartridgesFolder(workspaceFolder : WorkspaceFolder) {
-	return findFiles(new RelativePattern(workspaceFolder, '**/.project')).map(project => dirname(project.fsPath));
+export function getCartridgesFolder(workspaceFolder : WorkspaceFolder) : Observable<string>  {
+	return findFiles(new RelativePattern(workspaceFolder, '**/.project'))
+	.flatMap((project) => {
+		return Observable.fromPromise(checkIfCartridge(project.fsPath))
+			.flatMap(isCartridge => isCartridge ? Observable.of(project) : Observable.empty<Uri>())
+	})
+	.map(project => dirname(project.fsPath));
 };
 
 export function getDWConfig(workspaceFolders?: WorkspaceFolder[]) {
