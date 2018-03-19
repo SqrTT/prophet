@@ -1,17 +1,17 @@
 
 'use strict';
-import { join, dirname } from 'path';
+import { join, dirname, sep } from 'path';
 import { workspace, ExtensionContext, commands, window, Uri, WorkspaceConfiguration, debug, WorkspaceFolder, RelativePattern } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
 import { CartridgesView } from './providers/CartridgesView';
 import { LogsView } from './providers/LogsView';
 
 import { existsSync } from 'fs';
-import { createServer } from 'http';
+import { createServer, ServerResponse, IncomingMessage } from 'http';
 import Uploader from "./providers/Uploader";
 import { ProphetConfigurationProvider } from './providers/ConfigurationProvider';
 import { Subject, Observable } from 'rxjs';
-import { findFiles, getDWConfig } from './lib/FileHelper';
+import { findFiles, getDWConfig, getCartridgesFolder } from './lib/FileHelper';
 
 /**
  * Create the ISML language server with the proper parameters
@@ -241,50 +241,94 @@ function initDebugger() {
 	});
 }
 
+interface IServerRequest {
+	req: IncomingMessage,
+	res: ServerResponse
+}
+
+
 function initializeToolkitActions() {
-	return new Observable<never>(observeer => {
-		const server = createServer(function (req, res) {
-			res.writeHead(200, { 'Content-Type': 'text/plain' });
-			res.end('ok');
-			if (req.url && req.url.includes('/target') && workspace.rootPath) {
-				const reqUrl = req.url.split('/target=')[1].split('&')[0]; // fixme
-				const filePaths = [
-					join(workspace.rootPath, ...reqUrl.split('/')),
-					join(workspace.rootPath, 'cartridges', ...reqUrl.split('/')),
-					join(workspace.rootPath, ...reqUrl.split('/')).replace('.js', '.ds'),
-					join(workspace.rootPath, 'cartridges', ...reqUrl.split('/')).replace('.js', '.ds')
-				];
-				const filePath = filePaths.find(existsSync);
-				if (filePath) {
-					commands.executeCommand('vscode.open', Uri.file(filePath)).then(() => {
-						// DO NOTHING
-					}, err => {
-						window.showErrorMessage(err);
-					});
-				}
-				else {
-					window.showWarningMessage(`Unable to find '${reqUrl}'`);
-				}
-			}
-		});
+	return new Observable<IServerRequest>(observeer => {
+		const server = createServer((req, res) => { observeer.next({ req, res }) });
 		server.once('error', err => {
 			if (err instanceof Error) {
 				window.showWarningMessage(`Unable open port for browsers files, probably other instance or Digital Studio is opened. Error: ${err.message}`);
 				server.close();
 			}
+			observeer.error(err);
 		});
-
 
 		server.listen(60606);
 
 		return () => {
 			server.close();
 		}
+	}).flatMap(({ req, res }) => {
+		if (workspace.workspaceFolders && workspace.workspaceFolders.length) {
+			const cartridgesFolders = workspace.workspaceFolders
+				.map(workspaceFolder => getCartridgesFolder(workspaceFolder));
+
+			return Observable.merge(...cartridgesFolders)
+				.reduce((acc, val) => {
+					acc.add(val);
+					return acc;
+				}, new Set<string>())
+				.flatMap(cartridges => {
+					res.writeHead(200, { 'Content-Type': 'text/plain' });
+					res.end('ok');
+					if (req.url && req.url.includes('/target')) {
+						const reqUrl = req.url.split('/target=')[1].split('&')[0]; // fixme
+
+						const clientFilePath = convertDebuggerPathToClient(reqUrl, Array.from(cartridges));
+
+						if (clientFilePath) {
+							const filePaths = [
+								clientFilePath,
+								clientFilePath.replace('.js', '.ds'),
+							];
+
+							const filePath = filePaths.find(existsSync);
+							if (filePath) {
+								commands.executeCommand('vscode.open', Uri.file(filePath)).then(() => {
+									// DO NOTHING
+								}, err => {
+									window.showErrorMessage(err);
+								});
+							} else {
+								window.showWarningMessage(`Unable to find '${reqUrl}'`);
+							}
+						} else {
+							window.showWarningMessage(`Unable to find '${reqUrl}'`);
+						}
+					}
+
+					return Observable.of(1);
+				});
+		} else {
+			return Observable.empty();
+		}
+
 	});
 
 }
 
+function convertDebuggerPathToClient(debuggerPath: string, cartridges: string[]): string {
+	debuggerPath = debuggerPath.substr(1);
+	const debuggerSep = debuggerPath.split('/');
+	const cartridgeName = debuggerSep.shift() || '';
 
+
+	const cartPath = cartridges.find(cartridge => cartridge.endsWith(cartridgeName));
+
+	if (cartPath) {
+		const tmp = join(cartPath, debuggerSep.join(sep));
+		return tmp;
+	} else {
+		this.logError("Unable match cartridge");
+		return '';
+	}
+
+}
 
 export function deactivate() {
 	// nothing to do
