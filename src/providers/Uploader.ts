@@ -11,7 +11,7 @@ const diff = function (a: string[], b: string[]) {
 };
 
 let firstClean = true;
-let removeFilesMode : undefined | 'remove' | 'leave';
+let removeFilesMode: undefined | 'remove' | 'leave';
 /**
  * Class for handling the server upload integration
  */
@@ -82,7 +82,8 @@ export default class Uploader {
 			}
 		} else {
 			return new Promise((resolve, reject) => {
-				window.showWarningMessage(`Your sandbox contain extra folder/s. "${extraOnSB.join('", "')}"`, 'Remove All Always', 'Leave All Always', 'Remove All', 'Leave All')
+				window.showWarningMessage(`Your sandbox has extra cartridge/s. "${extraOnSB.join('", "')}". What would you like to do with them??`,
+					'Remove All Always', 'Leave All Always', 'Remove All', 'Leave All')
 					.then(response => {
 						if (response) {
 
