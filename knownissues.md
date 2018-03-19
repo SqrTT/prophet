@@ -1,4 +1,4 @@
 
 ## Known Issues list
 
-* cartridges list is not updated until reboot
+* missing warinig when deleting files on sandbox

@@ -222,9 +222,11 @@ export function activate(context: ExtensionContext) {
 
 	context.subscriptions.push(createIsmlLanguageServer(context).start());
 
-	const excludedMasks = workspace.getConfiguration('files.exclude');
+	const excludedMasks = workspace.getConfiguration('files').get('exclude');
 
-	const ignoreProjects = Object.keys(excludedMasks).some(excludedMask => excludedMask.includes('.project') && excludedMasks[excludedMask]);
+	const ignoreProjects = Object.keys(excludedMasks || {})
+		.some(excludedMask => excludedMask.includes('.project') && excludedMasks && excludedMasks[excludedMask]);
+
 	if (ignoreProjects) {
 		window.showErrorMessage('Your `files.exclude` excludes `.project`. Cartridge detection may not work properly');
 	}

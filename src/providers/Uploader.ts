@@ -27,15 +27,15 @@ export default class Uploader {
 		}
 	};
 	private commandSubs: Subscription;
-	private cartridges: Set<string>
+	private workspaceFolders: WorkspaceFolder[];
 
 	/**
 	 *
 	 * @param configuration the workspace configuration to use
 	 */
-	constructor(cartridges: Set<string>) {
+	constructor(workspaceFolders: WorkspaceFolder[]) {
 		this.outputChannel = window.createOutputChannel(`Prophet Uploader`);
-		this.cartridges = cartridges;
+		this.workspaceFolders = workspaceFolders;
 
 		this.commandSubs = commandBus.subscribe(command => {
 			if (command === 'clean.upload' || command === 'enable.upload') {
@@ -69,34 +69,44 @@ export default class Uploader {
 			this.outputChannel.appendLine(`Starting...`);
 		}
 
+
 		this.uploaderSubscription = Observable.fromPromise(getDWConfig(workspace.workspaceFolders))
 			.flatMap(dwConf => {
 				this.outputChannel.appendLine(`Using config file '${dwConf.configFilename}'`);
 
-				if (Array.isArray(dwConf.cartridge) && dwConf.cartridge.length) {
-					const filtredCartridges = Array.from(this.cartridges)
-							.filter(cartridge => dwConf.cartridge && dwConf.cartridge.some(dwCar => cartridge.endsWith(dwCar))
-						);
+				return Observable.of(...this.workspaceFolders)
+				.flatMap(workspaceFolder => getCartridgesFolder(workspaceFolder))
+				.reduce((acc, val) => {
+					acc.add(val);
+					return acc;
+				}, new Set<string>())
+				.flatMap(cartridges => {
 
-					if (filtredCartridges.length !== dwConf.cartridge.length) {
-						const missedCartridges = dwConf.cartridge
-								.filter(dwCar => dwConf.cartridge && !filtredCartridges.some(cartridge => cartridge.endsWith(dwCar))
+					if (Array.isArray(dwConf.cartridge) && dwConf.cartridge.length) {
+						const filtredCartridges = Array.from(cartridges)
+								.filter(cartridge => dwConf.cartridge && dwConf.cartridge.some(dwCar => cartridge.endsWith(dwCar))
 							);
-
-						window.showWarningMessage(`Cartridge${missedCartridges.length > 1? 's' : ''} "${missedCartridges.join('", "')}" does not exist and will be ignored, please restart the uploader once this has been resolved.`);
+	
+						if (filtredCartridges.length !== dwConf.cartridge.length) {
+							const missedCartridges = dwConf.cartridge
+									.filter(dwCar => dwConf.cartridge && !filtredCartridges.some(cartridge => cartridge.endsWith(dwCar))
+								);
+	
+							window.showWarningMessage(`Cartridge${missedCartridges.length > 1? 's' : ''} "${missedCartridges.join('", "')}" does not exist and will be ignored, please restart the uploader once this has been resolved.`);
+						}
+						dwConf.cartridge = filtredCartridges;
+					} else {
+						dwConf.cartridge = Array.from(cartridges)
 					}
-					dwConf.cartridge = filtredCartridges;
-				} else {
-					dwConf.cartridge = Array.from(this.cartridges)
-				}
-
-				dwConf.cleanUpCodeVersionMode = this.getCleanUpCodeVersionMode();
-
-				return uploadServer.init(
-					dwConf,
-					this.outputChannel,
-					{ cleanOnStart: this.cleanOnStart }
-				);
+	
+					dwConf.cleanUpCodeVersionMode = this.getCleanUpCodeVersionMode();
+	
+					return uploadServer.init(
+						dwConf,
+						this.outputChannel,
+						{ cleanOnStart: this.cleanOnStart }
+					);
+				})
 			})
 			.subscribe(
 				() => {
@@ -139,17 +149,8 @@ export default class Uploader {
 			}
 
 			if (workspace.workspaceFolders) {
-				subs = Observable.of(...workspace.workspaceFolders)
-					.flatMap(workspaceFolder => getCartridgesFolder(workspaceFolder))
-					.reduce((acc, val) => {
-						acc.add(val);
-						return acc;
-					}, new Set<string>())
-					.flatMap(cartridgesList => {
-						const uploader = new Uploader(cartridgesList);
-						return uploader.start();
-					})
-					.subscribe();
+				const uploader = new Uploader(workspace.workspaceFolders);
+				subs = uploader.start().subscribe();
 			}
 		};
 
