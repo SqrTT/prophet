@@ -1,24 +1,44 @@
 'use strict';
 import { workspace, RelativePattern } from 'vscode';
-import { exists, readFile, existsSync, mkdirSync, writeFile, mkdir } from 'fs';
+import { exists, readFile, existsSync, mkdirSync, writeFile, mkdir, createReadStream } from 'fs';
 import { join, sep } from 'path';
 import { pathExists } from '../lib/FileHelper';
+import { Observable } from 'rxjs';
 
 /**
  * Checks whether or not an Eclipse project file is a Salesforce project.
  * @param projectFile The absolute path to the file location of the Eclipse project file.
  */
 export const checkIfCartridge = (projectFile: string): Promise<boolean> => {
-	return new Promise((resolve, reject) => {
-		readFile(projectFile, 'UTF-8', (err, data) => {
-			if (err) {
-				reject(err);
-			} else {
-				// Check the file for demandware package (since the file is not that big no need for a DOM parser)
-				resolve(data.includes('com.demandware.studio.core.beehiveNature'));
+	return checkIfCartridge$(projectFile).toPromise();
+};
+
+function readFileByLine(filePath: string) : Observable<string>{
+	return Observable.fromPromise(import('readline')).flatMap(readline => {
+		return new Observable((obs) => {
+			const lineReader = readline.createInterface({
+				input: createReadStream(filePath)
+			});
+
+			lineReader.on('line', (line) => { obs.next(line) });
+
+			lineReader.once('close', () => { obs.complete() });
+
+			lineReader.once('error', (err) => { obs.error(err) });
+
+			return () => {
+				lineReader.removeAllListeners();
+				lineReader.close();
 			}
 		});
-	});
+	})
+
+}
+
+//data.
+export const checkIfCartridge$ = (projectFile: string) : Observable<boolean> => {
+	return readFileByLine(projectFile)
+		.find(line => line.includes('com.demandware.studio.core.beehiveNature')).isEmpty().map(val => !val);
 };
 
 /**
@@ -39,7 +59,7 @@ export const getPathsCartridges = (workspaceFolder, packageFile): Promise<string
 
 					if (packageFileObject.paths) {
 						const promises: Promise<string[]>[] = [];
-						const paths : string[] = [];
+						const paths: string[] = [];
 
 						if (packageFileObject.paths) {
 							for (var key in packageFileObject.paths) {

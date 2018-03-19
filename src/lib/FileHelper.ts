@@ -4,7 +4,7 @@ import { join, dirname } from 'path';
 import { Uri, CancellationTokenSource, workspace, RelativePattern, WorkspaceFolder, window } from 'vscode';
 import { Observable } from 'rxjs';
 import { readConfigFile } from '../server/WebDav';
-import { checkIfCartridge } from './CartridgeHelper';
+import { checkIfCartridge$ } from './CartridgeHelper';
 
 
 
@@ -111,13 +111,13 @@ export function findFiles(include: RelativePattern, maxResults?: number, errIfNo
 	});
 }
 
-export function getCartridgesFolder(workspaceFolder : WorkspaceFolder) : Observable<string>  {
+export function getCartridgesFolder(workspaceFolder: WorkspaceFolder): Observable<string> {
 	return findFiles(new RelativePattern(workspaceFolder, '**/.project'))
-	.flatMap((project) => {
-		return Observable.fromPromise(checkIfCartridge(project.fsPath))
-			.flatMap(isCartridge => isCartridge ? Observable.of(project) : Observable.empty<Uri>())
-	})
-	.map(project => dirname(project.fsPath));
+		.flatMap((project) => {
+			return checkIfCartridge$(project.fsPath)
+				.flatMap(isCartridge => isCartridge ? Observable.of(project) : Observable.empty<Uri>())
+		})
+		.map(project => dirname(project.fsPath));
 };
 
 export function getDWConfig(workspaceFolders?: WorkspaceFolder[]) {
@@ -127,7 +127,7 @@ export function getDWConfig(workspaceFolders?: WorkspaceFolder[]) {
 		));
 		return dwConfigFiles.then(configFiles => {
 			if (configFiles) {
-				configFiles =  configFiles.filter(Boolean);
+				configFiles = configFiles.filter(Boolean);
 				if (!configFiles.length) {
 					return Promise.reject('Unable to find sandbox configuration (dw.json)');
 				} else if (configFiles.length === 1) {
