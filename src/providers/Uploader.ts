@@ -5,6 +5,8 @@ import { getCartridgesFolder, getDWConfig } from '../lib/FileHelper';
 
 const commandBus = new Subject<'enable.upload' | 'clean.upload' | 'disable.upload'>();
 
+
+let firstClean = true;
 /**
  * Class for handling the server upload integration
  */
@@ -16,7 +18,14 @@ export default class Uploader {
 	//private configuration;
 	private prevState;
 	private uploaderSubscription: Subscription | null;
-	private cleanOnStart: boolean;
+	private get cleanOnStart() : boolean {
+		if (firstClean) {
+			firstClean = false;
+			return Boolean(workspace.getConfiguration('extension.prophet').get('clean.on.start'));
+		} else {
+			return true;
+		}
+	};
 	private commandSubs: Subscription;
 	private cartridges: Set<string>
 
@@ -27,8 +36,6 @@ export default class Uploader {
 	constructor(cartridges: Set<string>) {
 		this.outputChannel = window.createOutputChannel(`Prophet Uploader`);
 		this.cartridges = cartridges;
-
-		this.cleanOnStart = Boolean(workspace.getConfiguration('extension.prophet').get('clean.on.start'));
 
 		this.commandSubs = commandBus.subscribe(command => {
 			if (command === 'clean.upload' || command === 'enable.upload') {
@@ -89,9 +96,7 @@ export default class Uploader {
 					dwConf,
 					this.outputChannel,
 					{ cleanOnStart: this.cleanOnStart }
-				).do(() => {
-					this.cleanOnStart = true;
-				});
+				);
 			})
 			.subscribe(
 				() => {

@@ -153,6 +153,7 @@ function uploadWithProgress(webdav: WebDav, outputChannel: OutputChannel, config
 		}).do(() => {
 			if (config.cleanOnStart) {
 				outputChannel.appendLine(`Cartridges uploaded successfully`);
+				config.cleanOnStart = false;
 			}
 			if (resolve) {
 				resolve();
@@ -163,7 +164,13 @@ function uploadWithProgress(webdav: WebDav, outputChannel: OutputChannel, config
 				resolve();
 				resolve = null;
 			}
-		})
+		},
+			() => {
+				if (resolve) {
+					resolve();
+					resolve = null;
+				}
+			})
 
 }
 

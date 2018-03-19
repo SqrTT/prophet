@@ -88,7 +88,7 @@ export function findFiles(include: RelativePattern, maxResults?: number, errIfNo
 
 		workspace.findFiles(
 			include,
-			'{node_modules,.git}',
+			'{node_modules,.git,RemoteSystemsTempFiles}',
 			maxResults,
 			tokenSource.token
 		).then(files => {
@@ -127,7 +127,7 @@ export function getDWConfig(workspaceFolders?: WorkspaceFolder[]) {
 				} else if (configFiles.length === 1) {
 					return configFiles[0].fsPath;
 				} else {
-					return window.showQuickPick(configFiles.map(config => config.fsPath), { placeHolder: 'Select configuration for debugger' });
+					return window.showQuickPick(configFiles.map(config => config.fsPath), { placeHolder: 'Select configuration' });
 				}
 
 			} else {

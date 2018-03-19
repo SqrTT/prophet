@@ -231,7 +231,7 @@ export default class WebDav {
 	getFileList(pathToCartridgesDir: string, options): Observable<string[]> {
 		const { isCartridge = false } = options;
 		const { isDirectory = false } = options;
-		const { ignoreList = ['node_modules', '\\.git'] } = options;
+		const { ignoreList = ['node_modules', '\\.git', '\\.zip', '.git', '.zip'] } = options;
 		const processingFolder = pathToCartridgesDir.split(sep).pop();
 
 		return Observable.fromPromise(import('walk'))

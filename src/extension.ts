@@ -221,6 +221,13 @@ export function activate(context: ExtensionContext) {
 	subscribe2disposable(LogsView.initialize(commands, context, dwConfig$$).mergeAll());
 
 	context.subscriptions.push(createIsmlLanguageServer(context).start());
+
+	const excludedMasks = workspace.getConfiguration('files.exclude');
+
+	const ignoreProjects = Object.keys(excludedMasks).some(excludedMask => excludedMask.includes('.project') && excludedMasks[excludedMask]);
+	if (ignoreProjects) {
+		window.showErrorMessage('Your `files.exclude` excludes `.project`. Cartridge detection may not work properly');
+	}
 }
 
 function initDebugger() {
@@ -309,7 +316,7 @@ function initializeToolkitActions() {
 								window.showWarningMessage(`Unable to find '${reqUrl}'`);
 							}
 						} else {
-							window.showWarningMessage(`Unable to find '${reqUrl}'`);
+							window.showWarningMessage(`Unable to find '${reqUrl}'.`);
 						}
 					}
 
@@ -321,11 +328,10 @@ function initializeToolkitActions() {
 	});
 }
 
-function convertDebuggerPathToClient(debuggerPath: string, cartridges: string[]): string {
+function convertDebuggerPathToClient(this: void, debuggerPath: string, cartridges: string[]): string {
 	debuggerPath = debuggerPath.substr(1);
 	const debuggerSep = debuggerPath.split('/');
 	const cartridgeName = debuggerSep.shift() || '';
-
 
 	const cartPath = cartridges.find(cartridge => cartridge.endsWith(cartridgeName));
 
@@ -333,7 +339,7 @@ function convertDebuggerPathToClient(debuggerPath: string, cartridges: string[])
 		const tmp = join(cartPath, debuggerSep.join(sep));
 		return tmp;
 	} else {
-		this.logError("Unable match cartridge");
+		window.showErrorMessage("Unable match cartridge");
 		return '';
 	}
 
