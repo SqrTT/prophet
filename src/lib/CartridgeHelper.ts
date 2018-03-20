@@ -1,61 +1,52 @@
 'use strict';
-import * as glob from 'glob';
-import { TreeItemCollapsibleState } from 'vscode';
-import { exists, readFile, existsSync, mkdirSync, writeFile, mkdir, } from 'fs';
-import { dirname, join, basename, sep } from 'path';
-import { CartridgeItem, CartridgeItemType } from './CartridgeItem';
+import { workspace, RelativePattern } from 'vscode';
+import { exists, readFile, existsSync, mkdirSync, writeFile, mkdir, createReadStream } from 'fs';
+import { join, sep } from 'path';
 import { pathExists } from '../lib/FileHelper';
+import { Observable } from 'rxjs';
 
 /**
  * Checks whether or not an Eclipse project file is a Salesforce project.
  * @param projectFile The absolute path to the file location of the Eclipse project file.
  */
 export const checkIfCartridge = (projectFile: string): Promise<boolean> => {
-	return new Promise((resolve, reject) => {
-		readFile(projectFile, 'UTF-8', (err, data) => {
-			if (err) {
-				reject(err);
-			} else {
-				// Check the file for demandware package (since the file is not that big no need for a DOM parser)
-				resolve(data.includes('com.demandware.studio.core.beehiveNature'));
-			}
-		});
-	});
+	return checkIfCartridge$(projectFile).toPromise();
 };
 
-/**
- * Creates a CartridgeItem based on the project file.
- * @param projectFile The absolute path to the file location of the Eclipse project file.
- * @param activeFile The active file in the current workspace.
- */
-export const toCardridge = (projectFile: string, activeFile?: string): Promise<CartridgeItem> => {
-	return new Promise((resolve, reject) => {
-		const projectFileDirectory = dirname(projectFile);
-		const projectName = basename(projectFileDirectory);
+function readFileByLine(filePath: string) : Observable<string>{
+	return Observable.fromPromise(import('readline')).flatMap(readline => {
+		return new Observable((obs) => {
+			const lineReader = readline.createInterface({
+				input: createReadStream(filePath)
+			});
 
-		let subFolder = '';
-		exists(join(projectFileDirectory, 'cartridge'), (existsDirectory) => {
-			if (existsDirectory) {
-				subFolder = 'cartridge';
+			lineReader.on('line', (line) => { obs.next(line) });
+
+			lineReader.once('close', () => { obs.complete() });
+
+			lineReader.once('error', (err) => { obs.error(err) });
+
+			return () => {
+				lineReader.removeAllListeners();
+				lineReader.close();
 			}
-
-			const actualCartridgeLocation = join(projectFileDirectory, subFolder);
-
-			resolve(new CartridgeItem(
-				projectName || 'Unknown project name', CartridgeItemType.Cartridge,
-				actualCartridgeLocation,
-				(activeFile && activeFile.startsWith(actualCartridgeLocation))
-					? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.Collapsed));
 		});
-	});
+	})
+
+}
+
+//data.
+export const checkIfCartridge$ = (projectFile: string) : Observable<boolean> => {
+	return readFileByLine(projectFile)
+		.first(line => line.includes('com.demandware.studio.core.beehiveNature'), () => true, false);
 };
 
 /**
  * Checks for cartridges in the paths variable. (References to other cartridges)
- * @param workspaceRoot The current workspaceroot
+ * @param workspaceFolder The current workspaceroot
  * @param packageFile The path to the package file.
  */
-export const getPathsCartridges = (workspaceRoot, packageFile): Promise<string[]> => {
+export const getPathsCartridges = (workspaceFolder, packageFile): Promise<string[]> => {
 	return new Promise((resolve, reject) => {
 		pathExists(packageFile).then(packageExists => {
 			if (packageExists) {
@@ -68,8 +59,8 @@ export const getPathsCartridges = (workspaceRoot, packageFile): Promise<string[]
 
 					if (packageFileObject.paths) {
 						const promises: Promise<string[]>[] = [];
-						const paths : string[] = [];
-						
+						const paths: string[] = [];
+
 						if (packageFileObject.paths) {
 							for (var key in packageFileObject.paths) {
 								paths.push(packageFileObject.paths[key]);
@@ -79,19 +70,13 @@ export const getPathsCartridges = (workspaceRoot, packageFile): Promise<string[]
 						paths.forEach(function (path) {
 							if (typeof path === 'string') {
 								promises.push(new Promise((resolvePathProjects, rejectPathProjects) => {
-									exists(join(workspaceRoot, path), packagePathExists => {
+									exists(join(workspaceFolder, path), packagePathExists => {
 										if (packagePathExists) {
-											glob('**/.project', {
-												cwd: join(workspaceRoot, path),
-												root: join(workspaceRoot, path),
-												nodir: true,
-												follow: false,
-												absolute: true,
-												ignore: ['**/node_modules/**', '**/.git/**']
-											}, (globError, projectFiles: string[]) => {
-												if (globError) { rejectPathProjects(globError); };
-												resolvePathProjects(projectFiles);
-											});
+											workspace
+												.findFiles(new RelativePattern(workspaceFolder, '.project'), '{node_modules,.git}')
+												.then(filesUri => {
+													resolvePathProjects(filesUri.map(fileUri => fileUri.fsPath))
+												}, rejectPathProjects);
 										} else {
 											resolvePathProjects([]);
 										}
@@ -122,7 +107,7 @@ export const getPathsCartridges = (workspaceRoot, packageFile): Promise<string[]
  * Note: This is currently a class to make it extensible, could be usefull to do things to a newly created cartridge.
  */
 export class CartridgeCreator {
-	constructor(private workspaceRoot: string) {
+	constructor(private workspaceFolder: string) {
 
 	}
 
@@ -134,7 +119,7 @@ export class CartridgeCreator {
 	}
 
 	createMainDirectory(name, directory) {
-		const pathToCreate = join(this.workspaceRoot, directory, name);
+		const pathToCreate = join(this.workspaceFolder, directory, name);
 
 		pathToCreate
 			.split(sep)
@@ -157,15 +142,15 @@ export class CartridgeCreator {
 			'webreferences',
 			'webreferences2'];
 
-		mkdir(join(this.workspaceRoot, directory, name, 'cartridge'));
+		mkdir(join(this.workspaceFolder, directory, name, 'cartridge'));
 		for (let i = 0; i < directoriesToCreate.length; i++) {
-			mkdir(join(this.workspaceRoot, directory, name, 'cartridge', directoriesToCreate[i]));
+			mkdir(join(this.workspaceFolder, directory, name, 'cartridge', directoriesToCreate[i]));
 		}
 
 	}
 
 	createProjectFiles(name, directory) {
-		writeFile(join(this.workspaceRoot, directory, name, '.project'),
+		writeFile(join(this.workspaceFolder, directory, name, '.project'),
 			`<?xml version='1.0' encoding='UTF-8'?>
 <projectDescription>
     <name>${name}</name>
@@ -189,7 +174,7 @@ export class CartridgeCreator {
 				}
 			});
 
-		writeFile(join(this.workspaceRoot, directory, name, '.tern-project'),
+		writeFile(join(this.workspaceFolder, directory, name, '.tern-project'),
 			`{
     'ecmaVersion': 5,
     'plugins': {
@@ -242,7 +227,7 @@ export class CartridgeCreator {
 			+ currentDateTime.getMinutes() + ':'
 			+ currentDateTime.getSeconds() + ' CEST ' + currentDateTime.getFullYear();
 
-		writeFile(join(this.workspaceRoot, directory, name, 'cartridge', name + '.properties'),
+		writeFile(join(this.workspaceFolder, directory, name, 'cartridge', name + '.properties'),
 			`## cartridge.properties for cartridge ${name}
 #${timeString}
 demandware.cartridges.${name}.multipleLanguageStorefront=true

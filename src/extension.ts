@@ -1,149 +1,25 @@
 
 'use strict';
-import { join } from 'path';
-import { workspace, Disposable, ExtensionContext, commands, window, Uri, WorkspaceConfiguration, debug } from 'vscode';
+import { join, dirname, sep } from 'path';
+import { workspace, ExtensionContext, commands, window, Uri, WorkspaceConfiguration, debug, WorkspaceFolder, RelativePattern } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
 import { CartridgesView } from './providers/CartridgesView';
-import { CartridgeCreator } from './lib/CartridgeHelper';
+import { LogsView } from './providers/LogsView';
+
 import { existsSync } from 'fs';
-import { createServer } from 'http';
+import { createServer, ServerResponse, IncomingMessage } from 'http';
 import Uploader from "./providers/Uploader";
 import { ProphetConfigurationProvider } from './providers/ConfigurationProvider';
-
-let cartridgesView: CartridgesView | undefined;
-
-export function activate(context: ExtensionContext) {
-	const configuration = workspace.getConfiguration('extension.prophet');
-	// register a configuration provider
-	context.subscriptions.push(debug.registerDebugConfigurationProvider('prophet', new ProphetConfigurationProvider()));
-
-
-	var ismlLanguageServer = createIsmlLanguageServer(context, configuration);
-	const disposable = ismlLanguageServer.start();
-
-	// Push the disposable to the context's subscriptions so that the
-	// client can be deactivated on extension deactivation
-	context.subscriptions.push(disposable);
-
-	const rootPath = workspace.rootPath;
-	if (rootPath) {
-		/// open files from browser
-		const server = createServer(function (req, res) {
-			res.writeHead(200, { 'Content-Type': 'text/plain' });
-			res.end('ok');
-
-			if (req.url && req.url.includes('/target') && workspace.rootPath) {
-				const reqUrl = req.url.split('/target=')[1].split('&')[0]; // fixme
-
-				const filePaths = [
-					join(workspace.rootPath, ...reqUrl.split('/')),
-					join(workspace.rootPath, 'cartridges', ...reqUrl.split('/')),
-					join(workspace.rootPath, ...reqUrl.split('/')).replace('.js', '.ds'),
-					join(workspace.rootPath, 'cartridges', ...reqUrl.split('/')).replace('.js', '.ds')
-				];
-
-				const filePath = filePaths.find(existsSync);
-
-				if (filePath) {
-					commands.executeCommand('vscode.open', Uri.file(filePath)).then(() => {
-						// DO NOTHING
-					}, err => {
-						window.showErrorMessage(err);
-					});
-				} else {
-					window.showWarningMessage(`Unable to find '${reqUrl}'`);
-				}
-			}
-
-		});
-		server.once('error', err => {
-			if (err instanceof Error) {
-				window.showWarningMessage(
-					`Unable open port for browsers files, probably other instance or Digital Studio is opened. Error: ${err.message}`
-				);
-
-				server.close();
-			}
-		});
-
-		server.once('listening', () => {
-			context.subscriptions.push(
-				new Disposable(() => {
-					server.close();
-				})
-			);
-		});
-
-		server.listen(60606);
-
-		var uploader = new Uploader(configuration);
-		uploader.start(context);
-
-		// setup cartridge commands
-		context.subscriptions.push(commands.registerCommand('extension.prophet.command.refresh.cartridges', () => {
-			if (cartridgesView) {
-				cartridgesView.refresh(
-					((window.activeTextEditor) ? window.activeTextEditor.document.fileName : undefined));
-			}
-		}));
-
-		context.subscriptions.push(commands.registerCommand('extension.prophet.command.create.cartridge', () => {
-			const folderOptions = {
-				prompt: 'Folder: ',
-				placeHolder: 'Folder to create cartridge in (leave empty if none)'
-			};
-
-			const cartridgeOptions = {
-				prompt: 'Cartridgename: ',
-				placeHolder: 'your_cartridge_id'
-			};
-
-			window.showInputBox(folderOptions).then(folderValue => {
-				window.showInputBox(cartridgeOptions).then(value => {
-					if (!value) { return; }
-					if (!folderValue) { folderValue = ''; }
-
-					new CartridgeCreator(rootPath).createCartridge(value.trim().replace(' ', '_'), folderValue.trim());
-
-					if (cartridgesView) {
-						cartridgesView.refresh((window.activeTextEditor) ? window.activeTextEditor.document.fileName : undefined);
-					}
-
-					if (uploader.isUploadEnabled()) {
-						uploader.loadUploaderConfig(rootPath, context);
-					}
-				});
-			});
-		}));
-
-		context.subscriptions.push(commands.registerCommand('extension.prophet.command.create.folder', (cartridgeDirectoryItem) => {
-			if (cartridgesView) {
-				cartridgesView.createDirectory(cartridgeDirectoryItem);
-			}
-		}));
-
-		context.subscriptions.push(commands.registerCommand('extension.prophet.command.create.file', (cartridgeFileItem) => {
-			if (cartridgesView) {
-				cartridgesView.createFile(cartridgeFileItem);
-			}
-		}));
-
-		// add CartridgesView
-		cartridgesView = new CartridgesView(rootPath, (window.activeTextEditor) ? window.activeTextEditor.document.fileName : undefined);
-
-		context.subscriptions.push(
-			window.registerTreeDataProvider('cartridgesView', cartridgesView)
-		);
-	}
-}
+import { Subject, Observable } from 'rxjs';
+import { findFiles, getDWConfig, getCartridgesFolder } from './lib/FileHelper';
 
 /**
  * Create the ISML language server with the proper parameters
- * 
+ *
  * @param context the extension context
  * @param configuration the extension configuration
  */
-function createIsmlLanguageServer(context : ExtensionContext, configuration : WorkspaceConfiguration) {
+function createIsmlLanguageServer(context: ExtensionContext, configuration: WorkspaceConfiguration = workspace.getConfiguration('extension.prophet', null)) {
 	// The server is implemented in node
 	const serverModule = context.asAbsolutePath(join('out', 'server', 'ismlServer.js'));
 	// The debug options for the server
@@ -155,11 +31,11 @@ function createIsmlLanguageServer(context : ExtensionContext, configuration : Wo
 		run: { module: serverModule, transport: TransportKind.ipc },
 		debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions }
 	};
-	const htmlConf = workspace.getConfiguration('html.format');
+	const htmlConf = workspace.getConfiguration('html.format', null);
 	// Options to control the language client
 	const clientOptions: LanguageClientOptions = {
 		// Register the server for plain text documents
-		documentSelector: (configuration.get('ismlServer.activateOn') as string[] || ['isml']).map(type => ({
+		documentSelector: (configuration.get('ismlServer.activateOn', ['isml'])).map(type => ({
 			language: type,
 			scheme: 'file'
 		})),
@@ -214,9 +90,260 @@ function createIsmlLanguageServer(context : ExtensionContext, configuration : Wo
 				ismlLanguageServer.sendNotification('isml:selectedfile', undefined);
 			});
 		});
+		ismlLanguageServer.onNotification('find:files', ({ searchID, workspacePath, pattern }) => {
+			workspace.findFiles(
+				new RelativePattern(workspacePath, pattern)
+			).then(result => {
+				ismlLanguageServer.sendNotification('find:filesFound', { searchID, result: (result || []).map(uri => uri.fsPath) });
+			})
+		});
+	}).catch(err => {
+		window.showErrorMessage(JSON.stringify(err));
 	});
 
-	return ismlLanguageServer;	
+	return ismlLanguageServer;
+}
+
+function getWorkspaceFolders$$(context: ExtensionContext): Observable<Observable<WorkspaceFolder>> {
+	return new Observable(observer => {
+
+		function createObservableWorkspace(workspaceFolder: WorkspaceFolder) {
+			return new Observable<WorkspaceFolder>(wrkObserver => {
+				const wrkListener = workspace.onDidChangeWorkspaceFolders(event => {
+					try {
+						event.removed && event.removed.forEach(removedWrk => {
+							if (removedWrk.uri.fsPath === workspaceFolder.uri.fsPath) {
+								wrkObserver.complete();
+								wrkListener.dispose();
+							}
+						});
+					} catch (e) {
+						wrkObserver.error(e);
+					}
+				});
+				wrkObserver.next(workspaceFolder)
+				return () => {
+					wrkListener.dispose();
+				}
+			});
+		}
+
+		const listener = workspace.onDidChangeWorkspaceFolders(event => {
+			event.added.forEach(addWrk => {
+				if (addWrk.uri.scheme === 'file') {
+					observer.next(createObservableWorkspace(addWrk));
+				}
+			});
+		});
+
+		if (workspace.workspaceFolders) {
+			workspace.workspaceFolders.forEach(addWrk => {
+				if (addWrk.uri.scheme === 'file') {
+					observer.next(createObservableWorkspace(addWrk));
+				}
+			});
+		}
+
+		context.subscriptions.push({
+			dispose() {
+				observer.complete();
+				listener.dispose();
+			}
+		})
+		return () => {
+			listener.dispose();
+		};
+	});
+}
+
+export function activate(context: ExtensionContext) {
+
+
+	context.subscriptions.push(
+		commands.registerCommand('extension.prophet.command.open.documentation', () => {
+			commands.executeCommand('vscode.open', Uri.parse('https://documentation.demandware.com'));
+		})
+	);
+	context.subscriptions.push(
+		commands.registerCommand('extension.prophet.command.open.xchange', () => {
+			commands.executeCommand('vscode.open', Uri.parse('https://xchange.demandware.com'));
+		})
+	);
+
+	// register a configuration provider
+	context.subscriptions.push(
+		debug.registerDebugConfigurationProvider(
+			'prophet',
+			new ProphetConfigurationProvider()
+		)
+	);
+
+
+	initDebugger();
+
+	const workspaceFolders$$ = getWorkspaceFolders$$(context);
+
+	// const configuration = workspace.getConfiguration('extension.prophet');
+	// var ismlLanguageServer = createIsmlLanguageServer(context, configuration);
+	// context.subscriptions.push(ismlLanguageServer.start());
+
+	function subscribe2disposable($: Observable<any>) {
+		const subscr = $.subscribe(() => { }, err => {
+			window.showErrorMessage(JSON.stringify(err));
+		});
+
+		context.subscriptions.push({
+			dispose() {
+				subscr.unsubscribe();
+			}
+		});
+
+	}
+
+	/// open files from browser
+	subscribe2disposable(initializeToolkitActions().takeUntil(workspaceFolders$$.filter(() => false)));
+
+	/// uploader
+	Uploader.initialize(context, workspaceFolders$$);
+
+	// CartridgesView
+	CartridgesView.initialize(context);
+
+	const dwConfig$$ = workspaceFolders$$.map(workspaceFolder$ => {
+		const end$ = new Subject();
+		return workspaceFolder$
+			.do(() => { }, undefined, () => { end$.next(); end$.complete() })
+			.flatMap(workspaceFolder => {
+				return findFiles(new RelativePattern(workspaceFolder, '**/dw.json'), 1)
+			}).takeUntil(end$);
+	});
+
+	subscribe2disposable(LogsView.initialize(commands, context, dwConfig$$).mergeAll());
+
+	context.subscriptions.push(createIsmlLanguageServer(context).start());
+
+	const excludedMasks = workspace.getConfiguration('files').get('exclude');
+
+	const ignoreProjects = Object.keys(excludedMasks || {})
+		.some(excludedMask => excludedMask.includes('.project') && excludedMasks && excludedMasks[excludedMask]);
+
+	if (ignoreProjects) {
+		window.showErrorMessage('Your `files.exclude` excludes `.project`. Cartridge detection may not work properly');
+	}
+}
+
+function initDebugger() {
+	debug.onDidReceiveDebugSessionCustomEvent(event => {
+		if (event.event === 'prophet.getdebugger.config' && workspace.workspaceFolders) {
+			getDWConfig(workspace.workspaceFolders)
+				.then(configData => {
+					if (workspace.workspaceFolders) {
+						return Promise.all(workspace.workspaceFolders.map(
+							workspaceFolder => workspace.findFiles(new RelativePattern(workspaceFolder, '**/.project'), '{node_modules,.git}')
+						)).then(projects => {
+							const flattenProjectsPaths = ([] as Uri[]).concat(...projects).map(project => dirname(project.fsPath));
+							if (flattenProjectsPaths.length) {
+								return event.session.customRequest('DebuggerConfig', {
+									config: configData,
+									cartridges: flattenProjectsPaths
+								});
+							} else {
+								return Promise.reject('Unable get cartridges list');
+							}
+						});
+					} else {
+						return Promise.reject('Unable detect workspaces');
+					}
+				}).catch(err => {
+					window.showErrorMessage(JSON.stringify(err));
+				});
+		}
+	});
+}
+
+interface IServerRequest {
+	req: IncomingMessage,
+	res: ServerResponse
+}
+
+
+function initializeToolkitActions() {
+	return new Observable<IServerRequest>(observeer => {
+		const server = createServer((req, res) => { observeer.next({ req, res }) });
+		server.once('error', err => {
+			if (err instanceof Error) {
+				window.showWarningMessage(`Unable open port for browsers files, probably other instance or Digital Studio is opened. Error: ${err.message}`);
+				server.close();
+			}
+			observeer.error(err);
+		});
+
+		server.listen(60606);
+
+		return () => {
+			server.close();
+		}
+	}).flatMap(({ req, res }) => {
+		if (workspace.workspaceFolders && workspace.workspaceFolders.length) {
+			const cartridgesFolders = workspace.workspaceFolders
+				.map(workspaceFolder => getCartridgesFolder(workspaceFolder));
+
+			return Observable.merge(...cartridgesFolders)
+				.reduce((acc, val) => {
+					acc.add(val);
+					return acc;
+				}, new Set<string>())
+				.flatMap(cartridges => {
+					res.writeHead(200, { 'Content-Type': 'text/plain' });
+					res.end('ok');
+					if (req.url && req.url.includes('/target')) {
+						const reqUrl = req.url.split('/target=')[1].split('&')[0]; // fixme
+
+						const clientFilePath = convertDebuggerPathToClient(reqUrl, Array.from(cartridges));
+
+						if (clientFilePath) {
+							const filePaths = [
+								clientFilePath,
+								clientFilePath.replace('.js', '.ds'),
+							];
+
+							const filePath = filePaths.find(existsSync);
+							if (filePath) {
+								commands.executeCommand('vscode.open', Uri.file(filePath)).then(() => {
+									// DO NOTHING
+								}, err => {
+									window.showErrorMessage(err);
+								});
+							} else {
+								window.showWarningMessage(`Unable to find '${reqUrl}'`);
+							}
+						} else {
+							window.showWarningMessage(`Unable to find '${reqUrl}'.`);
+						}
+					}
+
+					return Observable.of(1);
+				});
+		} else {
+			return Observable.empty();
+		}
+	});
+}
+
+function convertDebuggerPathToClient(this: void, debuggerPath: string, cartridges: string[]): string {
+	debuggerPath = debuggerPath.substr(1);
+	const debuggerSep = debuggerPath.split('/');
+	const cartridgeName = debuggerSep.shift() || '';
+
+	const cartPath = cartridges.find(cartridge => cartridge.endsWith(cartridgeName));
+
+	if (cartPath) {
+		const tmp = join(cartPath, debuggerSep.join(sep));
+		return tmp;
+	} else {
+		window.showErrorMessage("Unable match cartridge");
+		return '';
+	}
 
 }
 
@@ -224,10 +351,4 @@ export function deactivate() {
 	// nothing to do
 }
 
-commands.registerCommand('extension.prophet.command.open.documentation', () => {
-	commands.executeCommand('vscode.open', Uri.parse('https://documentation.demandware.com'));
-});
 
-commands.registerCommand('extension.prophet.command.open.xchange', () => {
-	commands.executeCommand('vscode.open', Uri.parse('https://xchange.demandware.com'));
-});

@@ -22,6 +22,7 @@ A VS Code extension to work with Demandware/Salesforce Cloud code on Sandbox tha
 * Quick open `isinclude` templates and custom tags via Ctrl+Click (as links)
 * Cartridges overview in explorer
 * Server logs viewer with syntax highlight
+* [Multi-root Workspaces](https://code.visualstudio.com/docs/editor/multi-root-workspaces) (allows to work with different repo in same time).
 
 > WARNING: Some users had reported that debugger completely halts sandbox. Currently, this issue is not fixed and no known steps to reproduce. If you have some info about it please share. So please, before debugger usage make sure that you have availability to restart sandbox for the case if extension halts yours.
 
@@ -40,7 +41,7 @@ When your launch config is set up, you can debug your project! Pick a launch con
 The extension operates in one mode - it launch an adapter that connects to sandbox. Just like when using the other debugger, you configure with a `.vscode/launch.json` file in the root directory of your project. You can create this file manually, or Code will create one for you if you try to run your project, and it doesn't exist yet.
 
 ### Launch
-Example `launch.json` configs with `"request": "launch"`. You must specify hostname and other credentials. `cartridgeroot` could be set to `auto` so extention will try do detect path, othervise please set absolute path to folder that contains cartridges. Note: `workspaceroot` should be set to `${workspaceRoot}` unless you know what you doing.
+Example `launch.json` configs with `"request": "launch"`.You must not specify hostname and other credentials. Since they are will be loaded from correspond `dw.json`
 
 ```json
 {
@@ -49,21 +50,11 @@ Example `launch.json` configs with `"request": "launch"`. You must specify hostn
       {
           "type": "prophet",
           "request": "launch",
-          "name": "Attach to Sandbox",
-          "hostname": "*.demandware.net",
-          "username": "<username>",
-          "password": "<password>",
-          "codeversion": "version1",
-          "cartridgeroot": "auto",
-          "workspaceroot": "${workspaceRoot}"
+          "name": "Attach to Sandbox"
       }
     ]
 }
 ```
-
-> Note: for windows user `cartridgeroot` should be set as absolute path to cartridges folder, i.e. `C:\\some\\folder\\path\\to\\cartridges`
-
-If you want to use a different sandboxes, you can also setup several configurations.
 
 
 ### Other optional launch config fields
@@ -72,7 +63,7 @@ If you want to use a different sandboxes, you can also setup several configurati
 
 ## Using the uploader
 
-Configuration for uploader should live in the file named `dw.json` (similar is used by `dwupload` and is compatible witn the uploader). Configuration should be placed in the directory that contains all cartridges.
+Configuration for uploader should live someware in opened workspace in the file named `dw.json` (similar is used by `dwupload` and is compatible witn the uploader).
 
 ```
 ├── bc_library
@@ -102,22 +93,19 @@ You can temporarily disable watching or force upload cartridges (i.e. clean proj
 
 (press F1 and select command)
 
+> Note: the extension relies on the `.project` files to detect cartridge so it must not be added to `files.exclude`
+
 #### Other configuration
 
-* `extension.prophet.cartridges.path` - List of cartridges separated by colon. Allows  quick open don't ask a user to choose the file. Automatically open file that match first cartridge in list.
+* `extension.prophet.cartridges.path` - List of cartridges separated by colon. Allows quick open don't ask a user to choose the file. Automatically open file that match first cartridge in list.
 * `extension.prophet.ismlServer.activateOn` - allow activate isml server for non standatd (isml) files, ex. `html`
 * `extension.prophet.clean.on.start` - allows to enable/disable code upload on editor startup (enabled by default)
-* `extension.prophet.clean.up.code.version.mode` - Defines the behavior for cleanup the sandbox codeversion before downloading the code
-    * `auto` - extention will detect best behavior
-    * `all` - cleanup all cartridges on sandboc
-    * `list` - cleanup cartridges being listed in `dw.json` cartridge section
-    * `none` - skip cleanup
 
 ### Improve experience
 
 Experience can be improved by using follow `jsconfig.json` in the folder with cartridges. It allows resolve absolute paths in scripts correctly, (except it starts with `~` or `*`).
 
-> Note: client side JS files must have it's own `jsconfig.json` file.
+> Note: client side JS files must have it's own `jsconfig.json` file and each workspace should have it's own configuration.
 
 Code assistance can be improved even more by adding `d.ts` definition for the project. Definitions for Commerce Cloud objects can be downloaded from [repo](https://bitbucket.org/demandware/dw-api-types/overview)
 
