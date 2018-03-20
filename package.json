@@ -1,7 +1,10 @@
 {
     "name": "prophet",
     "displayName": "Prophet Debugger",
-    "version": "0.10.4",
+    "version": "1.0.0",
+    "keywords": [
+        "multi-root ready"
+    ],
     "publisher": "SqrTT",
     "description": "Debugger and Uploader for Demandware/Salesforce sandbox",
     "author": {
@@ -9,7 +12,7 @@
         "email": "tolik@sqrtt.pro"
     },
     "engines": {
-        "vscode": "^1.19.0",
+        "vscode": "^1.21.0",
         "node": "^7.9.0"
     },
     "icon": "images/mock-debug-icon.ico",
@@ -27,32 +30,30 @@
         "url": "https://github.com/SqrTT/prophet/issues"
     },
     "dependencies": {
-        "glob": "^7.1.2",
-        "request": "^2.83.0",
-        "rimraf": "^2.6.2",
-        "rxjs": "^5.5.6",
+        "request": "^2.85.0",
+        "rxjs": "^5.5.7",
         "timeago.js": "^3.0.2",
-        "vscode-debugadapter": "^1.25.0",
-        "vscode-debugprotocol": "^1.25.0",
-        "vscode-languageclient": "^3.5.0",
-        "vscode-languageserver": "^3.5.0",
-        "vscode-nls": "^2.0.2",
-        "vscode-uri": "^1.0.1",
+        "vscode-debugadapter": "^1.27.0",
+        "vscode-debugprotocol": "^1.27.0",
+        "vscode-languageclient": "^4.0.0",
+        "vscode-languageserver": "^4.0.0",
+        "vscode-nls": "^3.2.2",
+        "vscode-uri": "^1.0.3",
         "walk": "^2.3.9",
         "xmldom": "^0.1.27",
         "yazl": "^2.4.3"
     },
     "devDependencies": {
-        "@types/mocha": "^2.2.45",
-        "@types/node": "^6.0.95",
-        "mocha": "^3.5.3",
-        "typescript": "^2.6.2",
-        "vscode": "^1.1.10",
-        "vscode-debugadapter-testsupport": "^1.25.0"
+        "@types/mocha": "^2.2.48",
+        "@types/node": "^7.0.56",
+        "mocha": "^5.0.4",
+        "typescript": "^2.7.2",
+        "vscode": "^1.1.13",
+        "vscode-debugadapter-testsupport": "^1.27.0"
     },
     "scripts": {
         "vscode:prepublish": "npm install && npm run compile && npm run test",
-        "prepublish": "node ./node_modules/typescript/bin/tsc -p ./src",
+        "prepare": "node ./node_modules/typescript/bin/tsc -p ./src",
         "compile": "node ./node_modules/typescript/bin/tsc -p ./src",
         "watch": "node ./node_modules/typescript/bin/tsc -w -p ./src",
         "test": "node ./node_modules/mocha/bin/mocha -u tdd ./out/tests/",
@@ -299,61 +300,18 @@
                 "configurationSnippets": [
                     {
                         "label": "Demandware Debugger",
-                        "description": "A new configuration for connecting to sandbox",
+                        "description": "configuration will look up for dw.json",
                         "body": {
                             "type": "prophet",
                             "request": "launch",
-                            "name": "${2:Attach to Sandbox}",
-                            "hostname": "${3:*.demandware.net}",
-                            "username": "${4:admin}",
-                            "password": "${5}",
-                            "codeversion": "${6:version1}",
-                            "cartridgeroot": "auto",
-                            "workspaceroot": "^\"\\${workspaceFolder}\""
+                            "name": "${2:Attach to Sandbox}"
                         }
                     }
                 ],
                 "configurationAttributes": {
                     "launch": {
-                        "required": [
-                            "hostname",
-                            "username",
-                            "password",
-                            "codeversion",
-                            "cartridgeroot",
-                            "workspaceroot"
-                        ],
+                        "required": [],
                         "properties": {
-                            "hostname": {
-                                "type": "string",
-                                "description": "Hostname of instance",
-                                "default": "*.demandware.net"
-                            },
-                            "username": {
-                                "type": "string",
-                                "description": "username for instance",
-                                "default": "admin"
-                            },
-                            "password": {
-                                "type": "string",
-                                "description": "password for instance",
-                                "default": ""
-                            },
-                            "codeversion": {
-                                "type": "string",
-                                "description": "version of code on instance",
-                                "default": "vesion1"
-                            },
-                            "cartridgeroot": {
-                                "type": "string",
-                                "description": "cartridges root in workspace",
-                                "default": "auto"
-                            },
-                            "workspaceroot": {
-                                "type": "string",
-                                "description": "root of workspace",
-                                "default": "${workspaceRoot}"
-                            },
                             "trace": {
                                 "type": "boolean",
                                 "description": "Enable logging of the Debug Adapter Protocol.",
@@ -370,40 +328,34 @@
                 "extension.prophet.upload.enabled": {
                     "type": "boolean",
                     "default": false,
-                    "description": "Enable upload to sandbox"
+                    "description": "Enable upload to sandbox",
+                    "scope": "window"
                 },
                 "extension.prophet.clean.on.start": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Clean/upload all on editor startup to sandbox"
+                    "description": "Clean/upload all on editor startup to sandbox",
+                    "scope": "window"
                 },
                 "extension.prophet.ismlServer.activateOn": {
                     "type": "array",
                     "default": [
                         "isml"
                     ],
-                    "description": "list of file extention for server activation"
+                    "description": "list of file extention for server activation",
+                    "scope": "window"
                 },
                 "extension.prophet.cartridges.path": {
                     "type": "string",
                     "default": "",
-                    "description": "List of cartridges separated by colon. (app_storefront_controllers:app_storefront_core:bc_library)"
+                    "description": "List of cartridges separated by colon. (app_storefront_controllers:app_storefront_core:bc_library)",
+                    "scope": "window"
                 },
                 "extension.prophet.cartridges.view.enabled": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Enable/Disable cartridges view"
-                },
-                "extension.prophet.clean.up.code.version.mode": {
-                    "type": "string",
-                    "default": "auto",
-                    "enum": [
-                        "auto",
-                        "all",
-                        "list",
-                        "none"
-                    ],
-                    "description": "Defines the behavior for cleanup the sandbox codeversion before downloading the code"
+                    "description": "Enable/Disable cartridges view",
+                    "scope": "window"
                 }
             }
         }

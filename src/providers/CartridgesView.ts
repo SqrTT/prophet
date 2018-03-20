@@ -1,29 +1,55 @@
 'use strict';
-import { TreeItemCollapsibleState, EventEmitter, TreeDataProvider, Event, window, TreeItem, Uri, workspace, ViewColumn } from 'vscode';
+import { TreeItemCollapsibleState, EventEmitter, TreeDataProvider, Event, window, TreeItem, Uri, workspace, ViewColumn, ExtensionContext, commands, RelativePattern } from 'vscode';
 
-import { join } from 'path';
-import * as glob from 'glob';
-import { mkdirSync, open, close } from 'fs';
+import { join, basename, dirname } from 'path';
+import { mkdir, open, close } from 'fs';
 
 import { getDirectories, getFiles, pathExists } from '../lib/FileHelper';
-import { checkIfCartridge, toCardridge, getPathsCartridges } from '../lib/CartridgeHelper';
+import { checkIfCartridge, getPathsCartridges, CartridgeCreator } from '../lib/CartridgeHelper';
 import { filterAsync } from '../lib/CollectionUtil';
-import { CartridgeItem, CartridgeItemType } from '../lib/CartridgeItem';
+import { GenericTreeItem, DirectoryTreeItem, FileTreeItem, CartridgeTreeItem, WorkspaceTreeItem } from '../lib/CartridgeViewsItem';
+
 
 
 const cartridgeViewOutputChannel = window.createOutputChannel('Cartridges List (Prophet)');
 
+
+
+/**
+ * Creates a CartridgeItem based on the project file.
+ * @param projectFile The absolute path to the file location of the Eclipse project file.
+ * @param activeFile The active file in the current workspace.
+ */
+export async function createCardridgeElement(projectFile: string, activeFile?: string): Promise<CartridgeTreeItem> {
+	const projectFileDirectory = dirname(projectFile);
+	const projectName = basename(projectFileDirectory);
+
+	let subFolder = '';
+	const existsDirectory = await pathExists(join(projectFileDirectory, 'cartridge'));
+
+	if (existsDirectory) {
+		subFolder = 'cartridge';
+	}
+
+	const actualCartridgeLocation = join(projectFileDirectory, subFolder);
+
+	return new CartridgeTreeItem(
+		projectName || 'Unknown project name',
+		actualCartridgeLocation,
+		(activeFile && activeFile.startsWith(actualCartridgeLocation))
+			? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.Collapsed);
+};
+
 /**
  * Creates a folder CartridgeItem.
  * @param {string} directory The directory name
- * @param {CartridgeItem} element  The parent element
+ * @param {GenericTreeItem} element  The parent element
  * @param {string} activeFile The path to the currently active file in the workspace
  */
-const toFolderElement = (directory: string, element: CartridgeItem, activeFile?: string): CartridgeItem => {
+const createFolderElement = (directory: string, element: GenericTreeItem, activeFile?: string): DirectoryTreeItem => {
 	const actualFolderLocation = join(element.location, directory);
-	return new CartridgeItem(
+	return new DirectoryTreeItem(
 		directory,
-		CartridgeItemType.Directory,
 		actualFolderLocation,
 		(activeFile && activeFile.startsWith(actualFolderLocation))
 			? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.Collapsed);
@@ -32,11 +58,10 @@ const toFolderElement = (directory: string, element: CartridgeItem, activeFile?:
 /**
  * Creates a file CartridgeItem
  * @param {string} fileName The file name
- * @param {CartridgeItem} element The parent element
+ * @param {GenericTreeItem} element The parent element
  */
-const toFileElement = (fileName: string, element: CartridgeItem): CartridgeItem => {
-	return new CartridgeItem(fileName,
-		CartridgeItemType.File,
+const createFileElement = (fileName: string, element: GenericTreeItem): GenericTreeItem => {
+	return new FileTreeItem(fileName,
 		join(element.location, fileName),
 		TreeItemCollapsibleState.None, {
 			command: 'vscode.open',
@@ -48,23 +73,92 @@ const toFileElement = (fileName: string, element: CartridgeItem): CartridgeItem 
 /**
  * A TreeDataProvider that shows all cartridge projects within the current workspace.
  */
-export class CartridgesView implements TreeDataProvider<CartridgeItem> {
-	private _onDidChangeTreeData: EventEmitter<CartridgeItem | undefined> = new EventEmitter<CartridgeItem | undefined>();
-	readonly onDidChangeTreeData: Event<CartridgeItem | undefined> = this._onDidChangeTreeData.event;
+export class CartridgesView implements TreeDataProvider<GenericTreeItem> {
+	private _onDidChangeTreeData: EventEmitter<GenericTreeItem | undefined> = new EventEmitter<GenericTreeItem | undefined>();
+	readonly onDidChangeTreeData: Event<GenericTreeItem | undefined> = this._onDidChangeTreeData.event;
 	private lastFileOpened = 'NO_FILE';
 	/**
 	 * Load the cartridges within the curren workspace
-	 * @param {string} workspaceRoot The absolute path of the workspace
+	 * @param {string} workspaceFolder The absolute path of the workspace
 	 * @param {string} activeFile The absolute path of the file to expand the tree on
 	 */
-	constructor(private workspaceRoot: string, private activeFile?: string) {
-		workspace.onDidOpenTextDocument((e) => {
+	constructor(private activeFile?: string) {
+		//this.workspaceFolder = (workspace.workspaceFolders && workspace.workspaceFolders[0].uri.fsPath) || '';
+
+		workspace.onDidOpenTextDocument((textDocument) => {
 			// Use startswith since editor for some reason also send the .git file.
-			if (!e.fileName.startsWith(this.lastFileOpened)) {
-				this.lastFileOpened = e.fileName;
-				this.refresh(e.fileName);
+			if (textDocument.uri.scheme === 'file' && !textDocument.fileName.startsWith(this.lastFileOpened)) {
+				this.lastFileOpened = textDocument.fileName;
+				this.refresh(textDocument.fileName);
 			}
 		});
+	}
+	static initialize(context: ExtensionContext) {
+
+		// add CartridgesView
+		const cartridgesView = new CartridgesView(
+			(window.activeTextEditor) ? window.activeTextEditor.document.fileName : undefined
+		);
+
+		context.subscriptions.push(commands.registerCommand('extension.prophet.command.refresh.cartridges', () => {
+			if (cartridgesView) {
+				cartridgesView.refresh(
+					((window.activeTextEditor) ? window.activeTextEditor.document.fileName : undefined));
+			}
+		}));
+
+		context.subscriptions.push(commands.registerCommand('extension.prophet.command.create.folder', (cartridgeDirectoryItem) => {
+			if (cartridgesView) {
+				cartridgesView.createDirectory(cartridgeDirectoryItem);
+			}
+		}));
+
+		context.subscriptions.push(commands.registerCommand('extension.prophet.command.create.file', (cartridgeFileItem) => {
+			if (cartridgesView) {
+				cartridgesView.createFile(cartridgeFileItem);
+			}
+		}));
+
+
+		context.subscriptions.push(commands.registerCommand('extension.prophet.command.create.cartridge', () => {
+			const folderOptions = {
+				prompt: 'Folder: ',
+				placeHolder: 'Folder to create cartridge in (leave empty if none)'
+			};
+
+			const cartridgeOptions = {
+				prompt: 'Cartridgename: ',
+				placeHolder: 'your_cartridge_id'
+			};
+
+			window.showInputBox(folderOptions).then(folderValue => {
+				window.showInputBox(cartridgeOptions).then(value => {
+					if (!value) { return; }
+					if (!folderValue) { folderValue = ''; }
+					if (workspace.workspaceFolders && workspace.workspaceFolders.length > 1) {
+						window.showWorkspaceFolderPick().then(workspaceFolder => {
+							if (workspaceFolder && typeof folderValue === 'string') {
+								new CartridgeCreator(workspaceFolder.uri.fsPath).createCartridge(value.trim().replace(' ', '_'), folderValue.trim());
+								if (cartridgesView) {
+									cartridgesView.refresh((window.activeTextEditor) ? window.activeTextEditor.document.fileName : undefined);
+								}
+							}
+						})
+					} else if (workspace.workspaceFolders) {
+						new CartridgeCreator(workspace.workspaceFolders[0].uri.fsPath).createCartridge(value.trim().replace(' ', '_'), folderValue.trim());
+	
+						if (cartridgesView) {
+							cartridgesView.refresh((window.activeTextEditor) ? window.activeTextEditor.document.fileName : undefined);
+						}
+					}
+				});
+			});
+		}));
+
+
+		context.subscriptions.push(
+			window.registerTreeDataProvider('cartridgesView', cartridgesView)
+		);
 	}
 
 	/**
@@ -79,114 +173,113 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
 		this._onDidChangeTreeData.fire();
 	}
 
-	getTreeItem(element: CartridgeItem): TreeItem {
+	getTreeItem(element: GenericTreeItem): TreeItem {
 		return element;
 	}
 
-	getChildren(element?: CartridgeItem): Thenable<CartridgeItem[]> {
-		if (!this.workspaceRoot) {
+	async getChildren(element?: GenericTreeItem): Promise<GenericTreeItem[]> {
+		if (!workspace.workspaceFolders) {
 			window.showInformationMessage('No dependency in empty workspace.');
-			return Promise.resolve([]);
+			return [];
 		}
 
-		return new Promise(resolve => {
-			if (element) {
-				resolve(this.getCartridgeItemFilesOrFolders(element));
+		if (element) {
+			return await this.getCartridgeItemFilesOrFolders(element);
+		} else {
+			if (workspace.workspaceFolders.length === 1) {
+				const exist = await pathExists(workspace.workspaceFolders[0].uri.fsPath);
+
+				if (exist) {
+					return await this.getCartridgesInWorkspace(workspace.workspaceFolders[0].uri.fsPath);
+				} else {
+					window.showInformationMessage('No workspace!');
+					return [];
+				}
 			} else {
-				pathExists(this.workspaceRoot).then((exist) => {
-					if (exist) {
-						this.getCartridgesInWorkspace(this.workspaceRoot).then(resolve);
-					} else {
-						window.showInformationMessage('No workspace!');
-						resolve([]);
-					}
-				});
+				return await workspace.workspaceFolders.map(workspaceFolder =>
+					new WorkspaceTreeItem(
+						workspaceFolder.name,
+						workspaceFolder.uri.fsPath,
+						TreeItemCollapsibleState.Expanded
+					)
+				);
 			}
-		});
+
+		}
 	}
 
 	/**
 	 * Fetches all folders and files that are children of the passed element. This function can be used recursively.
-	 * @param {CartridgeItem} element The parent element
+	 * @param {GenericTreeItem} element The parent element
 	 */
-	private async getCartridgeItemFilesOrFolders(element: CartridgeItem): Promise<CartridgeItem[]> {
-		const files = await getFiles(element.location);
-		const directories = await getDirectories(element.location);
-		const activeFile = this.activeFile;
+	private async getCartridgeItemFilesOrFolders(element: GenericTreeItem): Promise<GenericTreeItem[]> {
 
-		if (files.length || directories.length) {
-			return directories.map(
-				function (dir) {
-					return toFolderElement(dir, element, activeFile);
-				}).concat(files.map(
-					function (file) {
-						return toFileElement(file, element);
-					}
-				));
+		if (element instanceof WorkspaceTreeItem) {
+			return this.getCartridgesInWorkspace(element.location);
+		} else {
+			const files = await getFiles(element.location);
+			const directories = await getDirectories(element.location);
+			const activeFile = this.activeFile;
+
+			if (files.length || directories.length) {
+				return directories
+					.map(dir => createFolderElement(dir, element, activeFile))
+					.concat(files.map(
+						file => createFileElement(file, element)
+					));
+			}
+
+			return [GenericTreeItem.NoFiles];
 		}
-
-		return [CartridgeItem.NoFiles];
 	}
 
 	/**
 	 * Fetches all cartridges within the given path (should be the workspace root)
-	 * @param workspaceRoot The absolute path to the workspace root
+	 * @param workspaceFolder The absolute path to the workspace root
 	 */
-	private getCartridgesInWorkspace(workspaceRoot: string): Promise<CartridgeItem[]> {
-		return new Promise((resolve, reject) => {
-			const activeFile = this.activeFile;
+	private async getCartridgesInWorkspace(workspaceFolder: string): Promise<GenericTreeItem[]> {
+		const activeFile = this.activeFile;
 
-			pathExists(workspaceRoot).then(workspaceExists => {
-				if (workspaceExists) {
-					cartridgeViewOutputChannel.appendLine('Found workspace.');
+		const workspaceExists = await pathExists(workspaceFolder);
 
-					const packagePath = join(workspaceRoot, 'package.json');
+		if (workspaceExists) {
+			cartridgeViewOutputChannel.appendLine('Found workspace.');
 
-					getPathsCartridges(workspaceRoot, packagePath).then(paths => {
-						if (paths && paths.length > 0) {
-							cartridgeViewOutputChannel.appendLine('Found extra cartridges in package file paths:\n\t*' + paths.join('\n\t*'));
-						}
+			const packagePath = join(workspaceFolder, 'package.json');
 
-						glob('**/.project', {
-							cwd: workspaceRoot,
-							root: workspaceRoot,
-							nodir: true,
-							follow: false,
-							absolute: true,
-							ignore: ['**/node_modules/**', '**/.git/**']
-						}, (error, projectFiles: string[]) => {
-							if (error) {
-								return reject(error);
-							}
+			const paths = await getPathsCartridges(workspaceFolder, packagePath);
 
-							cartridgeViewOutputChannel.appendLine('Found catridges in workspace:\n\t*' + projectFiles.join('\n\t*'));
+			if (paths && paths.length) {
+				cartridgeViewOutputChannel.appendLine('Found extra cartridges in package file paths:\n\t*' + paths.join('\n\t*'));
+			}
 
-							if (projectFiles.length) {
-								projectFiles = [...new Set(projectFiles.concat(paths))];
-								filterAsync(projectFiles, checkIfCartridge).then((filteredProjectFiles) => {
-									Promise.all(filteredProjectFiles.map(
-										function (projectFile) {
-											return toCardridge(projectFile, activeFile);
-										})).then(resolve);
-								});
-							} else {
-								resolve([new CartridgeItem('No cartridges found in this workspace.',
-									CartridgeItemType.Cartridge,
-									this.workspaceRoot,
-									TreeItemCollapsibleState.None)]);
-							}
-						});
-					});
-				} else {
-					resolve([CartridgeItem.NoCartridges]);
-				}
-			}, error => {
-				cartridgeViewOutputChannel.appendLine('Exception when trying to fetch workspace cartridges: ' + error);
-			});
-		});
+			const filesUri = await workspace.findFiles(new RelativePattern(workspaceFolder, '**/.project'), '{node_modules,.git}');
+
+			let projectFiles = filesUri.map(file => file.fsPath);
+			cartridgeViewOutputChannel.appendLine('Found catridges in workspace:\n\t*' + projectFiles.join('\n\t*'));
+
+			if (projectFiles.length) {
+				projectFiles = [...new Set(projectFiles.concat(paths))];
+
+				const filteredProjectFiles = await filterAsync(projectFiles, checkIfCartridge);
+
+				return await Promise.all(
+					filteredProjectFiles.map(
+						projectFile => createCardridgeElement(projectFile, activeFile)
+					)
+				);
+
+			} else {
+				return [new CartridgeTreeItem('No cartridges found in this workspace.',
+					workspaceFolder,
+					TreeItemCollapsibleState.None)];
+			}
+		} else {
+			return [GenericTreeItem.NoCartridges];
+		}
 	}
 
-	public createFile(cartridgeFileItem: CartridgeItem) {
+	public createFile(cartridgeFileItem: GenericTreeItem) {
 		const fileCreationOptions = {
 			prompt: 'Name: '
 		};
@@ -214,15 +307,20 @@ export class CartridgesView implements TreeDataProvider<CartridgeItem> {
 		});
 	}
 
-	public createDirectory(cartridgeDirectoryItem: CartridgeItem) {
+	public createDirectory(cartridgeDirectoryItem: GenericTreeItem) {
 		const folderCreationOptions = {
 			prompt: 'Name: '
 		};
 
 		window.showInputBox(folderCreationOptions).then(folderValue => {
 			if (folderValue) {
-				mkdirSync(join(cartridgeDirectoryItem.location, folderValue));
-				this.refresh();
+				mkdir(join(cartridgeDirectoryItem.location, folderValue), err => {
+					if (err) {
+						window.showErrorMessage(`Exception while creating directory! ( ${err} )`);
+					} else {
+						this.refresh();
+					}
+				});
 			}
 		});
 	}
