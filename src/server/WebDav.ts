@@ -26,7 +26,7 @@ function request$(options) {
 }
 
 export interface DavOptions {
-	cartridge?: string[]
+	cartridge: string[]
 	configFilename?: string,
 	hostname: string,
 	username: string,
@@ -226,14 +226,14 @@ export default class WebDav {
 	getFileList(pathToCartridgesDir: string, options): Observable<string[]> {
 		const { isCartridge = false } = options;
 		const { isDirectory = false } = options;
-		const { ignoreList = ['node_modules', '\\.git', '\\.zip', '.zip'] } = options;
+		const { ignoreList = ['node_modules', '\\.git', '\\.zip$'] } = options;
 		const processingFolder = pathToCartridgesDir.split(sep).pop();
 
 		return Observable.fromPromise(import('walk'))
 			.flatMap(walk => {
 				return new Observable<string[]>(observer => {
 					let walker = walk.walk(pathToCartridgesDir, {
-						filters: ignoreList,
+						filters:  [/node_modules/, /\.git/],
 						followLinks: true
 					});
 
@@ -244,27 +244,35 @@ export default class WebDav {
 					 */
 					if (isDirectory) {
 						walker.on('directories', function (root, stats, next) {
+
 							stats.forEach(function (stat) {
 								const toFile = relative(isCartridge ?
 									pathToCartridgesDir.replace(processingFolder || '', '') :
 									pathToCartridgesDir, resolve(root, stat.name));
 
-								observer.next([toFile])
+								if (ignoreList.some(ignore => toFile.match(ignore))) {
+									next()
+								} else {
+									observer.next([toFile])
+								}
 							});
 							next();
 						});
 					} else {
 						walker.on('file', (root, fileStat, next) => {
 							const file = resolve(root, fileStat.name);
-							const toFile = relative(isCartridge ?
-								pathToCartridgesDir.replace(new RegExp(processingFolder + '$'), '') :
-								pathToCartridgesDir, resolve(root, fileStat.name));
+							if (ignoreList.some(ignore => file.match(ignore))) {
+								next()
+							} else {
+								const toFile = relative(isCartridge ?
+									pathToCartridgesDir.replace(new RegExp(processingFolder + '$'), '') :
+									pathToCartridgesDir, resolve(root, fileStat.name));
 
-							//this.log('adding to zip:', file);
+								//this.log('adding to zip:', file);
 
-							observer.next([file, toFile])
-
-							next();
+								observer.next([file, toFile])
+								next();
+							}
 						});
 					}
 
@@ -339,7 +347,7 @@ export default class WebDav {
 	uploadCartridge(
 		pathToCartridgesDir,
 		notify = (string) => { },
-		options = {}
+		options : ({ignoreList?: string[], isCartridge?: boolean}) = {}
 	) {
 
 		const processingFolder = pathToCartridgesDir.split(sep).pop();

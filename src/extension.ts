@@ -92,7 +92,7 @@ function createIsmlLanguageServer(context: ExtensionContext, configuration: Work
 		});
 		ismlLanguageServer.onNotification('find:files', ({ searchID, workspacePath, pattern }) => {
 			workspace.findFiles(
-				new RelativePattern(workspacePath, pattern)
+				new RelativePattern(Uri.parse(workspacePath).fsPath, pattern)
 			).then(result => {
 				ismlLanguageServer.sendNotification('find:filesFound', { searchID, result: (result || []).map(uri => uri.fsPath) });
 			})
@@ -222,7 +222,7 @@ export function activate(context: ExtensionContext) {
 
 	context.subscriptions.push(createIsmlLanguageServer(context).start());
 
-	const excludedMasks = workspace.getConfiguration('files').get('exclude');
+	const excludedMasks = workspace.getConfiguration('files', null).get('exclude');
 
 	const ignoreProjects = Object.keys(excludedMasks || {})
 		.some(excludedMask => excludedMask.includes('.project') && excludedMasks && excludedMasks[excludedMask]);

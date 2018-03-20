@@ -77,7 +77,7 @@ function fileWatcher(config, cartRoot: string, outputChannel: OutputChannel): Ob
 const uploadCartridges = (
 	webdav: WebDav,
 	outputChannel: OutputChannel,
-	config: ({ cartridge }),
+	config: ({ cartridge, ignoreList?: string[] }),
 	cartRoot: string,
 	ask: (sb: string[], listc: string[]) => Promise<string[]>,
 	progress: Progress<{ message?: string }>['report'] | undefined
@@ -90,7 +90,7 @@ const uploadCartridges = (
 	};
 
 	const toUpload = cartridges.map(cartridge => webdav
-		.uploadCartridge(join(cartRoot, cartridge), notify, { isCartridge: true }).do(
+		.uploadCartridge(join(cartRoot, cartridge), notify, { isCartridge: true, ignoreList: config.ignoreList }).do(
 			(data) => { },
 			(error) => { },
 			() => {
@@ -110,7 +110,7 @@ const uploadCartridges = (
 function uploadWithProgress(
 	webdav: WebDav,
 	outputChannel: OutputChannel,
-	config: ({ cartridge, version, cleanOnStart: boolean}), 
+	config: ({ cartridge, version, cleanOnStart: boolean, ignoreList?: string[]}), 
 	rootDir: string,
 	ask: (sb: string[], listc: string[]) => Promise<string[]>
 ) {
@@ -179,7 +179,7 @@ function uploadWithProgress(
 function uploadAndWatch(
 	webdav: WebDav, 
 	outputChannel: OutputChannel,
-	config: ({ cartridge, version, cleanOnStart: boolean}),
+	config: ({ cartridge, version, cleanOnStart: boolean, ignoreList?: string[]}),
 	ask: (sb: string[], listc: string[]) => Promise<string[]>,
 	rootDir: string
 ) {
@@ -215,7 +215,7 @@ function uploadAndWatch(
 		});
 }
 
-export function init(dwConfig: DavOptions, outputChannel: OutputChannel, config, ask: (sb: string[], listc: string[]) => Promise<string[]>) {
+export function init(dwConfig: DavOptions, outputChannel: OutputChannel, config: {ignoreList? : string[], cleanOnStart: boolean}, ask: (sb: string[], listc: string[]) => Promise<string[]>) {
 	return getWebDavClient(dwConfig, outputChannel, '')
 		.flatMap(webdav => {
 			let retryCounter = 0;

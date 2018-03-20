@@ -1,3 +1,9 @@
+### 1.0.1
+
+* add `extension.prophet.ignore.list` for ignoring files/ffolders during clean
+* fix `findFile` in windows (custom tags and includes)
+
+
 ### 1.0.0
 * Multi-root Workspaces
 * changed cartridge detection logic and debugger configuration

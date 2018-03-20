@@ -9,7 +9,6 @@ import {
 import { getLanguageService } from './langServer/htmlLanguageService';
 
 import Uri from 'vscode-uri';
-import { join } from 'path';
 
 import { readFile } from 'fs';
 import { EventEmitter } from 'events';
@@ -181,11 +180,11 @@ connection.onDocumentLinkResolve(documentLink => {
 				}
 
 
-				if (!fileToOpen.includes('.isml')) {
+				if (!fileToOpen.endsWith('.isml')) {
 					fileToOpen = fileToOpen + '.isml';
 				}
 				Promise.all(workspaceFolders.map(workspaceFolder => {
-					return findFiles(Uri.parse(workspaceFolder.uri).fsPath, join('**', 'templates', '**', fileToOpen));
+					return findFiles(workspaceFolder.uri, '**/templates/**/' + fileToOpen);
 				})).then(result => {
 					const files = ([] as string[]).concat(...result);
 
@@ -292,7 +291,7 @@ function parseFilesForCustomTags(workspaceFolders: WorkspaceFolder[] | null) {
 		customTagsMap.clear();
 		connection.console.log('Finding files with custom tags... ');
 		workspaceFolders.forEach(workspaceFolder => {
-			findFiles(Uri.parse(workspaceFolder.uri).fsPath, join('**/*modules*.isml')).then(files => {
+			findFiles(workspaceFolder.uri, '**/*modules*.isml').then(files => {
 				connection.console.log('Found files --' + JSON.stringify(files));
 				if (files) {
 					files.forEach(file => new Promise((resolve, reject) => {
