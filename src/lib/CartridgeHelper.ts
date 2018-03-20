@@ -38,7 +38,7 @@ function readFileByLine(filePath: string) : Observable<string>{
 //data.
 export const checkIfCartridge$ = (projectFile: string) : Observable<boolean> => {
 	return readFileByLine(projectFile)
-		.find(line => line.includes('com.demandware.studio.core.beehiveNature')).isEmpty().map(val => !val);
+		.first(line => line.includes('com.demandware.studio.core.beehiveNature'), () => true, false);
 };
 
 /**
