@@ -147,7 +147,7 @@ export default class Uploader {
 									.filter(dwCar => dwConf.cartridge && !filtredCartridges.some(cartridge => cartridge.endsWith(dwCar))
 									);
 
-								window.showWarningMessage(`Cartridge${missedCartridges.length > 1 ? 's' : ''} "${missedCartridges.join('", "')}" does not exist on file system (or not determinated as cartridge/s) while added in configuration. It will be ignored, please restart the uploader once this has been resolved.`);
+								window.showWarningMessage(`Cartridge${missedCartridges.length > 1 ? 's' : ''} "${missedCartridges.join('", "')}" does not exist on file system (or not determined as cartridge/s) while added in configuration. It will be ignored, please restart the uploader once this has been resolved.`);
 							}
 							dwConf.cartridge = filtredCartridges;
 						} else {
