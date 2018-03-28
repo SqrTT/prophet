@@ -54,8 +54,8 @@
     "scripts": {
         "vscode:prepublish": "npm install && npm run compile && npm run test",
         "prepare": "node ./node_modules/typescript/bin/tsc -p ./src",
-        "compile": "node ./node_modules/typescript/bin/tsc -p ./src",
-        "watch": "node ./node_modules/typescript/bin/tsc -w -p ./src",
+        "compile": "node ./node_modules/typescript/bin/tsc --pretty -p ./src",
+        "watch": "node ./node_modules/typescript/bin/tsc --pretty -w -p ./src",
         "test": "node ./node_modules/mocha/bin/mocha -u tdd ./out/tests/",
         "postinstall": "node ./node_modules/vscode/bin/install"
     },

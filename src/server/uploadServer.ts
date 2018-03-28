@@ -49,7 +49,7 @@ function fileWatcher(config, cartRoot: string, outputChannel: OutputChannel): Ob
 			// ... we create an array of watchers
 			cartridges.forEach(cartridge => {
 				watchers.push(
-					workspace.createFileSystemWatcher(new RelativePattern(join(cartRoot, cartridge), '**/*'))
+					workspace.createFileSystemWatcher(new RelativePattern(join(cartRoot, cartridge) + sep, '**/*'))
 				);
 			});
 
@@ -110,7 +110,7 @@ const uploadCartridges = (
 function uploadWithProgress(
 	webdav: WebDav,
 	outputChannel: OutputChannel,
-	config: ({ cartridge, version, cleanOnStart: boolean, ignoreList?: string[]}), 
+	config: ({ cartridge, version, cleanOnStart: boolean, ignoreList?: string[]}),
 	rootDir: string,
 	ask: (sb: string[], listc: string[]) => Promise<string[]>
 ) {
@@ -177,7 +177,7 @@ function uploadWithProgress(
 }
 
 function uploadAndWatch(
-	webdav: WebDav, 
+	webdav: WebDav,
 	outputChannel: OutputChannel,
 	config: ({ cartridge, version, cleanOnStart: boolean, ignoreList?: string[]}),
 	ask: (sb: string[], listc: string[]) => Promise<string[]>,
