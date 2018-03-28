@@ -1,7 +1,7 @@
 
 import request = require('request');
 
-//import { logger } from 'vscode-debugadapter';
+import { logger } from 'vscode-debugadapter';
 
 const justResolve = (resolve, reject, body) => { resolve(body) };
 
@@ -42,9 +42,10 @@ export interface IVariable {
 export default class Connection {
 	protected options: any;
 	protected estabilished: boolean;
+	protected verbose = false;
 	//protected logger : Logger;
 
-	constructor(params = {}) {
+	constructor(params) {
 		this.options = Object.assign({}, {
 			hostname: 'some.demandware.net',
 			password: 'password',
@@ -52,6 +53,10 @@ export default class Connection {
 			clientId: 'prophet'
 		}, params);
 		this.estabilished = false;
+
+		if (params.verbose) {
+			this.verbose = true;
+		}
 	}
 	getOptions() {
 		return {
@@ -69,7 +74,9 @@ export default class Connection {
 		};
 	}
 	makeRequest<T>(options, cb: (resolve, reject, body) => void): Promise<T> {
-		// logger.verbose('req -> ' + JSON.stringify(options));
+		if (this.verbose) {
+			logger.verbose('req -> ' + JSON.stringify(options));
+		}
 		return new Promise((resolve, reject) => {
 			if (!this.estabilished) {
 				reject(Error('Connection is not estabilished'));
@@ -83,8 +90,10 @@ export default class Connection {
 				if (err) {
 					return reject(err);
 				}
-				// logger.verbose('req: ' + JSON.stringify(options));
-				// logger.verbose('res: ' + JSON.stringify(body));
+				if (this.verbose) {
+					logger.verbose('req: ' + JSON.stringify(options));
+					logger.verbose('res: ' + JSON.stringify(body));
+				}
 
 				if (res.statusCode >= 400) {
 					return reject(new Error(res.statusMessage));
