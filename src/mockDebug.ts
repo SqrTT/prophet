@@ -93,7 +93,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 			response.body.supportsValueFormattingOptions = true;
 			response.body.exceptionBreakpointFilters = [];
 		}
-		this.sendEvent({event: 'prophet.getdebugger.config', type: "event", seq: 1});
+		this.sendEvent({ event: 'prophet.getdebugger.config', type: "event", seq: 1 });
 
 		this.once('prophet.debugger.config', (options) => {
 			//this.log('gotData:' + JSON.stringify(options, null, '  '));
@@ -580,7 +580,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 	//---- some helpers
 
 	protected convertClientPathToDebugger(clientPath: string): string {
-		
+
 		const cartPath = this.cartridgesList.find(cartridge => {
 			if (process.platform === 'win32') {// windows way
 				return clientPath.toLocaleLowerCase().startsWith(cartridge.toLocaleLowerCase())
@@ -588,11 +588,11 @@ class ProphetDebugSession extends LoggingDebugSession {
 				return clientPath.startsWith(cartridge)
 			}
 		});
-		
-		if (cartPath) { 
+
+		if (cartPath) {
 			const cartridgeName = basename(cartPath);
 			const cPath = clientPath.substr(cartPath.length - cartridgeName.length);
-			const tmp = '/' + cPath.split(path.sep).join('/'); 
+			const tmp = '/' + cPath.split(path.sep).join('/');
 			return tmp;
 		} else {
 			this.logError("Unable detect cartridge");
@@ -625,18 +625,18 @@ class ProphetDebugSession extends LoggingDebugSession {
 		// const relPath = path.relative(this.config.cartridgeroot, clientPath);
 		// const sepPath = relPath.split(path.sep);
 
-		
+
 	}
 	protected convertDebuggerPathToClient(debuggerPath: string): string {
 		debuggerPath = debuggerPath.substr(1);
 		const debuggerSep = debuggerPath.split('/');
 		const cartridgeName = debuggerSep.shift() || '';
-		
-		
+
+
 		const cartPath = this.cartridgesList.find(cartridge => cartridge.endsWith(cartridgeName));
-		
+
 		if (cartPath) {
-			const tmp = path.join(cartPath, debuggerSep.join(path.sep)); 
+			const tmp = path.join(cartPath, debuggerSep.join(path.sep));
 			return tmp;
 
 		} else {
