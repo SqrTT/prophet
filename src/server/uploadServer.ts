@@ -27,7 +27,7 @@ export function getWebDavClient(config: DavOptions, outputChannel: OutputChannel
 	});
 }
 
-function fileWatcher(config, cartRoot: string, outputChannel: OutputChannel): Observable<[string, string]> {
+function fileWatcher(config, cartRoot: string, outputChannel: OutputChannel): Observable<['change' | 'delete' | 'create', string]> {
 	return Observable.create(observer => {
 		const watchers: FileSystemWatcher[] = [];
 		let cartridges: Promise<string[]>;
@@ -54,15 +54,15 @@ function fileWatcher(config, cartRoot: string, outputChannel: OutputChannel): Ob
 			});
 
 			// manually check for the excludes in the callback
-			var callback = method => ((uri: Uri) => {
+			var callback = (method : 'change' | 'delete' | 'create' )=> ((uri: Uri) => {
 				if (!excludeGlobPattern.some(pattern => uri.fsPath.includes(pattern))) {
 					observer.next([method, uri.fsPath])
 				}
 			});
 			// add the listerners to all watchers
 			watchers.forEach(watcher => {
-				watcher.onDidChange(callback('upload'));
-				watcher.onDidCreate(callback('upload'));
+				watcher.onDidChange(callback('change'));
+				watcher.onDidCreate(callback('create'));
 				watcher.onDidDelete(callback('delete'));
 			})
 		})
@@ -193,12 +193,16 @@ function uploadAndWatch(
 
 					const rootDir = dirname(config.cartridge.find(cartridge => fileName.startsWith(cartridge)) || '');
 
-					if (action === 'upload') {
+					if (action === 'change' || action === "create") {
 						return Observable.fromPromise(stat(fileName))
 							.flatMap(stats => {
 								if (stats.isDirectory()) {
-									outputChannel.appendLine(`[C ${date}] ${fileName}`);
-									return webdav.mkdir(fileName, rootDir);
+									if (action === 'create') {
+										outputChannel.appendLine(`[C ${date}] ${fileName}`);
+										return webdav.mkdir(fileName, rootDir);
+									} else {// skip directory changes
+										return Observable.empty();
+									}
 								} else {
 									outputChannel.appendLine(`[U ${date}] ${fileName}`);
 									return webdav.post(fileName, rootDir);
@@ -219,14 +223,16 @@ export function init(dwConfig: DavOptions, outputChannel: OutputChannel, config:
 	return getWebDavClient(dwConfig, outputChannel, '')
 		.flatMap(webdav => {
 			let retryCounter = 0;
+			const intConf = Object.assign(config, dwConfig);
 
-			return uploadAndWatch(webdav, outputChannel, Object.assign(config, dwConfig), ask, '')
+			return uploadAndWatch(webdav, outputChannel, intConf, ask, '')
 				.retryWhen(function (errors) {
 					// retry for some errors, end the stream with an error for others
 					return errors.do(function (e) {
 						if (e instanceof Error && e.message === 'Unauthorized') {
 							throw e;
 						} else if (retryCounter < 3) {
+							intConf.cleanOnStart = true;
 							outputChannel.appendLine(`Error: ${e}`);
 							outputChannel.appendLine(`Trying to re-upload`);
 							retryCounter++;
