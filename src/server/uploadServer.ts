@@ -119,7 +119,7 @@ function uploadWithProgress(
 	window.withProgress({
 		location: ProgressLocation.Window,
 		title: 'Uploading cartridges'
-	}, (prg) => { progress = prg.report; return new Promise((res) => { resolve = res; }) });
+	}, (prg) => { progress = prg.report.bind(prg); return new Promise((res) => { resolve = res; }) });
 
 	return webdav.dirList(rootDir)
 		.do(() => {
