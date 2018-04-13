@@ -440,15 +440,17 @@ class ProphetDebugSession extends LoggingDebugSession {
 		}
 	}
 	private handleDebugStep(thread: IThread) {
-		if (thread && thread.status === 'halted') {
-			this.currentThreads.set(thread.id, thread);
-			this.sendEvent(
-				new StoppedEvent('step', thread.id)
-			);
-		} else {
-			this.pendingThreads.set(thread.id, 'step');
-			return this.awaitThreads();
-		}
+		// FIXME: due to bug in sfcc "step" doesn't return actual status
+
+		// if (thread && thread.status === 'halted') {
+		// 	this.currentThreads.set(thread.id, thread);
+		// 	this.sendEvent(
+		// 		new StoppedEvent('step', thread.id)
+		// 	);
+		// } else {
+		this.pendingThreads.set(thread.id, 'step');
+		return this.awaitThreads();
+		//}
 	}
 
 	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
