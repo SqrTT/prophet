@@ -131,16 +131,25 @@ export default class Connection {
 			}
 		});
 	}
-	getMembers(threadID, frame_index, path?): Promise<IMember[]> {
+	getMembers(threadID, frame_index, path?, start = 0, count = 100): Promise<IMember[]> {
+		//get all variables
+
 		return this.makeRequest({
-			uri: `/threads/${threadID}/frames/${frame_index}/members` + (path ? '?object_path=' + path : ''),
+			uri: `/threads/${threadID}/frames/${frame_index}/members` + (path ? '?object_path=' + path : '') + `${path ? '&' : '?'}start=${start}&count=${count}`,
 			method: 'get'
 		}, (resolve, reject, body) => {
-			if (body.object_members) {
-				resolve(body.object_members);
+			if (body.total > start + count) {
+				this.getMembers(threadID, frame_index, path, start + count, count).then(mbrs => {
+					resolve(body.object_members.concat(mbrs));
+				});
 			} else {
-				resolve([]);
+				if (body.object_members) {
+					resolve(body.object_members);
+				} else {
+					resolve([]);
+				}
 			}
+
 		});
 	}
 	disconnect() {
@@ -220,45 +229,54 @@ export default class Connection {
 			}
 		})
 	}
-	getVariables(threadID: number, frame_index: number): Promise<IVariable[]> {
+	getVariables(threadID: number, frame_index: number, start = 0, count = 100): Promise<IVariable[]> {
 		//threads/{thread_id}/variables
 		return this.makeRequest({
-			uri: `/threads/${threadID}/frames/${frame_index}/variables`,
+			uri: `/threads/${threadID}/frames/${frame_index}/variables?start=${start}&count=${count}`,
 			method: 'GET'
 		}, (resolve, reject, body) => {
+
 			if (body.object_members) {
-				resolve(body.object_members.map(member => {
+				const members = body.object_members.map(member => {
 					member.frameID = frame_index;
 					member.threadID = threadID;
 					return member;
-				}));
+				});
+				if (body.total > start + count) {
+					this.getVariables(threadID, frame_index, start + count, count).then(mbrs => {
+						resolve(members.concat(mbrs));
+					});
+				} else {
+					resolve(members);
+				}
 			} else {
 				resolve([]);
 			}
+
 		});
 	}
-	stepInto(threadID) : Promise<IThread> {
+	stepInto(threadID): Promise<IThread> {
 		//threads/{thread_id}/into
 		return this.makeRequest({
 			uri: '/threads/' + threadID + '/into',
 			method: 'POST'
 		}, justResolve);
 	}
-	stepOut(threadID) : Promise<IThread>{
+	stepOut(threadID): Promise<IThread> {
 		//threads/{thread_id}/out
 		return this.makeRequest({
 			uri: '/threads/' + threadID + '/out',
 			method: 'POST'
 		}, justResolve);
 	}
-	stepOver(threadID) : Promise<IThread>{
+	stepOver(threadID): Promise<IThread> {
 		//threads/{thread_id}/over
 		return this.makeRequest({
 			uri: '/threads/' + threadID + '/over',
 			method: 'POST'
 		}, justResolve);
 	}
-	resume(threadID) : Promise<IThread>{
+	resume(threadID): Promise<IThread> {
 		//threads/{thread_id}/resume
 		return this.makeRequest({
 			uri: '/threads/' + threadID + '/resume',
@@ -275,7 +293,7 @@ export default class Connection {
 	evaluate(threadID, expr = 'this', frameNo = 0): Promise<string> {
 		return this.makeRequest({
 			uri: '/threads/' + threadID + '/frames/' + frameNo +
-			'/eval?expr=' + encodeURIComponent(expr),
+				'/eval?expr=' + encodeURIComponent(expr),
 			method: 'GET'
 		}, (resolve, reject, body) => {
 			resolve(body.result);
