@@ -674,7 +674,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 
 					remoteThreads.forEach(remoteThread => {
 
-						if (!this.currentThreads.has(remoteThread.id)) {
+						if (!this.currentThreads.has(remoteThread.id) && remoteThread.status === 'halted') {
 							this.sendEvent(new ThreadEvent('started', remoteThread.id));
 							this.sendEvent(new StoppedEvent('breakpoint', remoteThread.id));
 							this.currentThreads.set(remoteThread.id, remoteThread);

@@ -1,4 +1,4 @@
-import { Observable } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 
 import { OutputChannel, workspace, window, ProgressLocation, FileSystemWatcher, Uri, Progress, RelativePattern } from 'vscode';
 import { default as WebDav, DavOptions } from './WebDav';
@@ -6,8 +6,8 @@ import { getDirectories, stat } from '../lib/FileHelper';
 import { join, sep, dirname } from 'path';
 
 
-const CONCURENT_CARTRIDGES_UPLOADS: number = 4;
-const CONCURENT_FILE_UPLOADS: number = 5;
+const CONCURRENT_CARTRIDGES_UPLOADS: number = 4;
+const CONCURRENT_FILE_UPLOADS: number = 5;
 
 export function getWebDavClient(config: DavOptions, outputChannel: OutputChannel, rootDir: string): Observable<WebDav> {
 	return Observable.create(observer => {
@@ -44,7 +44,8 @@ function fileWatcher(config, cartRoot: string, outputChannel: OutputChannel): Ob
 			// it is however very CPU friendly compared to fs.watch()
 			var excludeGlobPattern = [
 				'node_modules' + sep,
-				'.git' + sep
+				'.git' + sep,
+				'_cartridge.zip'
 			];
 			// ... we create an array of watchers
 			cartridges.forEach(cartridge => {
@@ -54,7 +55,7 @@ function fileWatcher(config, cartRoot: string, outputChannel: OutputChannel): Ob
 			});
 
 			// manually check for the excludes in the callback
-			var callback = (method : 'change' | 'delete' | 'create' )=> ((uri: Uri) => {
+			var callback = (method: 'change' | 'delete' | 'create') => ((uri: Uri) => {
 				if (!excludeGlobPattern.some(pattern => uri.fsPath.includes(pattern))) {
 					observer.next([method, uri.fsPath])
 				}
@@ -80,7 +81,7 @@ const uploadCartridges = (
 	config: ({ cartridge, ignoreList?: string[] }),
 	cartRoot: string,
 	ask: (sb: string[], listc: string[]) => Promise<string[]>,
-	progress: Progress<{ message?: string }>['report'] | undefined
+	progress: Progress<{ message?: string, increment?: number }>
 ) => {
 	let cartridges: string[] = config.cartridge;
 	var count = 0;
@@ -95,31 +96,25 @@ const uploadCartridges = (
 			(error) => { },
 			() => {
 				count++;
-				if (progress) {
-					progress({ message: `Uploading cartridges: ${count} of ${cartridges.length}` })
-				}
+				progress.report({ message: `Uploading cartridges: ${count} of ${cartridges.length}`, increment: 100 / cartridges.length });
 			}
 		)
 	);
 
 	notify('Cleanup code version...');
 	return webdav.cleanUpCodeVersion(notify, ask, config.cartridge)
-		.flatMap(() => Observable.merge(...toUpload, CONCURENT_CARTRIDGES_UPLOADS).concat(Observable.of('')));
+		.flatMap(() => Observable.merge(...toUpload, CONCURRENT_CARTRIDGES_UPLOADS).concat(Observable.of('')));
 };
+
+
 
 function uploadWithProgress(
 	webdav: WebDav,
 	outputChannel: OutputChannel,
-	config: ({ cartridge, version, cleanOnStart: boolean, ignoreList?: string[]}),
+	config: ({ cartridge, version, cleanOnStart: boolean, ignoreList?: string[] }),
 	rootDir: string,
 	ask: (sb: string[], listc: string[]) => Promise<string[]>
 ) {
-	var resolve;
-	var progress: Progress<{ message?: string }>['report'] | undefined;
-	window.withProgress({
-		location: ProgressLocation.Window,
-		title: 'Uploading cartridges'
-	}, (prg) => { progress = prg.report.bind(prg); return new Promise((res) => { resolve = res; }) });
 
 	return webdav.dirList(rootDir)
 		.do(() => {
@@ -147,7 +142,47 @@ function uploadWithProgress(
 		}).flatMap(() => {
 			if (config.cleanOnStart) {
 				outputChannel.appendLine(`Start uploading cartridges`);
-				return uploadCartridges(webdav, outputChannel, config, rootDir, ask, progress);
+				return new Observable(obs => {
+					let subscription: Subscription | undefined;
+					let res: Function | undefined;
+					window.withProgress({
+						location: ProgressLocation.Notification,
+						title: 'Uploading cartridges',
+						cancellable: true
+					}, (progress, token) => {
+
+						return new Promise((resolve, reject) => {
+							res = resolve;
+							token.onCancellationRequested(() => {
+								if (subscription) {
+									subscription.unsubscribe();
+									obs.next('UPLOAD_UNCOMPLETED');
+									obs.complete();
+								}
+							});
+							subscription = uploadCartridges(webdav, outputChannel, config, rootDir, ask, progress)
+								.subscribe((val) => {
+									resolve();
+									obs.next(val);
+								}, err => {
+									obs.error(err);
+									reject(err)
+								}, () => {
+									resolve();
+									obs.complete();
+								});
+						});
+					});
+
+					return () => {
+						if (subscription) {
+							subscription.unsubscribe();
+						}
+						if (res) {
+							res();
+						}
+					}
+				});
 			} else {
 				outputChannel.appendLine(`Upload cartridges on start is disabled via config`);
 				return Observable.of('');
@@ -157,29 +192,14 @@ function uploadWithProgress(
 				outputChannel.appendLine(`Cartridges uploaded successfully`);
 				config.cleanOnStart = false;
 			}
-			if (resolve) {
-				resolve();
-				resolve = null;
-			}
-		}, () => {// error case
-			if (resolve) {
-				resolve();
-				resolve = null;
-			}
-		},
-			() => {
-				if (resolve) {
-					resolve();
-					resolve = null;
-				}
-			})
+		})
 
 }
 
 function uploadAndWatch(
 	webdav: WebDav,
 	outputChannel: OutputChannel,
-	config: ({ cartridge, version, cleanOnStart: boolean, ignoreList?: string[]}),
+	config: ({ cartridge, version, cleanOnStart: boolean, ignoreList?: string[] }),
 	ask: (sb: string[], listc: string[]) => Promise<string[]>,
 	rootDir: string
 ) {
@@ -215,11 +235,11 @@ function uploadAndWatch(
 						return Observable.throw(Error('Unknown action'))
 					}
 
-				}, CONCURENT_FILE_UPLOADS);
+				}, CONCURRENT_FILE_UPLOADS);
 		});
 }
 
-export function init(dwConfig: DavOptions, outputChannel: OutputChannel, config: {ignoreList? : string[], cleanOnStart: boolean}, ask: (sb: string[], listc: string[]) => Promise<string[]>) {
+export function init(dwConfig: DavOptions, outputChannel: OutputChannel, config: { ignoreList?: string[], cleanOnStart: boolean }, ask: (sb: string[], listc: string[]) => Promise<string[]>) {
 	return getWebDavClient(dwConfig, outputChannel, '')
 		.flatMap(webdav => {
 			let retryCounter = 0;

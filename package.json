@@ -12,7 +12,7 @@
         "email": "tolik@sqrtt.pro"
     },
     "engines": {
-        "vscode": "^1.21.0",
+        "vscode": "^1.22.0",
         "node": "^7.9.0"
     },
     "icon": "images/mock-debug-icon.ico",
