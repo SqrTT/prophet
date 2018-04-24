@@ -233,7 +233,7 @@ export default class WebDav {
 			.flatMap(walk => {
 				return new Observable<string[]>(observer => {
 					let walker = walk.walk(pathToCartridgesDir, {
-						filters:  [/node_modules/, /\.git/],
+						filters: [/node_modules/, /\.git/],
 						followLinks: true
 					});
 
@@ -347,7 +347,7 @@ export default class WebDav {
 	uploadCartridge(
 		pathToCartridgesDir,
 		notify = (string) => { },
-		options : ({ignoreList?: string[], isCartridge?: boolean}) = {}
+		options: ({ ignoreList?: string[], isCartridge?: boolean }) = {}
 	) {
 
 		const processingFolder = pathToCartridgesDir.split(sep).pop();
@@ -386,8 +386,8 @@ export default class WebDav {
 	}
 }
 
-export function readConfigFile(configFilename: string): Observable<DavOptions> {
-	return new Observable(observer => {
+export function readConfigFile(configFilename: string) {
+	return new Observable<DavOptions>(observer => {
 		const stream = createReadStream(configFilename);
 		let chunks: Buffer[] = [];
 

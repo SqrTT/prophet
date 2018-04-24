@@ -3,7 +3,7 @@ import { readdir, access as nativeAccess, lstat as nativeLStat, Stats } from 'fs
 import { join, dirname } from 'path';
 import { Uri, CancellationTokenSource, workspace, RelativePattern, WorkspaceFolder, window } from 'vscode';
 import { Observable } from 'rxjs';
-import { readConfigFile } from '../server/WebDav';
+import WebDav, { readConfigFile, DavOptions } from '../server/WebDav';
 import { checkIfCartridge$ } from './CartridgeHelper';
 
 
@@ -119,8 +119,8 @@ export function getCartridgesFolder(workspaceFolder: WorkspaceFolder): Observabl
 		})
 		.map(project => dirname(project.fsPath));
 };
-
-export function getDWConfig(workspaceFolders?: WorkspaceFolder[]) {
+let savedPassword: string | undefined;
+export function getDWConfig(workspaceFolders?: WorkspaceFolder[]): Promise<DavOptions> {
 	if (workspaceFolders) {
 		const dwConfigFiles = Promise.all(workspaceFolders.map(
 			workspaceFolder => findFiles(new RelativePattern(workspaceFolder, '**/dw.json'), 1).toPromise()
@@ -141,11 +141,39 @@ export function getDWConfig(workspaceFolders?: WorkspaceFolder[]) {
 			}
 		}).then(filepath => {
 			if (filepath) {
-				return readConfigFile(filepath).toPromise();
+				return readConfigFile(filepath).toPromise().then(config => {
+					if (config.password) {
+						return config;
+					} else if (savedPassword) {
+						config.password = savedPassword;
+						return config;
+					} else {
+						return new Promise<DavOptions>((resolve, reject) => {
+							window.showInputBox({
+								password: true,
+								placeHolder: `Enter password for ${config.hostname}`
+							}).then(pass => {
+								if (pass) {
+									config.password = pass;
+									const webdav = new WebDav(config);
+									webdav.getActiveCodeVersion().toPromise().then(() => {
+										savedPassword = pass;
+										resolve(config);
+									}, err => {
+										window.showErrorMessage(`${config.username}@${config.hostname} :  ${err}`);
+										reject(err);
+									});
+								} else {
+									reject('No password provided');
+								}
+							}, reject);
+						})
+					}
+				});
 			} else {
 				return Promise.reject('Please choose configuration first');
 			}
-		})
+		});
 	} else {
 		return Promise.reject('Workspaces not found');
 	}
