@@ -16,7 +16,7 @@ import path = require('path');
 const VARIABLE_SEPARATOR = '%';
 
 function isComplexType(type: string) {
-	return ['Class', 'dw.', 'dw/', 'object', 'Object', 'Array'].some(ctype => type.includes(ctype));
+	return !['string', 'boolean', 'number', 'undefined'].includes(type.toLowerCase());
 }
 
 
@@ -635,7 +635,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 		const cartridgeName = debuggerSep.shift() || '';
 
 
-		const cartPath = this.cartridgesList.find(cartridge => cartridge.endsWith(cartridgeName));
+		const cartPath = this.cartridgesList.find(cartridge => basename(cartridge) === cartridgeName);
 
 		if (cartPath) {
 			const tmp = path.join(cartPath, debuggerSep.join(path.sep));

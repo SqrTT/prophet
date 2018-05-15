@@ -1,7 +1,7 @@
 {
     "name": "prophet",
     "displayName": "Prophet Debugger",
-    "version": "1.0.9",
+    "version": "1.0.10",
     "keywords": [
         "multi-root ready"
     ],
@@ -31,7 +31,7 @@
     },
     "dependencies": {
         "request": "^2.85.0",
-        "rxjs": "^5.5.7",
+        "rxjs": "^5.5.10",
         "timeago.js": "^3.0.2",
         "vscode-debugadapter": "^1.29.0",
         "vscode-debugprotocol": "^1.29.0",
@@ -45,10 +45,10 @@
     },
     "devDependencies": {
         "@types/mocha": "^2.2.48",
-        "@types/node": "^7.0.56",
+        "@types/node": "^7.0.61",
         "mocha": "^5.1.1",
         "typescript": "^2.8.3",
-        "vscode": "^1.1.14",
+        "vscode": "^1.1.16",
         "vscode-debugadapter-testsupport": "^1.29.0"
     },
     "scripts": {

@@ -1,6 +1,27 @@
+### 1.0.10
+
+* fix wrong type detection (now allows expand JS classes instance) #108
+
+### 1.0.9
+
+* `dw.json` `password` field may be omitted, it will be asked for user when needed
+
+### 1.0.8
+
+* fix debuggers hung up in case when thread doesn't stop immediately after start (i.e. breakpoint is set after long running operation or service call) #92
+* add upload notification popup
+
+### 1.0.7
+
+* fix pagination issue, now UI shows all properties instead of first 200;
+
+### 1.0.4
+
+* fix issue with watching files on windows (windows emits change event for directory if file is created/removed and the extension tried upload folder in file manner)
+
 ### 1.0.1
 
-* add `extension.prophet.ignore.list` for ignoring files/ffolders during clean
+* add `extension.prophet.ignore.list` for ignoring files/folders during clean
 * fix `findFile` in windows (custom tags and includes)
 
 
