@@ -142,9 +142,9 @@ export class CartridgeCreator {
 			'webreferences',
 			'webreferences2'];
 
-		mkdir(join(this.workspaceFolder, directory, name, 'cartridge'));
+		mkdir(join(this.workspaceFolder, directory, name, 'cartridge'), undefined, () => {});
 		for (let i = 0; i < directoriesToCreate.length; i++) {
-			mkdir(join(this.workspaceFolder, directory, name, 'cartridge', directoriesToCreate[i]));
+			mkdir(join(this.workspaceFolder, directory, name, 'cartridge', directoriesToCreate[i]), undefined, () => {});
 		}
 
 	}
