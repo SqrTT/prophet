@@ -21,6 +21,7 @@ import { default as WebDav, readConfigFile } from '../server/WebDav';
 import { DOMParser } from 'xmldom';
 import { Observable, Subject } from 'rxjs';
 import timeago from 'timeago.js';
+import { getCartridgesFolder } from '../lib/FileHelper';
 
 
 const domParser = new DOMParser();
@@ -165,31 +166,61 @@ export class LogsView implements TreeDataProvider<LogItem> {
 					// replace timestamp
 					filedata = filedata.replace(/\[(.+? GMT)\] /ig, ($0, $1) => {
 						const date = new Date($1);
-						return `\n\n[${timeago().format(date)}/${date}]\n`;
+						return `\n\n\n[${timeago().format(date)}/${date}]\n`;
 					});
-	
-					// replace paths
-					//
-					const root = webdavClient.config.root;
-					filedata = filedata.replace(/\tat (.*?):(.*?) \(/ig, ($0, $1, $2) => {
-						var file = Uri.parse(join(root, ...$1.split('/')));
-						return `\tat ${file.toString()}#${$2} (`;
-					});
-	
-					// add new line before message
-					filedata = filedata.replace(/  /ig, '\n');
-	
-					return workspace.openTextDocument({ 'language': 'dwlog', 'content': filedata })
-						.then(document => {
-							return window.showTextDocument(document, { viewColumn: ViewColumn.One, preserveFocus: false, preview: true });
-						}).then(textEditor => {
-							textEditor.revealRange(
-								new Range(
-									new Position(textEditor.document.lineCount - 1, 0),
-									new Position(textEditor.document.lineCount - 1, 1)
-								)
-							);
+
+					if (workspace.workspaceFolders) {
+						const workspaceFolders$ = workspace.workspaceFolders.map(workspaceFolder => {
+							return getCartridgesFolder(workspaceFolder);
 						});
+
+						return Observable.merge(...workspaceFolders$)
+							.reduce((acc, val) => {
+								acc.add(val);
+								return acc;
+							}, new Set<string>())
+							.flatMap(cartridges => {
+
+								// replace paths
+								//
+
+								filedata = filedata.replace(/ (.*?)[:#](\d*)/ig, ($0, debuggerPath, $2) => {
+									const debuggerSep = debuggerPath.split('/');
+									const cartridgeName = debuggerSep.shift() || '';
+									const cartPath = Array.from(cartridges).find(cartridge => basename(cartridge) === cartridgeName);
+									if (!cartPath) {
+										return ` ${debuggerPath}#${$2}`;;
+									}
+
+									//debuggerPath = debuggerPath.substr(1);
+
+									var file = Uri.file(join(cartPath, ...debuggerSep));
+									return ` ${file.toString()}#${$2}`;
+								});
+
+								// add new line before message
+								filedata = filedata.replace(/  /ig, '\n');
+
+								return Observable.fromPromise(workspace.openTextDocument({ 'language': 'dwlog', 'content': filedata })
+									.then(document => {
+										return window.showTextDocument(document, { viewColumn: ViewColumn.One, preserveFocus: false, preview: true });
+									}).then(textEditor => {
+										var lastIndex = filedata.lastIndexOf('\n\n\n');
+
+										var newLines = filedata.substr(lastIndex + 3).split('\n').length;
+										textEditor.revealRange(
+											new Range(
+												new Position(textEditor.document.lineCount - newLines - 1, 0),
+												new Position(textEditor.document.lineCount - newLines - 1, 1)
+											)
+										);
+									}));
+							})
+
+							.toPromise();
+					} else {
+						return Promise.reject('No workspaceFolders available');
+					}
 				},
 				err => {
 					window.showErrorMessage(err);
