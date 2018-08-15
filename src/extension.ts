@@ -12,6 +12,8 @@ import Uploader from "./providers/Uploader";
 import { ProphetConfigurationProvider } from './providers/ConfigurationProvider';
 import { Subject, Observable } from 'rxjs';
 import { findFiles, getDWConfig, getCartridgesFolder } from './lib/FileHelper';
+import { SandboxFS } from './providers/SandboxFileSystemProvider';
+
 
 /**
  * Create the ISML language server with the proper parameters
@@ -230,6 +232,24 @@ export function activate(context: ExtensionContext) {
 	if (ignoreProjects) {
 		window.showErrorMessage('Your `files.exclude` excludes `.project`. Cartridge detection may not work properly');
 	}
+
+	initFS(context);
+}
+
+function initFS(context : ExtensionContext) {
+	//getDWConfig(workspace.workspaceFolders).then(options => {
+
+		let sandboxFS = new SandboxFS();
+
+		context.subscriptions.push(workspace.registerFileSystemProvider('ccfs', sandboxFS, { isCaseSensitive: true }));
+
+			setTimeout(() => {
+				workspace.updateWorkspaceFolders(0, 0, {
+					uri: Uri.parse('ccfs:/'),
+					name: "Sandbox - FileSystem",
+				});
+			}, 2000);
+	//});
 }
 
 function initDebugger() {
