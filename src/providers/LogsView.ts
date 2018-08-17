@@ -55,7 +55,7 @@ function parseResponse(data: string): LogStatus[] {
 			const contentlength = getNodeText(response.getElementsByTagName('getcontentlength'));
 
 			logStatus.push(new LogStatus(
-				name.replace(/-blade\d{0,2}-\d{0,2}-appserver/ig, ''),
+				name.split('-')[0],
 				new Date(String(lastmodified)),
 				String(href),
 				Number(contentlength))
@@ -248,9 +248,15 @@ export class LogsView implements TreeDataProvider<LogItem> {
 						}
 
 						const sortedStauses = statuses.sort((a, b) => b.lastmodifed.getTime() - a.lastmodifed.getTime());
-
+						var time = timeago();
 						return sortedStauses.map(status => {
-							return new LogItem(status.filename, 'file', status.filePath, TreeItemCollapsibleState.None, element.hostname);
+
+							return new LogItem(
+								`${status.filename} - ${time.format(status.lastmodifed)}`,
+								'file',
+								status.filePath,
+								TreeItemCollapsibleState.None,
+								element.hostname);
 						});
 					}));
 				} else {

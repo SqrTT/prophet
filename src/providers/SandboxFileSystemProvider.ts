@@ -7,6 +7,8 @@ import WebDav, { DavOptions } from '../server/WebDav';
 import { DOMParser } from 'xmldom';
 
 
+const rootFolders = ['Impex', 'Temp', 'Realmdata', 'Static'];
+
 const domParser = new DOMParser();
 
 function getNodeText(node): string | undefined {
@@ -22,38 +24,58 @@ function getNodeText(node): string | undefined {
 	}
 }
 
-function parseResponse(data: string, statMode: boolean): FileStat[] {
+function ab2str(buf: Uint8Array) {
+	return String.fromCharCode.apply(null, new Uint16Array(buf));
+}
+function str2ab(str: string) {
+	var buf = new ArrayBuffer(str.length); // 2 bytes for each char
+	var bufView = new Uint8Array(buf);
+	for (var i = 0, strLen = str.length; i < strLen; i++) {
+		bufView[i] = str.charCodeAt(i);
+	}
+	return bufView;
+}
+
+function parseStatResponse(data: string): FileStat | undefined {
 	const xmlResponse = domParser.parseFromString(data);
-	const logStatus: FileStat[] = [];
 
 	const responses = xmlResponse.getElementsByTagName('response');
 	for (let i = 0, length = responses.length; i < length; i++) {
 		const response = responses.item(i);
 
+		//const href = getNodeText(response.getElementsByTagName('href'));
+		const lastmodified = Date.parse(getNodeText(response.getElementsByTagName('getlastmodified')) || '');
+		const creationdate = Date.parse(getNodeText(response.getElementsByTagName('creationdate')) || '');
+
+		const collection = response.getElementsByTagName('collection');
+
+		return {
+			type: collection.length ? FileType.Directory : FileType.File,
+			mtime: lastmodified,
+			ctime: creationdate,
+			size: 0
+		};
+	}
+}
+
+function parseDirResponse(data) {
+	const xmlResponse = domParser.parseFromString(data);
+	const dirList: [string, FileType][] = [];
+
+	const responses = xmlResponse.getElementsByTagName('response');
+	for (let i = 1, length = responses.length; i < length; i++) {
+		const response = responses.item(i);
+
 		const name = getNodeText(response.getElementsByTagName('displayname'));
 
 		if (name) {
-			const href = getNodeText(response.getElementsByTagName('href'));
-			const lastmodified = getNodeText(response.getElementsByTagName('getlastmodified'));
-			const contentlength = getNodeText(response.getElementsByTagName('getcontentlength'));
-		} else if (statMode) {
-			//const href = getNodeText(response.getElementsByTagName('href'));
-			const lastmodified = Date.parse(getNodeText(response.getElementsByTagName('getlastmodified')) || '');
-			const creationdate = Date.parse(getNodeText(response.getElementsByTagName('creationdate')) || '');
+			const collection = response.getElementsByTagName('collection');
 
-			const resourcetype = getNodeText(response.getElementsByTagName('resourcetype'));
-
-			return [{
-				type: resourcetype ? FileType.Directory : FileType.File,
-				mtime: lastmodified,
-				ctime: creationdate,
-				size: 0
-			}];
+			dirList.push([name, collection.length ? FileType.Directory : FileType.File]);
 		}
 	}
-	return logStatus;
+	return dirList;
 }
-
 
 export class SandboxFS implements FileSystemProvider {
 	private webDav: WebDav;
@@ -70,73 +92,94 @@ export class SandboxFS implements FileSystemProvider {
 				mtime: 0,
 				size: 0
 			}
-		} else if (uri.path.startsWith('/Impex')) {
-			this.webDav.folder = 'Impex';
-
-			return this.webDav.dirList(uri.path.substr(6), '.').toPromise().then(result => {
-				const resp =  parseResponse(result, true);
-				debugger;
-				return resp.pop();
-			}, err => {debugger});
 		} else {
-			throw FileSystemError.FileNotFound(uri);
+			const rootFolder = uri.path.split('/')[1];
+
+			if (rootFolder && rootFolders.includes(rootFolder)) {
+				this.webDav.folder = rootFolder;
+				return this.webDav.dirList(uri.path, '/' + rootFolder).toPromise().then(result => {
+					const resp = parseStatResponse(result);
+
+					if (resp) {
+						return Promise.resolve(resp);
+					} else {
+						return Promise.reject('15: Unable parse response');
+					}
+				});
+			} else {
+				throw FileSystemError.FileNotFound(uri);
+			}
 		}
 	}
 
-	readDirectory(uri: Uri): [string, FileType][] {
+	readDirectory(uri: Uri): [string, FileType][] | Thenable<[string, FileType][]> {
 		//const entry = this._lookupAsDirectory(uri, false);
 		let result: [string, FileType][] = [];
-		// for (const [name, child] of entry.entries) {
-		//     result.push([name, child.type]);
-		// }
 
 		if (uri.path === '/') {
-			result.push(['Impex', FileType.Directory]);
-			result.push(['Temp', FileType.Directory]);
-			result.push(['Realmdata', FileType.Directory]);
-			result.push(['Static', FileType.Directory]);
+			rootFolders.forEach(folderName => {
+				result.push([folderName, FileType.Directory]);
+			});
 		} else {
-			debugger;
+			const rootFolder = uri.path.split('/')[1];
+
+			if (rootFolder && rootFolders.includes(rootFolder)) {
+				this.webDav.folder = rootFolder;
+
+				return this.webDav.dirList(uri.path, '/' + rootFolder).toPromise().then(result => {
+					const resp = parseDirResponse(result);
+
+					if (resp) {
+						return Promise.resolve(resp);
+					} else {
+						return Promise.reject('15: Unable parse response');
+					}
+				});
+			} else {
+				throw FileSystemError.FileNotFound(uri);
+			}
 		}
+
+
 		return result;
 	}
 
 	// --- manage file contents
 
-	readFile(uri: Uri): Uint8Array {
-		debugger;
-		//return this._lookupAsFile(uri, false).data;
+	readFile(uri: Uri): Thenable<Uint8Array> {
+		const rootFolder = uri.path.split('/')[1];
+
+		if (rootFolder && rootFolders.includes(rootFolder)) {
+			this.webDav.folder = rootFolder;
+
+			return this.webDav.get(uri.path, '/' + rootFolder).toPromise().then(result => {
+
+				return Promise.resolve(str2ab(result));
+			});
+		} else {
+			throw FileSystemError.FileNotFound(uri);
+		}
 	}
 
-	writeFile(uri: Uri, content: Uint8Array, options: { create: boolean, overwrite: boolean }): void {
-		// let basename = path.posix.basename(uri.path);
-		// let parent = this._lookupParentDirectory(uri);
-		// let entry = parent.entries.get(basename);
-		// if (entry instanceof Directory) {
-		//     throw FileSystemError.FileIsADirectory(uri);
-		// }
-		// if (!entry && !options.create) {
-		//     throw FileSystemError.FileNotFound(uri);
-		// }
-		// if (entry && options.create && !options.overwrite) {
-		//     throw FileSystemError.FileExists(uri);
-		// }
-		// if (!entry) {
-		//     entry = new File(basename);
-		//     parent.entries.set(basename, entry);
-		//     this._fireSoon({ type: FileChangeType.Created, uri });
-		// }
-		// entry.mtime = Date.now();
-		// entry.size = content.byteLength;
-		// entry.data = content;
+	writeFile(uri: Uri, content: Uint8Array, options: { create: boolean, overwrite: boolean }): Thenable<void> {
+		const rootFolder = uri.path.split('/')[1];
 
-		// this._fireSoon({ type: FileChangeType.Changed, uri });
+		if (rootFolder && rootFolders.includes(rootFolder)) {
+			this.webDav.folder = rootFolder;
+
+			return this.webDav.postBody(
+				path.relative('/' + rootFolder, uri.path),
+				ab2str(content))
+				.toPromise().then(() => Promise.resolve());
+		} else {
+			throw FileSystemError.FileNotFound(uri);
+		}
 	}
 
 	// --- manage files/folders
 
 	rename(oldUri: Uri, newUri: Uri, options: { overwrite: boolean }): void {
-
+		throw Error('Not implemented');
 		// if (!options.overwrite && this._lookup(newUri, true)) {
 		//     throw FileSystemError.FileExists(newUri);
 		// }
@@ -157,79 +200,33 @@ export class SandboxFS implements FileSystemProvider {
 		// );
 	}
 
-	delete(uri: Uri): void {
-	    // let dirname = uri.with({ path: path.posix.dirname(uri.path) });
-	    // let basename = path.posix.basename(uri.path);
-	    // let parent = this._lookupAsDirectory(dirname, false);
-	    // if (!parent.entries.has(basename)) {
-	    //     throw FileSystemError.FileNotFound(uri);
-	    // }
-	    // parent.entries.delete(basename);
-	    // parent.mtime = Date.now();
-	    // parent.size -= 1;
-	    // this._fireSoon({ type: FileChangeType.Changed, uri: dirname }, { uri, type: FileChangeType.Deleted });
+	delete(uri: Uri): Thenable<void> {
+		const rootFolder = uri.path.split('/')[1];
+
+		if (rootFolder && rootFolders.includes(rootFolder)) {
+			this.webDav.folder = rootFolder;
+
+			return this.webDav.delete(uri.path,
+				'/' + rootFolder)
+				.toPromise().then(() => Promise.resolve());
+		} else {
+			throw FileSystemError.FileNotFound(uri);
+		}
 	}
 
-	createDirectory(uri: Uri): void {
-		// let basename = path.posix.basename(uri.path);
-		// let dirname = uri.with({ path: path.posix.dirname(uri.path) });
-		// let parent = this._lookupAsDirectory(dirname, false);
+	createDirectory(uri: Uri): Thenable<void> {
+		const rootFolder = uri.path.split('/')[1];
 
-		// let entry = new Directory(basename);
-		// parent.entries.set(entry.name, entry);
-		// parent.mtime = Date.now();
-		// parent.size += 1;
-		// this._fireSoon({ type: FileChangeType.Changed, uri: dirname }, { type: FileChangeType.Created, uri });
+		if (rootFolder && rootFolders.includes(rootFolder)) {
+			this.webDav.folder = rootFolder;
+
+			return this.webDav.mkdir(uri.path,
+				'/' + rootFolder)
+				.toPromise().then(() => Promise.resolve());
+		} else {
+			throw FileSystemError.FileNotFound(uri);
+		}
 	}
-
-	// --- lookup
-
-	// private _lookup(uri: Uri, silent: false): Entry;
-	// private _lookup(uri: Uri, silent: boolean): Entry | undefined;
-	// private _lookup(uri: Uri, silent: boolean): Entry | undefined {
-	//     let parts = uri.path.split('/');
-	//     let entry: Entry = this.root;
-	//     for (const part of parts) {
-	//         if (!part) {
-	//             continue;
-	//         }
-	//         let child: Entry | undefined;
-	//         if (entry instanceof Directory) {
-	//             child = entry.entries.get(part);
-	//         }
-	//         if (!child) {
-	//             if (!silent) {
-	//                 throw FileSystemError.FileNotFound(uri);
-	//             } else {
-	//                 return undefined;
-	//             }
-	//         }
-	//         entry = child;
-	//     }
-	//     return entry;
-	// }
-
-	// private _lookupAsDirectory(uri: Uri, silent: boolean): Directory {
-	//     let entry = this._lookup(uri, silent);
-	//     if (entry instanceof Directory) {
-	//         return entry;
-	//     }
-	//     throw FileSystemError.FileNotADirectory(uri);
-	// }
-
-	// private _lookupAsFile(uri: Uri, silent: boolean): File {
-	//     let entry = this._lookup(uri, silent);
-	//     if (entry instanceof File) {
-	//         return entry;
-	//     }
-	//     throw FileSystemError.FileIsADirectory(uri);
-	// }
-
-	// private _lookupParentDirectory(uri: Uri): Directory {
-	//     const dirname = uri.with({ path: path.posix.dirname(uri.path) });
-	//     return this._lookupAsDirectory(dirname, false);
-	// }
-
 	// --- manage file events
 
 	private _emitter = new EventEmitter<FileChangeEvent[]>();
@@ -242,13 +239,4 @@ export class SandboxFS implements FileSystemProvider {
 		// ignore, fires for all changes...
 		return new Disposable(() => { });
 	}
-
-	// private _fireSoon(...events: FileChangeEvent[]): void {
-	//     this._bufferedEvents.push(...events);
-	//     clearTimeout(this._fireSoonHandle);
-	//     this._fireSoonHandle = setTimeout(() => {
-	//         this._emitter.fire(this._bufferedEvents);
-	//         this._bufferedEvents.length = 0;
-	//     }, 5);
-	// }
 }

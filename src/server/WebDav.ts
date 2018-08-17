@@ -26,7 +26,7 @@ function request$(options) {
 }
 
 export interface DavOptions {
-	cartridge?: string[]
+	cartridge: string[]
 	configFilename?: string,
 	hostname: string,
 	username: string,

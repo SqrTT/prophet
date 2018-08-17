@@ -237,9 +237,9 @@ export function activate(context: ExtensionContext) {
 }
 
 function initFS(context : ExtensionContext) {
-	//getDWConfig(workspace.workspaceFolders).then(options => {
+	getDWConfig(workspace.workspaceFolders).then(options => {
 
-		let sandboxFS = new SandboxFS();
+		let sandboxFS = new SandboxFS(options);
 
 		context.subscriptions.push(workspace.registerFileSystemProvider('ccfs', sandboxFS, { isCaseSensitive: true }));
 
@@ -249,7 +249,7 @@ function initFS(context : ExtensionContext) {
 					name: "Sandbox - FileSystem",
 				});
 			}, 2000);
-	//});
+	});
 }
 
 function initDebugger() {
