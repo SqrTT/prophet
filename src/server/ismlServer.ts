@@ -65,6 +65,9 @@ connection.onInitialized(() => {
 	connection.workspace.onDidChangeWorkspaceFolders((event) => {
 		connection.workspace.getWorkspaceFolders().then(_workspaceFolders => {
 			workspaceFolders = _workspaceFolders || [];
+
+			workspaceFolders = workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.includes('file:'))
+
 			parseFilesForCustomTags(workspaceFolders);
 		});
 		connection.console.log('Workspace folder change event received');
@@ -76,9 +79,10 @@ connection.onInitialize((params): InitializeResult => {
 	connection.console.log('isml server init...' + JSON.stringify(params.workspaceFolders));
 
 
-
 	userFormatParams = params.initializationOptions.formatParams;
 	workspaceFolders = params.workspaceFolders || [];
+
+	workspaceFolders = workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.includes('file:'))
 
 	return {
 		capabilities: {

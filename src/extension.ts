@@ -237,18 +237,27 @@ export function activate(context: ExtensionContext) {
 }
 
 function initFS(context : ExtensionContext) {
-	getDWConfig(workspace.workspaceFolders).then(options => {
+
+	if (!workspace.workspaceFolders) {
+		return;
+	}
+	const fileWorkspaceFolders = workspace.workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
+
+	getDWConfig(fileWorkspaceFolders).then(options => {
 
 		let sandboxFS = new SandboxFS(options);
 
 		context.subscriptions.push(workspace.registerFileSystemProvider('ccfs', sandboxFS, { isCaseSensitive: true }));
 
-			setTimeout(() => {
+		if (workspace.workspaceFolders) {
+			if (!workspace.workspaceFolders.some(workspaceFolder => workspaceFolder.uri.scheme === 'ccfs')) {
 				workspace.updateWorkspaceFolders(0, 0, {
-					uri: Uri.parse('ccfs:/'),
+					uri: Uri.parse('ccfs://' + options.hostname + '/'),
 					name: "Sandbox - FileSystem",
 				});
-			}, 2000);
+			}
+		}
+
 	});
 }
 
@@ -258,7 +267,8 @@ function initDebugger() {
 			getDWConfig(workspace.workspaceFolders)
 				.then(configData => {
 					if (workspace.workspaceFolders) {
-						return Promise.all(workspace.workspaceFolders.map(
+						const fileWorkspaceFolders = workspace.workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
+						return Promise.all(fileWorkspaceFolders.map(
 							workspaceFolder => workspace.findFiles(new RelativePattern(workspaceFolder, '**/.project'), '{node_modules,.git}')
 						)).then(projects => {
 							const flattenProjectsPaths = ([] as Uri[]).concat(...projects).map(project => dirname(project.fsPath));
@@ -305,7 +315,8 @@ function initializeToolkitActions() {
 		}
 	}).flatMap(({ req, res }) => {
 		if (workspace.workspaceFolders && workspace.workspaceFolders.length) {
-			const cartridgesFolders = workspace.workspaceFolders
+			const fileWorkspaceFolders = workspace.workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
+			const cartridgesFolders = fileWorkspaceFolders
 				.map(workspaceFolder => getCartridgesFolder(workspaceFolder));
 
 			return Observable.merge(...cartridgesFolders)

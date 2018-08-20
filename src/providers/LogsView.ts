@@ -170,7 +170,8 @@ export class LogsView implements TreeDataProvider<LogItem> {
 					});
 
 					if (workspace.workspaceFolders) {
-						const workspaceFolders$ = workspace.workspaceFolders.map(workspaceFolder => {
+						const fileWorkspaceFolders = workspace.workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
+						const workspaceFolders$ = fileWorkspaceFolders.map(workspaceFolder => {
 							return getCartridgesFolder(workspaceFolder);
 						});
 

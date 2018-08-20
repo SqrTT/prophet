@@ -122,7 +122,8 @@ export function getCartridgesFolder(workspaceFolder: WorkspaceFolder): Observabl
 let savedPassword: string | undefined;
 export function getDWConfig(workspaceFolders?: WorkspaceFolder[]): Promise<DavOptions> {
 	if (workspaceFolders) {
-		const dwConfigFiles = Promise.all(workspaceFolders.map(
+		const workspaceFoldersFiltered = workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
+		const dwConfigFiles = Promise.all(workspaceFoldersFiltered.map(
 			workspaceFolder => findFiles(new RelativePattern(workspaceFolder, '**/dw.json'), 1).toPromise()
 		));
 		return dwConfigFiles.then(configFiles => {
