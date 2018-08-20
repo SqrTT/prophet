@@ -1,6 +1,6 @@
 
 'use strict';
-import { join, dirname, sep } from 'path';
+import { join, sep } from 'path';
 import { workspace, ExtensionContext, commands, window, Uri, WorkspaceConfiguration, debug, WorkspaceFolder, RelativePattern } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
 import { CartridgesView } from './providers/CartridgesView';
@@ -12,7 +12,7 @@ import Uploader from "./providers/Uploader";
 import { ProphetConfigurationProvider } from './providers/ConfigurationProvider';
 import { Subject, Observable } from 'rxjs';
 import { findFiles, getDWConfig, getCartridgesFolder } from './lib/FileHelper';
-import { SandboxFS } from './providers/SandboxFileSystemProvider';
+//import { SandboxFS } from './providers/SandboxFileSystemProvider';
 
 
 /**
@@ -232,34 +232,34 @@ export function activate(context: ExtensionContext) {
 	if (ignoreProjects) {
 		window.showErrorMessage('Your `files.exclude` excludes `.project`. Cartridge detection may not work properly');
 	}
-
-	initFS(context);
+	// workspace.registerSearchProvider();
+	//initFS(context);
 }
 
-function initFS(context : ExtensionContext) {
+// function initFS(context : ExtensionContext) {
 
-	if (!workspace.workspaceFolders) {
-		return;
-	}
-	const fileWorkspaceFolders = workspace.workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
+// 	if (!workspace.workspaceFolders) {
+// 		return;
+// 	}
+// 	const fileWorkspaceFolders = workspace.workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
 
-	getDWConfig(fileWorkspaceFolders).then(options => {
+// 	getDWConfig(fileWorkspaceFolders).then(options => {
 
-		let sandboxFS = new SandboxFS(options);
+// 		let sandboxFS = new SandboxFS(options);
 
-		context.subscriptions.push(workspace.registerFileSystemProvider('ccfs', sandboxFS, { isCaseSensitive: true }));
+// 		context.subscriptions.push(workspace.registerFileSystemProvider('ccfs', sandboxFS, { isCaseSensitive: true }));
 
-		if (workspace.workspaceFolders) {
-			if (!workspace.workspaceFolders.some(workspaceFolder => workspaceFolder.uri.scheme === 'ccfs')) {
-				workspace.updateWorkspaceFolders(0, 0, {
-					uri: Uri.parse('ccfs://' + options.hostname + '/'),
-					name: "Sandbox - FileSystem",
-				});
-			}
-		}
+// 		if (workspace.workspaceFolders) {
+// 			if (!workspace.workspaceFolders.some(workspaceFolder => workspaceFolder.uri.scheme === 'ccfs')) {
+// 				workspace.updateWorkspaceFolders(0, 0, {
+// 					uri: Uri.parse('ccfs://' + options.hostname + '/'),
+// 					name: "Sandbox - FileSystem",
+// 				});
+// 			}
+// 		}
 
-	});
-}
+// 	});
+// }
 
 function initDebugger() {
 	debug.onDidReceiveDebugSessionCustomEvent(event => {
@@ -268,14 +268,17 @@ function initDebugger() {
 				.then(configData => {
 					if (workspace.workspaceFolders) {
 						const fileWorkspaceFolders = workspace.workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
+
 						return Promise.all(fileWorkspaceFolders.map(
-							workspaceFolder => workspace.findFiles(new RelativePattern(workspaceFolder, '**/.project'), '{node_modules,.git}')
+							workspaceFolder => getCartridgesFolder(workspaceFolder).reduce((acc, r) => {acc.push(r); return acc }, []).toPromise()
 						)).then(projects => {
-							const flattenProjectsPaths = ([] as Uri[]).concat(...projects).map(project => dirname(project.fsPath));
-							if (flattenProjectsPaths.length) {
+
+							var flatten = ([] as string[]).concat(...projects);
+
+							if (flatten.length) {
 								return event.session.customRequest('DebuggerConfig', {
 									config: configData,
-									cartridges: flattenProjectsPaths
+									cartridges: flatten
 								});
 							} else {
 								return Promise.reject('Unable get cartridges list');
