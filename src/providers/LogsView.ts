@@ -55,7 +55,7 @@ function parseResponse(data: string): LogStatus[] {
 			const contentlength = getNodeText(response.getElementsByTagName('getcontentlength'));
 
 			logStatus.push(new LogStatus(
-				name.split('-')[0],
+				name.substr(0, name.indexOf('-blade')),
 				new Date(String(lastmodified)),
 				String(href),
 				Number(contentlength))
