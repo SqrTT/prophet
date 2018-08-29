@@ -1,3 +1,10 @@
+### 1.0.11
+
+* add prophet icon on activity bar
+* add time on log list
+* fix issue when debugger detects wrong cartridges based on .project
+
+
 ### 1.0.10
 
 * fix wrong type detection (now allows expand JS classes instance) #108
