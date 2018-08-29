@@ -208,11 +208,11 @@ export class LogsView implements TreeDataProvider<LogItem> {
 									}).then(textEditor => {
 										var lastIndex = filedata.lastIndexOf('\n\n\n');
 
-										var newLines = filedata.substr(lastIndex + 3).split('\n').length;
+										var newLines = filedata.substr(lastIndex).split('\n').length;
 										textEditor.revealRange(
 											new Range(
-												new Position(textEditor.document.lineCount - newLines - 1, 0),
-												new Position(textEditor.document.lineCount - newLines - 1, 1)
+												new Position(textEditor.document.lineCount - newLines, 0),
+												new Position(textEditor.document.lineCount - newLines, 1)
 											)
 										);
 									}));
