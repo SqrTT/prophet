@@ -55,7 +55,7 @@ function parseResponse(data: string): LogStatus[] {
 			const contentlength = getNodeText(response.getElementsByTagName('getcontentlength'));
 
 			logStatus.push(new LogStatus(
-				name.substr(0, name.indexOf('-blade')),
+				name.includes('-blade') ? name.substr(0, name.indexOf('-blade')) : name,
 				new Date(String(lastmodified)),
 				String(href),
 				Number(contentlength))
@@ -149,7 +149,7 @@ export class LogsView implements TreeDataProvider<LogItem> {
 			}, () => observable2promise(
 				webdavClient.postBody(
 					logItem.location.replace('/on/demandware.servlet/webdav/Sites/Logs/', ''),
-					`log cleaned by prophet - ${new Date()}\n`
+					`log cleaned by prophet - ${webdavClient.config.username} - ${new Date()}\n\r`
 				)
 			)
 			)
