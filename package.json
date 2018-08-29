@@ -1,7 +1,7 @@
 {
     "name": "prophet",
     "displayName": "Prophet Debugger",
-    "version": "1.0.10",
+    "version": "1.0.11",
     "keywords": [
         "multi-root ready"
     ],
@@ -12,8 +12,8 @@
         "email": "tolik@sqrtt.pro"
     },
     "engines": {
-        "vscode": "^1.22.0",
-        "node": "^7.9.0"
+        "vscode": "^1.26.1",
+        "node": "^8.9.0"
     },
     "icon": "images/mock-debug-icon.ico",
     "categories": [
@@ -30,26 +30,26 @@
         "url": "https://github.com/SqrTT/prophet/issues"
     },
     "dependencies": {
-        "request": "^2.85.0",
+        "request": "^2.88.0",
         "rxjs": "^5.5.10",
         "timeago.js": "^3.0.2",
-        "vscode-debugadapter": "^1.29.0",
-        "vscode-debugprotocol": "^1.29.0",
-        "vscode-languageclient": "^4.1.3",
-        "vscode-languageserver": "^4.1.2",
-        "vscode-nls": "^3.2.2",
-        "vscode-uri": "^1.0.3",
-        "walk": "^2.3.13",
+        "vscode-debugadapter": "^1.31.0",
+        "vscode-debugprotocol": "^1.31.0",
+        "vscode-languageclient": "^4.4.1",
+        "vscode-languageserver": "^4.4.1",
+        "vscode-nls": "^3.2.4",
+        "vscode-uri": "^1.0.5",
+        "walk": "^2.3.14",
         "xmldom": "^0.1.27",
         "yazl": "^2.4.3"
     },
     "devDependencies": {
         "@types/mocha": "^2.2.48",
-        "@types/node": "^7.0.61",
-        "mocha": "^5.1.1",
-        "typescript": "^2.8.3",
-        "vscode": "^1.1.16",
-        "vscode-debugadapter-testsupport": "^1.29.0"
+        "@types/node": "^8.9.0",
+        "mocha": "^5.2.0",
+        "typescript": "^3.0.1",
+        "vscode": "^1.1.21",
+        "vscode-debugadapter-testsupport": "^1.31.0"
     },
     "scripts": {
         "vscode:prepublish": "npm install && npm run compile && npm run test",
@@ -65,16 +65,25 @@
         "workspaceContains:**/cartridge/*.properties"
     ],
     "contributes": {
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "prophet-explorer",
+                    "title": "Prophet",
+                    "icon": "resources/cloud.svg"
+                }
+            ]
+        },
         "views": {
-            "explorer": [
+            "prophet-explorer": [
+                {
+                    "id": "dwLogsView",
+                    "name": "Logs"
+                },
                 {
                     "id": "cartridgesView",
                     "name": "Cartridges",
                     "when": "config.extension.prophet.cartridges.view.enabled"
-                },
-                {
-                    "id": "dwLogsView",
-                    "name": "Logs"
                 }
             ]
         },

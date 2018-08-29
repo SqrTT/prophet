@@ -135,7 +135,7 @@ export default class Connection {
 		//get all variables
 
 		return this.makeRequest({
-			uri: `/threads/${threadID}/frames/${frame_index}/members` + (path ? '?object_path=' + path : '') + `${path ? '&' : '?'}start=${start}&count=${count}`,
+			uri: `/threads/${threadID}/frames/${frame_index}/members` + (path ? '?object_path=' + escape(path) : '') + `${path ? '&' : '?'}start=${start}&count=${count}`,
 			method: 'get'
 		}, (resolve, reject, body) => {
 			if (body.total > start + count) {

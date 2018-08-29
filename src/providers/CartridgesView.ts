@@ -146,7 +146,7 @@ export class CartridgesView implements TreeDataProvider<GenericTreeItem> {
 						})
 					} else if (workspace.workspaceFolders) {
 						new CartridgeCreator(workspace.workspaceFolders[0].uri.fsPath).createCartridge(value.trim().replace(' ', '_'), folderValue.trim());
-	
+
 						if (cartridgesView) {
 							cartridgesView.refresh((window.activeTextEditor) ? window.activeTextEditor.document.fileName : undefined);
 						}
@@ -196,7 +196,8 @@ export class CartridgesView implements TreeDataProvider<GenericTreeItem> {
 					return [];
 				}
 			} else {
-				return await workspace.workspaceFolders.map(workspaceFolder =>
+				const fileWorkspaceFolders = workspace.workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
+				return await fileWorkspaceFolders.map(workspaceFolder =>
 					new WorkspaceTreeItem(
 						workspaceFolder.name,
 						workspaceFolder.uri.fsPath,

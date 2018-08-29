@@ -65,6 +65,9 @@ connection.onInitialized(() => {
 	connection.workspace.onDidChangeWorkspaceFolders((event) => {
 		connection.workspace.getWorkspaceFolders().then(_workspaceFolders => {
 			workspaceFolders = _workspaceFolders || [];
+
+			workspaceFolders = workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.includes('file:'))
+
 			parseFilesForCustomTags(workspaceFolders);
 		});
 		connection.console.log('Workspace folder change event received');
@@ -76,9 +79,10 @@ connection.onInitialize((params): InitializeResult => {
 	connection.console.log('isml server init...' + JSON.stringify(params.workspaceFolders));
 
 
-
 	userFormatParams = params.initializationOptions.formatParams;
 	workspaceFolders = params.workspaceFolders || [];
+
+	workspaceFolders = workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.includes('file:'))
 
 	return {
 		capabilities: {
@@ -115,6 +119,11 @@ connection.onDocumentLinks((params: DocumentLinkParams) => {
 
 	return new Promise((resolve, reject) => {
 		let document = documents.get(params.textDocument.uri);
+
+		if (!document) {
+			reject(new Error('Unable find document'));
+			return;
+		}
 
 		const fileLines = document.getText().split('\n');
 		const documentLinks: DocumentLink[] = [];
@@ -232,12 +241,20 @@ connection.onNotification('isml:selectedfile', test => {
 connection.onDocumentRangeFormatting(formatParams => {
 	let document = documents.get(formatParams.textDocument.uri);
 
-	connection.console.log('111' + JSON.stringify(formatParams.options))
+	if (!document) {
+		connection.console.error('123: Unable find document')
+		return;
+	}
+
 	return languageService.format(document, formatParams.range, Object.assign({}, userFormatParams, formatParams.options));
 });
 
 connection.onDocumentHighlight(docParam => {
 	let document = documents.get(docParam.textDocument.uri);
+	if (!document) {
+		connection.console.error('124: Unable find document')
+		return;
+	}
 
 	return languageService.findDocumentHighlights(
 		document,
@@ -248,7 +265,10 @@ connection.onDocumentHighlight(docParam => {
 
 connection.onHover(hoverParam => {
 	let document = documents.get(hoverParam.textDocument.uri);
-
+	if (!document) {
+		connection.console.error('125: Unable find document')
+		return;
+	}
 	return languageService.doHover(
 		document,
 		hoverParam.position,
@@ -259,7 +279,10 @@ connection.onHover(hoverParam => {
 
 connection.onCompletion(params => {
 	let document = documents.get(params.textDocument.uri);
-
+	if (!document) {
+		connection.console.error('125: Unable find document')
+		return;
+	}
 	return languageService.doComplete(
 		document,
 		params.position,
@@ -269,6 +292,10 @@ connection.onCompletion(params => {
 
 connection.onDocumentSymbol(params => {
 	let document = documents.get(params.textDocument.uri);
+	if (!document) {
+		connection.console.error('126: Unable find document')
+		return;
+	}
 
 	return languageService.findDocumentSymbols(document, languageService.parseHTMLDocument(document));
 });
@@ -280,7 +307,8 @@ connection.onDocumentSymbol(params => {
 connection.listen();
 
 process.once('uncaughtException', err => {
-	connection.console.error(err);
+	console.log(err);
+	connection.console.error(String(err) + '\n' + err.stack);
 	connection.dispose();
 	process.exit(-1);
 })

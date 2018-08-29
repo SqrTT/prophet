@@ -1,6 +1,6 @@
 
 'use strict';
-import { join, dirname, sep } from 'path';
+import { join, sep } from 'path';
 import { workspace, ExtensionContext, commands, window, Uri, WorkspaceConfiguration, debug, WorkspaceFolder, RelativePattern } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
 import { CartridgesView } from './providers/CartridgesView';
@@ -12,6 +12,8 @@ import Uploader from "./providers/Uploader";
 import { ProphetConfigurationProvider } from './providers/ConfigurationProvider';
 import { Subject, Observable } from 'rxjs';
 import { findFiles, getDWConfig, getCartridgesFolder } from './lib/FileHelper';
+//import { SandboxFS } from './providers/SandboxFileSystemProvider';
+
 
 /**
  * Create the ISML language server with the proper parameters
@@ -230,7 +232,34 @@ export function activate(context: ExtensionContext) {
 	if (ignoreProjects) {
 		window.showErrorMessage('Your `files.exclude` excludes `.project`. Cartridge detection may not work properly');
 	}
+	// workspace.registerSearchProvider();
+	//initFS(context);
 }
+
+// function initFS(context : ExtensionContext) {
+
+// 	if (!workspace.workspaceFolders) {
+// 		return;
+// 	}
+// 	const fileWorkspaceFolders = workspace.workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
+
+// 	getDWConfig(fileWorkspaceFolders).then(options => {
+
+// 		let sandboxFS = new SandboxFS(options);
+
+// 		context.subscriptions.push(workspace.registerFileSystemProvider('ccfs', sandboxFS, { isCaseSensitive: true }));
+
+// 		if (workspace.workspaceFolders) {
+// 			if (!workspace.workspaceFolders.some(workspaceFolder => workspaceFolder.uri.scheme === 'ccfs')) {
+// 				workspace.updateWorkspaceFolders(0, 0, {
+// 					uri: Uri.parse('ccfs://' + options.hostname + '/'),
+// 					name: "Sandbox - FileSystem",
+// 				});
+// 			}
+// 		}
+
+// 	});
+// }
 
 function initDebugger() {
 	debug.onDidReceiveDebugSessionCustomEvent(event => {
@@ -238,14 +267,18 @@ function initDebugger() {
 			getDWConfig(workspace.workspaceFolders)
 				.then(configData => {
 					if (workspace.workspaceFolders) {
-						return Promise.all(workspace.workspaceFolders.map(
-							workspaceFolder => workspace.findFiles(new RelativePattern(workspaceFolder, '**/.project'), '{node_modules,.git}')
+						const fileWorkspaceFolders = workspace.workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
+
+						return Promise.all(fileWorkspaceFolders.map(
+							workspaceFolder => getCartridgesFolder(workspaceFolder).reduce((acc, r) => {acc.push(r); return acc }, []).toPromise()
 						)).then(projects => {
-							const flattenProjectsPaths = ([] as Uri[]).concat(...projects).map(project => dirname(project.fsPath));
-							if (flattenProjectsPaths.length) {
+
+							var flatten = ([] as string[]).concat(...projects);
+
+							if (flatten.length) {
 								return event.session.customRequest('DebuggerConfig', {
 									config: configData,
-									cartridges: flattenProjectsPaths
+									cartridges: flatten
 								});
 							} else {
 								return Promise.reject('Unable get cartridges list');
@@ -285,7 +318,8 @@ function initializeToolkitActions() {
 		}
 	}).flatMap(({ req, res }) => {
 		if (workspace.workspaceFolders && workspace.workspaceFolders.length) {
-			const cartridgesFolders = workspace.workspaceFolders
+			const fileWorkspaceFolders = workspace.workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
+			const cartridgesFolders = fileWorkspaceFolders
 				.map(workspaceFolder => getCartridgesFolder(workspaceFolder));
 
 			return Observable.merge(...cartridgesFolders)

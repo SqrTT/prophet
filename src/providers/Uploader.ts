@@ -37,7 +37,7 @@ export default class Uploader {
 	 */
 	constructor(workspaceFolders: WorkspaceFolder[]) {
 		this.outputChannel = window.createOutputChannel(`Prophet Uploader`);
-		this.workspaceFolders = workspaceFolders;
+		this.workspaceFolders = workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
 
 		this.commandSubs = commandBus.subscribe(command => {
 			if (command === 'clean.upload' || command === 'enable.upload') {
