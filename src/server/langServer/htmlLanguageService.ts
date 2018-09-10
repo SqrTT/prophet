@@ -13,6 +13,7 @@ import {findDocumentLinks} from './services/htmlLinks';
 import {findDocumentHighlights} from './services/htmlHighlighting';
 import {findDocumentSymbols} from './services/htmlSymbolsProvider';
 import {TextDocument, Position, CompletionItem, CompletionList, Hover, Range, SymbolInformation, Diagnostic, TextEdit, DocumentHighlight, FormattingOptions, MarkedString, DocumentLink } from 'vscode-languageserver-types';
+import { IConnection } from 'vscode-languageserver';
 
 export {TextDocument, Position, CompletionItem, CompletionList, Hover, Range, SymbolInformation, Diagnostic, TextEdit, DocumentHighlight, FormattingOptions, MarkedString, DocumentLink };
 
@@ -112,7 +113,7 @@ export interface LanguageService {
 	findDocumentHighlights(document: TextDocument, position: Position, htmlDocument: HTMLDocument): DocumentHighlight[];
 	doComplete(document: TextDocument, position: Position, htmlDocument: HTMLDocument, options?: CompletionConfiguration): CompletionList;
 	doHover(document: TextDocument, position: Position, htmlDocument: HTMLDocument): Hover | undefined;
-	format(document: TextDocument, range: Range, options: HTMLFormatConfiguration): TextEdit[];
+	format(document: TextDocument, range: Range, options: HTMLFormatConfiguration, connection?: IConnection): TextEdit[];
 	findDocumentLinks(document: TextDocument, documentContext: DocumentContext): DocumentLink[];
 	findDocumentSymbols(document: TextDocument, htmlDocument: HTMLDocument): SymbolInformation[];
 }

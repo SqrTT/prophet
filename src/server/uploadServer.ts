@@ -75,6 +75,10 @@ function fileWatcher(config, cartRoot: string, outputChannel: OutputChannel): Ob
 	});
 }
 
+function cleanPath(rootPath, filePath) {
+	return filePath.replace(rootPath, '');
+}
+
 const uploadCartridges = (
 	webdav: WebDav,
 	outputChannel: OutputChannel,
@@ -218,18 +222,18 @@ function uploadAndWatch(
 							.flatMap(stats => {
 								if (stats.isDirectory()) {
 									if (action === 'create') {
-										outputChannel.appendLine(`[C ${date}] ${fileName}`);
+										outputChannel.appendLine(`[C ${date}] ${cleanPath(rootDir, fileName)}`);
 										return webdav.mkdir(fileName, rootDir);
 									} else {// skip directory changes
 										return Observable.empty();
 									}
 								} else {
-									outputChannel.appendLine(`[U ${date}] ${fileName}`);
+									outputChannel.appendLine(`[U ${date}] ${cleanPath(rootDir, fileName)}`);
 									return webdav.post(fileName, rootDir);
 								}
 							});
 					} else if (action === 'delete') {
-						outputChannel.appendLine(`[D ${date}] ${fileName}`);
+						outputChannel.appendLine(`[D ${date}] ${cleanPath(rootDir, fileName)}`);
 						return webdav.delete(fileName, rootDir);
 					} else {
 						return Observable.throw(Error('Unknown action'))

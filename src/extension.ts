@@ -25,7 +25,7 @@ function createIsmlLanguageServer(context: ExtensionContext, configuration: Work
 	// The server is implemented in node
 	const serverModule = context.asAbsolutePath(join('out', 'server', 'ismlServer.js'));
 	// The debug options for the server
-	const debugOptions = { execArgv: ['--nolazy', '--debug=6004'] };
+	const debugOptions = { execArgv: ['--nolazy', '--inspect=6004'] };
 
 	// If the extension is launched in debug mode then the debug server options are used
 	// Otherwise the run options are used

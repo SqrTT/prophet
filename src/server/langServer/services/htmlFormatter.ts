@@ -6,11 +6,12 @@
 
 import { HTMLFormatConfiguration } from '../htmlLanguageService';
 import { TextDocument, Range, TextEdit, Position } from 'vscode-languageserver-types';
-import { IBeautifyHTMLOptions, html_beautify } from '../beautify/beautify-html';
+import { IBeautifyHTMLOptions } from '../beautify/beautify-html';
 import { repeat } from '../utils/strings';
+import { IConnection } from 'vscode-languageserver';
 
 
-export function format(document: TextDocument, range: Range, options: HTMLFormatConfiguration): TextEdit[] {
+export function format(document: TextDocument, range: Range, options: HTMLFormatConfiguration, connection: IConnection): TextEdit[] {
 	let value = document.getText();
 	let includesEnd = true;
 	let initialIndentLevel = 0;
@@ -52,7 +53,7 @@ export function format(document: TextDocument, range: Range, options: HTMLFormat
 	} else {
 		range = Range.create(Position.create(0, 0), document.positionAt(value.length));
 	}
-	
+
 	let htmlOptions: IBeautifyHTMLOptions = {
 		indent_size: options.insertSpaces ? options.tabSize : 1,
 		indent_char: options.insertSpaces ? ' ' : '\t',
@@ -66,10 +67,10 @@ export function format(document: TextDocument, range: Range, options: HTMLFormat
 		indent_handlebars: getFormatOption(options, 'indentHandlebars', false),
 		end_with_newline: includesEnd && getFormatOption(options, 'endWithNewline', true),
 		extra_liners: getTagsFormatOption(options, 'extraLiners', []),
-		wrap_attributes: getFormatOption(options, 'wrapAttributes', 'force'),
+		wrap_attributes: getFormatOption(options, 'wrapAttributes', 'force-expand-multiline'),
 		eol: '\n'
 	};
-	['iscomment', 'isscript', 'pre', 'script'].forEach(key => {
+	['isscript', 'pre', 'script'].forEach(key => {
 		if (htmlOptions.content_unformatted && !htmlOptions.content_unformatted.includes(key)) {
 			htmlOptions.content_unformatted.push(key);
 		}
@@ -79,6 +80,11 @@ export function format(document: TextDocument, range: Range, options: HTMLFormat
 			htmlOptions.unformatted.push(key);
 		}
 	});
+	// if (connection) {
+	// 	connection.console.log(JSON.stringify(htmlOptions));
+	// }
+
+	var html_beautify = require('js-beautify').html;
 
 	let result = html_beautify(value, htmlOptions);
 	if (initialIndentLevel > 0 && range.start.character === 0) {
