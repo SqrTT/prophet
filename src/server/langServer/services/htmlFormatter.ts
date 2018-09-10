@@ -75,11 +75,11 @@ export function format(document: TextDocument, range: Range, options: HTMLFormat
 			htmlOptions.content_unformatted.push(key);
 		}
 	});
-	['iselse'].forEach(key => {
-		if (htmlOptions.unformatted && !htmlOptions.unformatted.includes(key)) {
-			htmlOptions.unformatted.push(key);
-		}
-	});
+	// ['iselse'].forEach(key => {
+	// 	if (htmlOptions.unformatted && !htmlOptions.unformatted.includes(key)) {
+	// 		htmlOptions.unformatted.push(key);
+	// 	}
+	// });
 	// if (connection) {
 	// 	connection.console.log(JSON.stringify(htmlOptions));
 	// }
