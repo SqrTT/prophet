@@ -12,7 +12,7 @@
         "email": "tolik@sqrtt.pro"
     },
     "engines": {
-        "vscode": "^1.26.1",
+        "vscode": "^1.27.1",
         "node": "^8.9.0"
     },
     "icon": "images/mock-debug-icon.ico",
@@ -30,6 +30,7 @@
         "url": "https://github.com/SqrTT/prophet/issues"
     },
     "dependencies": {
+        "js-beautify": "^1.8.4",
         "request": "^2.88.0",
         "rxjs": "^5.5.10",
         "timeago.js": "^3.0.2",
@@ -47,7 +48,7 @@
         "@types/mocha": "^2.2.48",
         "@types/node": "^8.9.0",
         "mocha": "^5.2.0",
-        "typescript": "^3.0.1",
+        "typescript": "^3.0.3",
         "vscode": "^1.1.21",
         "vscode-debugadapter-testsupport": "^1.31.0"
     },

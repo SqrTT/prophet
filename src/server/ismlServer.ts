@@ -16,7 +16,6 @@ import { EventEmitter } from 'events';
 // Create a connection for the server. The connection uses Node's IPC as a transport
 let connection: IConnection = createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
 
-
 let selectedFilesEmitter = new EventEmitter();
 
 // Create a simple text document manager. The text document manager
@@ -246,7 +245,8 @@ connection.onDocumentRangeFormatting(formatParams => {
 		return;
 	}
 
-	return languageService.format(document, formatParams.range, Object.assign({}, userFormatParams, formatParams.options));
+
+	return languageService.format(document, formatParams.range, Object.assign({}, userFormatParams, formatParams.options), connection);
 });
 
 connection.onDocumentHighlight(docParam => {
