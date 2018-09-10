@@ -1,3 +1,7 @@
+### 1.0.13
+* trim path output (thanks to [khaitu](https://github.com/khaitu))
+* update js-beatify
+
 ### 1.0.11
 
 * add prophet icon on activity bar
