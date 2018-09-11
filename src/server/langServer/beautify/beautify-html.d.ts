@@ -98,10 +98,12 @@ export interface IBeautifyHTMLOptions {
      */
     wrap_attributes: 'auto' | 'force' | 'force-expand-multiline' | 'force-aligned';
 
-    /* 
+    /*
      * end of line character to use
      */
-    eol?: string;
+	eol?: string;
+
+	inline: Array<string>
 }
 
 export interface IBeautifyHTML {

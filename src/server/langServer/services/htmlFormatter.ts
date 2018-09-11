@@ -58,6 +58,7 @@ export function format(document: TextDocument, range: Range, options: HTMLFormat
 		indent_size: options.insertSpaces ? options.tabSize : 1,
 		indent_char: options.insertSpaces ? ' ' : '\t',
 		indent_level: initialIndentLevel,
+		inline: [],
 		wrap_line_length: getFormatOption(options, 'wrapLineLength', 160),
 		unformatted: getTagsFormatOption(options, 'unformatted', []),
 		content_unformatted: getTagsFormatOption(options, 'contentUnformatted', []),
@@ -75,22 +76,68 @@ export function format(document: TextDocument, range: Range, options: HTMLFormat
 			htmlOptions.content_unformatted.push(key);
 		}
 	});
-	// ['iselse'].forEach(key => {
-	// 	if (htmlOptions.unformatted && !htmlOptions.unformatted.includes(key)) {
-	// 		htmlOptions.unformatted.push(key);
-	// 	}
-	// });
 	// if (connection) {
 	// 	connection.console.log(JSON.stringify(htmlOptions));
 	// }
 
 	var html_beautify = require('js-beautify').html;
 
-	let result = html_beautify(value, htmlOptions);
+	let result: string = html_beautify(value, htmlOptions);
 	if (initialIndentLevel > 0 && range.start.character === 0) {
 		let indent = options.insertSpaces ? repeat(' ', (options.tabSize || 4) * initialIndentLevel) : repeat('\t', initialIndentLevel);
 		result = indent + result; // keep the indent
 	}
+
+	const eol = htmlOptions.eol || '\n';
+	function findStartLine(res: string, index: number) {
+		while (res.charAt(index) !== eol || index === 0) {
+			index--;
+		}
+		return index;
+	}
+	htmlOptions.end_with_newline = false;
+	var lastIndex = result.indexOf('<isscript>');
+	while (lastIndex > -1) {
+		const startPos = lastIndex + 10;
+		const endPos = result.indexOf('</isscript>', startPos);
+
+		if (endPos > -1) {
+			const scriptToFormat = result.substring(startPos, endPos);
+
+			const js_beautify = require('js-beautify').js;
+
+			var res: string = js_beautify(scriptToFormat, htmlOptions);
+
+			const newLinePos = findStartLine(result, startPos - 10);
+
+			res = eol + res.split(eol).map(l => repeat(' ', startPos - newLinePos - 7) + l).join(eol);
+			res += eol + repeat(' ', startPos - newLinePos - 11);
+
+			result = result.substr(0, startPos) + res + result.substr(endPos)
+			lastIndex = result.indexOf('</isscript>', startPos)
+		}
+		lastIndex = result.indexOf('<isscript>', lastIndex);
+	}
+	lastIndex = result.indexOf('${');
+	while (lastIndex > -1) {
+		const startPos = lastIndex + 2;
+		const endPos = result.indexOf('}', startPos);
+
+		if (endPos > -1) {
+			const scriptToFormat = result.substring(startPos, endPos);
+
+			const js_beautify = require('js-beautify').js;
+
+			var res: string = js_beautify(scriptToFormat.trim(), htmlOptions);
+
+			result = result.substr(0, startPos) + res + result.substr(endPos)
+			lastIndex = result.indexOf('}', startPos)
+		}
+		lastIndex = result.indexOf('${', lastIndex);
+	}
+	// restore iselse
+	result = result.replace(/[ ]{4}<iselse \/>/ig, '<iselse/>')
+
 	return [{
 		range: range,
 		newText: result
