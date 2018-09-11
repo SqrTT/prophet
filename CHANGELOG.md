@@ -1,4 +1,8 @@
 
+### 1.0.16
+* added htmlhing for linting isml
+* fix issue with incorrect formating multiline plecaholders
+
 ### 1.0.15
 * improve isml formatter - formats `isscript` tags and placeholders (`${ }`)
 

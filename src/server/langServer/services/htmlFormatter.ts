@@ -130,6 +130,13 @@ export function format(document: TextDocument, range: Range, options: HTMLFormat
 
 			var res: string = js_beautify(scriptToFormat.trim(), htmlOptions);
 
+			if (res.split(eol).length > 1) {
+				const newLinePos = findStartLine(result, startPos - 2);
+				res = res.split(eol).map((
+					l, idx) => idx === 0 ? l : repeat(' ', startPos - newLinePos - 7) + l).join(eol);
+				//res += eol + repeat(' ', startPos - newLinePos - 3);
+			}
+
 			result = result.substr(0, startPos) + res + result.substr(endPos)
 			lastIndex = result.indexOf('}', startPos)
 		}
@@ -137,6 +144,8 @@ export function format(document: TextDocument, range: Range, options: HTMLFormat
 	}
 	// restore iselse
 	result = result.replace(/[ ]{4}<iselse \/>/ig, '<iselse/>')
+	result = result.replace(/<iscontinue \/>/ig, '<iscontinue/>')
+
 
 	return [{
 		range: range,

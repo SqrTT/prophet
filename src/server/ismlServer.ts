@@ -4,14 +4,20 @@ import {
 	createConnection, IConnection,
 	TextDocuments, InitializeResult, DocumentLinkParams, DocumentLink, Range, Position,
 	Hover,
-	WorkspaceFolder
+	WorkspaceFolder,
+	TextDocument,
+	Files,
+	Diagnostic,
+	DiagnosticSeverity
 } from 'vscode-languageserver';
 import { getLanguageService } from './langServer/htmlLanguageService';
-
+let linter: any = null;
 import Uri from 'vscode-uri';
 
 import { readFile } from 'fs';
 import { EventEmitter } from 'events';
+
+import * as htmlhint from "./langServer/htmlhint";
 
 // Create a connection for the server. The connection uses Node's IPC as a transport
 let connection: IConnection = createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
@@ -73,10 +79,280 @@ connection.onInitialized(() => {
 	});
 });
 
+const tagsTypings = {
+	a: {
+		selfclosing: false,
+		attrsRequired: ['href'],
+		redundantAttrs: ['alt']
+	},
+	div: {
+		selfclosing: false
+	},
+	main: {
+		selfclosing: false,
+		redundantAttrs: ['role']
+	},
+	nav: {
+		selfclosing: false,
+		redundantAttrs: ['role']
+	},
+	script: {
+		attrsOptional: [['async', 'async'], ['defer', 'defer']]
+	},
+	img: {
+		selfclosing: true,
+		attrsRequired: [
+			'src', 'alt'
+		]
+	}
+};
+
+const defaultLinterConfig = {
+	"tagname-lowercase": true,
+	"attr-lowercase": false,
+	"attr-value-double-quotes": false,
+	"doctype-first": false,
+	"max-lenght": false,
+	"tag-pair": true,
+	"spec-char-escape": false,
+	"id-unique": false,
+	"src-not-empty": true,
+	"attr-no-duplication": true,
+	"title-require": false,
+	"doctype-html5": true,
+	"space-tab-mixed-disabled": "space",
+	"inline-style-disabled": false,
+	"tag-self-close": true,
+	"tags-check": {
+		"isslot": {
+			"selfclosing": true,
+			"attrsRequired": ["id", ["context", "global", "category", "folder"], "description"]
+		},
+		"iscache": {
+			"selfclosing": true,
+			"attrsRequired": ["hour|minute", ["type", "relative", "daily"]],
+			"attrsOptional": [["varyby", "price_promotion"]]
+		},
+		"isdecorate": {
+			"selfclosing": false,
+			"attrsRequired": ["template"]
+		},
+		"isreplace": {
+			"selfclosing": true
+		},
+		"isinclude": {
+			"selfclosing": true,
+			"attrsRequired": ["template|url"]
+		},
+		"iscontent": {
+			"selfclosing": true,
+			"attrsOptional": [["encoding", "on", "off", "html", "xml", "wml"], ["compact", "true", "false"]],
+			"attrsRequired": ["type", "charset"]
+		},
+		"ismodule": {
+			"selfclosing": true,
+			"attrsRequired": ["template", "name"]
+		},
+		"isobject": {
+			"selfclosing": false,
+			"attrsRequired": ["object", ["view", "none", "searchhit", "recommendation", "setproduct", "detail"]]
+		},
+		"isset": {
+			"selfclosing": true,
+			"attrsRequired": ["name", "value", ["scope", "session", "request", "page", "pdict"]]
+		},
+		"iscomponent": {
+			"selfclosing": true,
+			"attrsRequired": ["pipeline"]
+		},
+		"iscontinue": {
+			"selfclosing": true
+		},
+		"isbreak": {
+			"selfclosing": true
+		},
+		"isnext": {
+			"selfclosing": true
+		},
+		"isscript": {
+			"selfclosing": false
+		},
+		"iselse": {
+			"selfclosing": true
+		},
+		"isloop": {
+			"selfclosing": false,
+			"attrsRequired": ["items|iterator|begin", "alias|var|end"]
+		},
+		"isif": {
+			"selfclosing": false,
+			"attrsRequired": ["condition"]
+		},
+		"iselseif": {
+			"selfclosing": true,
+			"attrsRequired": ["condition"]
+		},
+		"isprint": {
+			"selfclosing": true,
+			"attrsRequired": ["value"],
+			"attrsOptional": [["encoding", "on", "off"], ["timezone", "SITE", "INSTANCE", "utc"]]
+		},
+		"isstatus": {
+			"selfclosing": true,
+			"attrsRequired": ["value"]
+		},
+		"isredirect": {
+			"selfclosing": true,
+			"attrsOptional": [["permanent", "true", "false"]],
+			"attrsRequired": ["location"]
+		},
+		"isinputfield": {
+			"selfclosing": true,
+			"attrsRequired": ["type", "formfield"]
+		}
+	}
+};
+
 connection.onInitialize((params): InitializeResult => {
 
 	connection.console.log('isml server init...' + JSON.stringify(params.workspaceFolders));
 
+	linter = require('htmlhint').HTMLHint;
+
+	const customRules = [{
+		id: 'tags-check',
+		description: 'Checks html tags.',
+		init: function (parser, reporter, options) {
+			var self = this;
+
+			if (typeof options !== 'boolean') {
+				Object.assign(tagsTypings, options);
+			}
+
+			parser.addListener('tagstart', function (event) {
+				var attrs = event.attrs;
+				var col = event.col + event.tagName.length + 1;
+
+				const tagName = event.tagName.toLowerCase();
+
+				if (tagsTypings[tagName]) {
+					const currentTagType = tagsTypings[tagName];
+
+					if (currentTagType.selfclosing === true && !event.close) {
+						reporter.warn(`The <${tagName}> tag must be selfclosing.`, event.line, event.col, self, event.raw);
+					} else if (currentTagType.selfclosing === false && event.close) {
+						reporter.warn(`The <${tagName}> tag must not be selfclosing.`, event.line, event.col, self, event.raw);
+					}
+
+					if (currentTagType.attrsRequired) {
+						currentTagType.attrsRequired.forEach(id => {
+							if (Array.isArray(id)) {
+								const copyOfId = id.map(a => a);
+								const realID = copyOfId.shift();
+								const values = copyOfId;
+
+								if (attrs.some(attr => attr.name === realID)) {
+									attrs.forEach(attr => {
+										if (attr.name === realID && !values.includes(attr.value)) {
+											reporter.error(`The <${tagName}> tag must have attr '${realID}' with one value of '${values.join('\' or \'')}'.`, event.line, col, self, event.raw);
+										}
+									});
+								} else {
+									reporter.error(`The <${tagName}> tag must have attr '${realID}'.`, event.line, col, self, event.raw);
+								}
+							} else if (!attrs.some(attr => id.split('|').includes(attr.name))) {
+								reporter.error(`The <${tagName}> tag must have attr '${id}'.`, event.line, col, self, event.raw);
+							}
+						});
+					}
+					if (currentTagType.attrsOptional) {
+						currentTagType.attrsOptional.forEach(id => {
+							if (Array.isArray(id)) {
+								const copyOfId = id.map(a => a);
+								const realID = copyOfId.shift();
+								const values = copyOfId;
+
+								if (attrs.some(attr => attr.name === realID)) {
+									attrs.forEach(attr => {
+										if (attr.name === realID && !values.includes(attr.value)) {
+											reporter.error(`The <${tagName}> tag must have optional attr '${realID}' with one value of '${values.join('\' or \'')}'.`, event.line, col, self, event.raw);
+										}
+									});
+								}
+							}
+						});
+					}
+
+					if (currentTagType.redundantAttrs) {
+						currentTagType.redundantAttrs.forEach(attrName => {
+							if (attrs.some(attr => attr.name === attrName)) {
+								reporter.error(`The attr '${attrName}' is redundant for <${tagName}> and should be ommited.`, event.line, col, self, event.raw);
+							}
+						});
+					}
+
+				}
+			});
+		}
+	}, {
+		id: 'attr-no-duplication',
+		description: 'Elements cannot have duplicate attributes.',
+		init: function (parser, reporter) {
+			var self = this;
+
+			parser.addListener('tagstart', function (event) {
+				var attrs = event.attrs;
+				var attr;
+				var attrName;
+				var col = event.col + event.tagName.length + 1;
+
+				if (event.tagName.toLowerCase() === 'ismodule') {
+					return;
+				}
+
+				var mapAttrName = {};
+
+				for (var i = 0, l = attrs.length; i < l; i++) {
+					attr = attrs[i];
+					attrName = attr.name;
+					if (mapAttrName[attrName] === true) {
+						reporter.error('Duplicate of attribute name [ ' + attr.name + ' ] was found.',
+							event.line, col + attr.index, self, attr.raw);
+					}
+					mapAttrName[attrName] = true;
+				}
+			});
+		}
+	}, {
+		id: 'max-lenght',
+		description: 'Lines limitation.',
+		init(parser, reporter, option) {
+			var self = this;
+
+			if (option) {
+				const checkLenght = event => {
+					if (event.col > option) {
+						reporter.error(
+							`Line must be at most ${option} characters`,
+							event.line - 1,
+							event.col,
+							self,
+							event.raw
+						);
+					}
+				};
+
+				parser.addListener('tagstart', checkLenght);
+				parser.addListener('text', checkLenght);
+				parser.addListener('cdata', checkLenght);
+				parser.addListener('tagend', checkLenght);
+				parser.addListener('comment', checkLenght);
+			}
+		}
+	}
+	];
+
+	customRules.forEach(rule => linter.addRule(rule));
 
 	userFormatParams = params.initializationOptions.formatParams;
 	workspaceFolders = params.workspaceFolders || [];
@@ -288,6 +564,100 @@ connection.onCompletion(params => {
 		params.position,
 		languageService.parseHTMLDocument(document)
 	);
+});
+function getErrorMessage(err: any, document: TextDocument): string {
+	let result: string;
+	if (typeof err.message === 'string' || err.message instanceof String) {
+		result = <string>err.message;
+	} else {
+		result = `An unknown error occured while validating file: ${Files.uriToFilePath(document.uri)}`;
+	}
+	return result;
+}
+
+function validateTextDocument(connection: IConnection, document: TextDocument): void {
+	try {
+		doValidate(connection, document);
+	} catch (err) {
+		connection.window.showErrorMessage(getErrorMessage(err, document));
+	}
+}
+
+/**
+* Given an htmlhint Error object, approximate the text range highlight
+*/
+function getRange(error: htmlhint.Error, lines: string[]): any {
+
+	let line = lines[error.line - 1];
+	var isWhitespace = false;
+	var curr = error.col;
+	while (curr < line.length && !isWhitespace) {
+		var char = line[curr];
+		isWhitespace = (char === ' ' || char === '\t' || char === '\n' || char === '\r' || char === '<');
+		++curr;
+	}
+
+	if (isWhitespace) {
+		--curr;
+	}
+
+	return {
+		start: {
+			line: error.line - 1, // Html-hint line numbers are 1-based.
+			character: error.col - 1
+		},
+		end: {
+			line: error.line - 1,
+			character: curr
+		}
+	};
+}
+
+/**
+ * Given an htmlhint.Error type return a VS Code server Diagnostic object
+ */
+function makeDiagnostic(problem: htmlhint.Error, lines: string[]): Diagnostic {
+
+	return {
+		severity: DiagnosticSeverity.Error,
+		message: problem.message,
+		range: getRange(problem, lines),
+		code: problem.rule.id
+	};
+}
+
+function doValidate(connection: IConnection, document: TextDocument): void {
+	try {
+		let uri = document.uri;
+		//let fsPath = Files.uriToFilePath(uri);
+		let contents = document.getText();
+		let lines = contents.split('\n');
+
+		//let config = {}; //getConfiguration(fsPath);
+
+		let errors: htmlhint.Error[] = linter.verify(contents, defaultLinterConfig);
+
+		let diagnostics: Diagnostic[] = [];
+		if (errors.length > 0) {
+			errors.forEach(each => {
+				diagnostics.push(makeDiagnostic(each, lines));
+			});
+		}
+		connection.sendDiagnostics({ uri, diagnostics });
+	} catch (err) {
+		let message: string;
+		if (typeof err.message === 'string' || err.message instanceof String) {
+			message = <string>err.message;
+			throw new Error(message);
+		}
+		throw err;
+	}
+}
+
+// A text document has changed. Validate the document.
+documents.onDidChangeContent((event) => {
+	// the contents of a text document has changed
+	validateTextDocument(connection, event.document);
 });
 
 connection.onDocumentSymbol(params => {
