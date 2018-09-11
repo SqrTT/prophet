@@ -1,3 +1,7 @@
+
+### 1.0.15
+* improve isml formatter - formats `isscript` tags and placeholders (`${ }`)
+
 ### 1.0.13
 * trim path output (thanks to [khaitu](https://github.com/khaitu))
 * update js-beatify
