@@ -144,7 +144,10 @@ export function format(document: TextDocument, range: Range, options: HTMLFormat
 	}
 	// restore iselse
 	result = result.replace(/[ ]{4}<iselse \/>/ig, '<iselse/>')
+	result = result.replace(/[ ]{4}<iselseif /ig, '<iselseif ')
 	result = result.replace(/<iscontinue \/>/ig, '<iscontinue/>')
+	result = result.replace(/<isbreak \/>/ig, '<isbreak/>')
+
 
 
 	return [{

@@ -1,3 +1,5 @@
+### 1.0.17
+ * fix issue with indentation and closing isbreak
 
 ### 1.0.16
 * added htmlhing for linting isml

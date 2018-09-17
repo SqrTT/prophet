@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 'use strict';
 
-import {getHTML5TagProvider, getAngularTagProvider,  IHTMLTagProvider, getSFCCProvider} from '../parser/htmlTags';
+import { getHTML5TagProvider, IHTMLTagProvider, getSFCCProvider } from '../parser/htmlTags';
 
 
-export let allTagProviders : IHTMLTagProvider[] = [
+export let allTagProviders: IHTMLTagProvider[] = [
 	getHTML5TagProvider(),
-	getAngularTagProvider(),
+	//getAngularTagProvider(),
 	getSFCCProvider()
 ];

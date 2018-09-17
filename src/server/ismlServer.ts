@@ -97,7 +97,8 @@ const tagsTypings = {
 		redundantAttrs: ['role']
 	},
 	script: {
-		attrsOptional: [['async', 'async'], ['defer', 'defer']]
+		attrsOptional: [['async', 'async'], ['defer', 'defer']],
+		redundantAttrs: ['type']
 	},
 	img: {
 		selfclosing: true,
@@ -275,7 +276,7 @@ connection.onInitialize((params): InitializeResult => {
 								if (attrs.some(attr => attr.name === realID)) {
 									attrs.forEach(attr => {
 										if (attr.name === realID && !values.includes(attr.value)) {
-											reporter.error(`The <${tagName}> tag must have optional attr '${realID}' with one value of '${values.join('\' or \'')}'.`, event.line, col, self, event.raw);
+											reporter.error(`The <${tagName}> tag must have optional attr '${realID}' with one value of '${values.join('\' or \'')}'.`, event.line, col + attr.index + 1, self, event.raw);
 										}
 									});
 								}
