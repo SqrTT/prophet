@@ -1,7 +1,7 @@
 {
     "name": "prophet",
     "displayName": "Prophet Debugger",
-    "version": "1.0.17",
+    "version": "1.0.18",
     "keywords": [
         "multi-root ready"
     ],
@@ -31,16 +31,17 @@
     },
     "dependencies": {
         "htmlhint": "^0.10.1",
-        "js-beautify": "^1.8.4",
+        "js-beautify": "^1.8.6",
         "request": "^2.88.0",
         "rxjs": "^5.5.10",
+        "strip-json-comments": "^2.0.1",
         "timeago.js": "^3.0.2",
-        "vscode-debugadapter": "^1.31.0",
-        "vscode-debugprotocol": "^1.31.0",
-        "vscode-languageclient": "^4.4.1",
-        "vscode-languageserver": "^4.4.1",
-        "vscode-nls": "^3.2.4",
-        "vscode-uri": "^1.0.5",
+        "vscode-debugadapter": "^1.32.1",
+        "vscode-debugprotocol": "^1.32.0",
+        "vscode-languageclient": "^5.1.0",
+        "vscode-languageserver": "^5.1.0",
+        "vscode-nls": "^4.0.0",
+        "vscode-uri": "^1.0.6",
         "walk": "^2.3.14",
         "xmldom": "^0.1.27",
         "yazl": "^2.4.3"
@@ -64,6 +65,7 @@
     "main": "./out/extension",
     "activationEvents": [
         "onCommand:extension.prophet.provideInitialConfigurations",
+        "onCommand:extension.prophet.command.create.cartridge",
         "workspaceContains:**/cartridge/*.properties"
     ],
     "contributes": {
@@ -336,6 +338,12 @@
         "configuration": {
             "title": "Prophet Configuration",
             "properties": {
+                "extension.prophet.htmlhint.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable linting of ISML document",
+                    "scope": "window"
+                },
                 "extension.prophet.upload.enabled": {
                     "type": "boolean",
                     "default": false,

@@ -1,3 +1,10 @@
+
+### 1.0.18
+ * fix expandable variables in watcher
+ * add htmlhint option to disable/enable
+ * add configuration of isml linter based on `.htmlhintrc`
+ * fix activate extension once first cartridge may be created
+
 ### 1.0.17
  * fix issue with indentation and closing isbreak
 

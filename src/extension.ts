@@ -43,11 +43,13 @@ function createIsmlLanguageServer(context: ExtensionContext, configuration: Work
 		})),
 		synchronize: {
 			// Synchronize the setting section 'languageServerExample' to the server
-			configurationSection: 'ismlLanguageServer',
+			configurationSection: 'extension.prophet',
 			// Notify the server about file changes to '.clientrc files contain in the workspace
-			// fileEvents: workspace.createFileSystemWatcher('**/*.isml')
+			// fileEvents: workspace.createFileSystemWatcher('**/*.isml'),
+			fileEvents: workspace.createFileSystemWatcher('**/.htmlhintrc')
 		},
 		initializationOptions: {
+			enableHtmlHint: configuration.get('htmlhint.enabled'),
 			formatParams: {
 				wrapLineLength: htmlConf.get('wrapLineLength'),
 				unformatted: htmlConf.get('unformatted'),
@@ -65,10 +67,13 @@ function createIsmlLanguageServer(context: ExtensionContext, configuration: Work
 	};
 
 	// Create the language client and start the client.
-	const ismlLanguageServer = new LanguageClient('ismlLanguageServer', 'ISML Language Server', serverOptions, clientOptions);
+	const ismlLanguageClient = new LanguageClient('ismlLanguageServer', 'ISML Language Server', serverOptions, clientOptions);
 
-	ismlLanguageServer.onReady().then(() => {
-		ismlLanguageServer.onNotification('isml:selectfiles', (test) => {
+
+	//context.subscriptions.push(new SettingMonitor(ismlLanguageClient, 'extension.prophet.htmlhint.enabled').start());
+
+	ismlLanguageClient.onReady().then(() => {
+		ismlLanguageClient.onNotification('isml:selectfiles', (test) => {
 			const prophetConfiguration = workspace.getConfiguration('extension.prophet');
 			const cartPath = String(prophetConfiguration.get('cartridges.path'));
 
@@ -79,7 +84,7 @@ function createIsmlLanguageServer(context: ExtensionContext, configuration: Work
 					(test.data || []).some(filename => filename.includes(cartridgeItem)));
 
 				if (cartridge) {
-					ismlLanguageServer.sendNotification('isml:selectedfile', test.data.find(
+					ismlLanguageClient.sendNotification('isml:selectedfile', test.data.find(
 						filename => filename.includes(cartridge)
 					));
 					return;
@@ -87,23 +92,23 @@ function createIsmlLanguageServer(context: ExtensionContext, configuration: Work
 
 			}
 			window.showQuickPick(test.data).then(selected => {
-				ismlLanguageServer.sendNotification('isml:selectedfile', selected);
+				ismlLanguageClient.sendNotification('isml:selectedfile', selected);
 			}, err => {
-				ismlLanguageServer.sendNotification('isml:selectedfile', undefined);
+				ismlLanguageClient.sendNotification('isml:selectedfile', undefined);
 			});
 		});
-		ismlLanguageServer.onNotification('find:files', ({ searchID, workspacePath, pattern }) => {
+		ismlLanguageClient.onNotification('find:files', ({ searchID, workspacePath, pattern }) => {
 			workspace.findFiles(
 				new RelativePattern(Uri.parse(workspacePath).fsPath, pattern)
 			).then(result => {
-				ismlLanguageServer.sendNotification('find:filesFound', { searchID, result: (result || []).map(uri => uri.fsPath) });
+				ismlLanguageClient.sendNotification('find:filesFound', { searchID, result: (result || []).map(uri => uri.fsPath) });
 			})
 		});
 	}).catch(err => {
 		window.showErrorMessage(JSON.stringify(err));
 	});
 
-	return ismlLanguageServer;
+	return ismlLanguageClient;
 }
 
 function getWorkspaceFolders$$(context: ExtensionContext): Observable<Observable<WorkspaceFolder>> {
