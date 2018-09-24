@@ -524,19 +524,88 @@ class ProphetDebugSession extends LoggingDebugSession {
 		const frameID = frameReference - (threadID * 100000);
 
 		if (this.connection && args.frameId && threadID) {
-			this.connection.evaluate(threadID, args.expression, frameID)
-				.then(res => {
-					response.body = {
-						result: args.context === 'watch' ? '' + res : '-> ' + res,
-						variablesReference: 0
-					};
-					this.sendResponse(response);
-				})
-				.catch(err => {
-					response.success = false;
-					response.message = String(err);
-					this.sendResponse(response);
-				});
+
+			if (args.context === 'watch') {
+
+
+				this.connection.getMembers(threadID, frameID, args.expression)
+					.then(res => {
+						if (res.length === 1) {
+
+							const member = res[0];
+
+							var variablesReference = 0;
+							var presentationHint;
+
+							if (
+								isComplexType(member.type) &&
+								member.value !== 'null' &&
+								member.value !== 'unresolved'
+							) {
+								const encPath =frameReference +
+								VARIABLE_SEPARATOR + (args.expression ? args.expression + '.' : '') + member.name;
+								variablesReference = this._variableHandles.create(encPath);
+
+								if (['dw.', 'dw/'].some(ctype => member.type.includes(ctype))) {
+									presentationHint = {
+										kind: 'class'
+									};
+								} else if (member.type === 'Object' || member.type === 'object') {
+									presentationHint = {
+										kind: 'data'
+									};
+								}
+							}
+
+							if (member.type === 'Function') {
+								presentationHint = {
+									kind: 'method'
+								};
+							}
+
+							response.body = {
+
+								result: member.value,
+								type: member.type.replace(/\./g, '/'),
+								presentationHint,
+
+								variablesReference: variablesReference
+							}
+							this.sendResponse(response);
+						} else if (res.length > 1) {
+							const variablesReference = this._variableHandles.create(
+								frameReference +
+								VARIABLE_SEPARATOR + args.expression);
+
+							response.body = {
+								result: res.map(v => v.name).join(','),
+								type: 'object',
+								variablesReference: variablesReference
+							}
+							this.sendResponse(response);
+						}
+
+					})
+					.catch(err => {
+						response.success = false;
+						response.message = String(err);
+						this.sendResponse(response);
+					});
+			} else {
+				this.connection.evaluate(threadID, args.expression, frameID)
+					.then(res => {
+						response.body = {
+							result: args.context === 'watch' ? '' + res : '-> ' + res,
+							variablesReference: 0
+						};
+						this.sendResponse(response);
+					})
+					.catch(err => {
+						response.success = false;
+						response.message = String(err);
+						this.sendResponse(response);
+					});
+			}
 		} else {
 			response.body = {
 				result: '',
@@ -597,7 +666,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 			const tmp = '/' + cPath.split(path.sep).join('/');
 			return tmp;
 		} else {
-			this.logError("Unable detect cartridge");
+			this.logError(`Unable detect cartridge: "${clientPath}"`);
 			return '';
 		}
 
@@ -642,7 +711,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 			return tmp;
 
 		} else {
-			this.logError("Unable match cartridge");
+			this.logError(`Unable match cartridge: "${debuggerPath}"`);
 			return '';
 		}
 
