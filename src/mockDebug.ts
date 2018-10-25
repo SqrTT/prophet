@@ -667,7 +667,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 			return tmp;
 		} else {
 			this.logError(`Unable detect cartridge: "${clientPath}"`);
-			return '';
+			return '/null';
 		}
 
 		// if (this.config.cartridgeroot === 'auto') {
@@ -712,7 +712,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 
 		} else {
 			this.logError(`Unable match cartridge: "${debuggerPath}"`);
-			return '';
+			return '/null';
 		}
 
 	}
