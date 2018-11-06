@@ -110,7 +110,7 @@ Experience can be improved by using follow `jsconfig.json` in the folder with ca
 
 > Note: client side JS files must have it's own `jsconfig.json` file and each workspace should have it's own configuration.
 
-Code assistance can be improved even more by adding `d.ts` definition for the project. Definitions for Commerce Cloud objects can be downloaded from [repo](https://bitbucket.org/demandware/dw-api-types/overview)
+Code assistance can be improved even more by adding `d.ts` definition for the project. Definitions for Commerce Cloud objects can be downloaded from [repo](https://github.com/SalesforceCommerceCloud/dw-api-types)
 
 ```json
 {
