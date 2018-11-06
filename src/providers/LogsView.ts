@@ -190,7 +190,7 @@ export class LogsView implements TreeDataProvider<LogItem> {
 									const cartridgeName = debuggerSep.shift() || '';
 									const cartPath = Array.from(cartridges).find(cartridge => basename(cartridge) === cartridgeName);
 									if (!cartPath) {
-										return ` ${debuggerPath}#${$2}`;;
+										return $0;
 									}
 
 									//debuggerPath = debuggerPath.substr(1);
