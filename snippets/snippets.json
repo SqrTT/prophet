@@ -22,7 +22,7 @@
     "isprint": {
         "prefix": "isprint",
         "body": [
-            "<isprint value=\"${1}\" encoding=\"${2:on}\" />"
+            "<isprint value=\"${1}\" encoding=\"${2|on,off,htmlcontent,htmlsinglequote,htmldoublequote,htmlunquote,jshtml,jsattribute,jsblock,jssource,jsonvalue,uricomponent,uristrict,xmlcontent,xmlsinglequote,xmldoublequote,xmlcomment|}\" />"
         ],
         "description": "isprint tag"
     },
