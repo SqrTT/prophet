@@ -76,21 +76,71 @@ class ProphetDebugSession extends LoggingDebugSession {
 
 		// This debug adapter implements the configurationDoneRequest.
 		if (response.body) {
+			// This default debug adapter does not support conditional breakpoints.
+			response.body.supportsConditionalBreakpoints = false;
+
+			// This default debug adapter does not support hit conditional breakpoints.
+			response.body.supportsHitConditionalBreakpoints = false;
+
+			// This default debug adapter does not support function breakpoints.
+			response.body.supportsFunctionBreakpoints = false;
+
+			// This default debug adapter implements the 'configurationDone' request.
 			response.body.supportsConfigurationDoneRequest = true;
 
-			// make VS Code to use 'evaluate' when hovering over source
+			// This default debug adapter does not support hovers based on the 'evaluate' request.
 			response.body.supportsEvaluateForHovers = false;
-			response.body.supportsFunctionBreakpoints = false;
-			response.body.supportsConditionalBreakpoints = false;
-			response.body.supportsHitConditionalBreakpoints = false;
-			response.body.supportsSetVariable = false;
-			response.body.supportsGotoTargetsRequest = false;
-			response.body.supportsRestartRequest = false;
-			response.body.supportsRestartFrame = false;
-			response.body.supportsExceptionInfoRequest = false;
-			response.body.supportsExceptionOptions = false;
+
+			// This default debug adapter does not support the 'stepBack' request.
 			response.body.supportsStepBack = false;
+
+			// This default debug adapter does not support the 'setVariable' request.
+			response.body.supportsSetVariable = false;
+
+			// This default debug adapter does not support the 'restartFrame' request.
+			response.body.supportsRestartFrame = false;
+
+			// This default debug adapter does not support the 'stepInTargets' request.
+			response.body.supportsStepInTargetsRequest = false;
+
+			// This default debug adapter does not support the 'gotoTargets' request.
+			response.body.supportsGotoTargetsRequest = false;
+
+			// This default debug adapter does not support the 'completions' request.
+			response.body.supportsCompletionsRequest = false;
+
+			// This default debug adapter does not support the 'restart' request.
+			response.body.supportsRestartRequest = false;
+
+			// This default debug adapter does not support the 'exceptionOptions' attribute on the 'setExceptionBreakpoints' request.
+			response.body.supportsExceptionOptions = false;
+
+			// This default debug adapter does not support the 'format' attribute on the 'variables', 'evaluate', and 'stackTrace' request.
 			response.body.supportsValueFormattingOptions = true;
+
+			// This debug adapter does not support the 'exceptionInfo' request.
+			response.body.supportsExceptionInfoRequest = false;
+
+			// This debug adapter does not support the 'TerminateDebuggee' attribute on the 'disconnect' request.
+			response.body.supportTerminateDebuggee = false;
+
+			// This debug adapter does not support delayed loading of stack frames.
+			response.body.supportsDelayedStackTraceLoading = false;
+
+			// This debug adapter does not support the 'loadedSources' request.
+			response.body.supportsLoadedSourcesRequest = false;
+
+			// This debug adapter does not support the 'logMessage' attribute of the SourceBreakpoint.
+			response.body.supportsLogPoints = false;
+
+			// This debug adapter does not support the 'terminateThreads' request.
+			response.body.supportsTerminateThreadsRequest = false;
+
+			// This debug adapter does not support the 'setExpression' request.
+			response.body.supportsSetExpression = false;
+
+			// This debug adapter does not support the 'terminate' request.
+			response.body.supportsTerminateRequest = false;
 			response.body.exceptionBreakpointFilters = [];
 		}
 		this.sendEvent({ event: 'prophet.getdebugger.config', type: "event", seq: 1 });
@@ -159,6 +209,8 @@ class ProphetDebugSession extends LoggingDebugSession {
 	protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments): void {
 
 		if (this.connection) {
+			this.log('Disconnecting...');
+
 			this.stopAwaitThreads();
 			this.connection
 				.disconnect()
@@ -542,8 +594,8 @@ class ProphetDebugSession extends LoggingDebugSession {
 								member.value !== 'null' &&
 								member.value !== 'unresolved'
 							) {
-								const encPath =frameReference +
-								VARIABLE_SEPARATOR + (args.expression ? args.expression + '.' : '') + member.name;
+								const encPath = frameReference +
+									VARIABLE_SEPARATOR + (args.expression ? args.expression + '.' : '') + member.name;
 								variablesReference = this._variableHandles.create(encPath);
 
 								if (['dw.', 'dw/'].some(ctype => member.type.includes(ctype))) {
