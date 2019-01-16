@@ -42,7 +42,7 @@ When your launch config is set up, you can debug your project! Pick a launch con
 The extension operates in one mode - it launch an adapter that connects to sandbox. Just like when using the other debugger, you configure with a `.vscode/launch.json` file in the root directory of your project. You can create this file manually, or Code will create one for you if you try to run your project, and it doesn't exist yet.
 
 ### Launch
-Example `launch.json` configs with `"request": "launch"`.You must not specify hostname and other credentials. Since they are will be loaded from correspond `dw.json`
+Example `launch.json` configs with `"request": "launch"`. You must not specify hostname and other credentials. Since they will be loaded from corresponding `dw.json` file.
 
 ```json
 {
@@ -64,7 +64,7 @@ Example `launch.json` configs with `"request": "launch"`.You must not specify ho
 
 ## Using the uploader
 
-Configuration for uploader should live someware in opened workspace in the file named `dw.json` (similar is used by `dwupload` and is compatible witn the uploader).
+Configuration for uploader should be in the `cartridges` folder in a file named `dw.json` (similar is used by `dwupload` and is compatible witn the uploader).
 
 ```
 ├── bc_library
@@ -98,7 +98,7 @@ You can temporarily disable watching or force upload cartridges (i.e. clean proj
 
 #### Other configuration
 
-* `extension.prophet.cartridges.path` - List of cartridges separated by colon. Allows quick open don't ask a user to choose the file. Automatically open file that match first cartridge in list.
+* `extension.prophet.cartridges.path` - List of cartridges separated by colon. Allows quick open - don't ask a user to choose the file. Automatically open file that match first cartridge in list.
 * `extension.prophet.ismlServer.activateOn` - allow activate isml server for non standatd (isml) files, ex. `html`
 * `extension.prophet.clean.on.start` - allows to enable/disable code upload on editor startup (enabled by default)
 * `extension.prophet.ignore.list` - list of regexp for files/folders should be excludes from zipping during clean (not from watching)
@@ -108,7 +108,7 @@ You can temporarily disable watching or force upload cartridges (i.e. clean proj
 
 Experience can be improved by using follow `jsconfig.json` in the folder with cartridges. It allows resolve absolute paths in scripts correctly, (except it starts with `~` or `*`).
 
-> Note: client side JS files must have it's own `jsconfig.json` file and each workspace should have it's own configuration.
+> Note: client side JS files must have their own `jsconfig.json` files and each workspace should have it's own configuration.
 
 Code assistance can be improved even more by adding `d.ts` definition for the project. Definitions for Commerce Cloud objects can be downloaded from [repo](https://github.com/SalesforceCommerceCloud/dw-api-types)
 
@@ -137,7 +137,7 @@ Code assistance can be improved even more by adding `d.ts` definition for the pr
 > * Replace cartridge1...cartridgeN for your real cartriges
 > * Replace ../types/ to path where you are unpacked type definitions
 
-To help VSCode determinate type of variable/argument JSDoc can be used. For instance:
+To help VSCode determine the type of variable/argument JSDoc can be used. For instance:
 
 ```javascript
 // local variable
