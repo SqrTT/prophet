@@ -12,7 +12,7 @@
         "email": "tolik@sqrtt.pro"
     },
     "engines": {
-        "vscode": "^1.28.1",
+        "vscode": "^1.30.0",
         "node": "^8.9.0"
     },
     "icon": "images/mock-debug-icon.ico",
@@ -31,28 +31,28 @@
     },
     "dependencies": {
         "htmlhint": "^0.10.1",
-        "js-beautify": "^1.8.8",
+        "js-beautify": "^1.8.9",
         "request": "^2.88.0",
         "rxjs": "^5.5.10",
         "strip-json-comments": "^2.0.1",
         "timeago.js": "^3.0.2",
-        "vscode-debugadapter": "^1.32.1",
-        "vscode-debugprotocol": "^1.32.0",
-        "vscode-languageclient": "^5.1.1",
-        "vscode-languageserver": "^5.1.0",
+        "vscode-debugadapter": "^1.33.0",
+        "vscode-debugprotocol": "^1.33.0",
+        "vscode-languageclient": "^5.2.1",
+        "vscode-languageserver": "^5.2.1",
         "vscode-nls": "^4.0.0",
         "vscode-uri": "^1.0.6",
         "walk": "^2.3.14",
         "xmldom": "^0.1.27",
-        "yazl": "^2.5.0"
+        "yazl": "^2.5.1"
     },
     "devDependencies": {
         "@types/mocha": "^2.2.48",
         "@types/node": "^8.9.0",
         "mocha": "^5.2.0",
-        "typescript": "^3.1.6",
-        "vscode": "^1.1.22",
-        "vscode-debugadapter-testsupport": "^1.32.0"
+        "typescript": "^3.2.4",
+        "vscode": "^1.1.28",
+        "vscode-debugadapter-testsupport": "^1.33.0"
     },
     "scripts": {
         "vscode:prepublish": "npm install && npm run compile && npm run test",
