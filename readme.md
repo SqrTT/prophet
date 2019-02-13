@@ -7,11 +7,11 @@ A VS Code extension to work with Demandware/Salesforce Cloud code on Sandbox tha
 * Syntax highlight for `isml` and `ds` files
 * Validate isml files (based on htmlhint plugin, configurable by `.htmlhintrc`)
 * Advanced support of ISML syntax
-* * hover information
-* * autocomplete tags
-* * auto formatting
-* * find Symbols
-* * highlighting selected tags
+  * hover information
+  * autocomplete tags
+  * auto formatting
+  * find Symbols
+  * highlighting selected tags
 * Setting breakpoints
 * Stepping
 * Change variables values in running threads
