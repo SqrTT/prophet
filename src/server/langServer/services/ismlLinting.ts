@@ -146,7 +146,7 @@ const defaultLinterConfig = {
 		"isprint": {
 			"selfclosing": true,
 			"attrsRequired": ["value"],
-			"attrsOptional": [["encoding", "on", "off"], ["timezone", "SITE", "INSTANCE", "utc"]]
+			"attrsOptional": [["encoding", "on", "off", "htmlcontent", "htmlsinglequote", "htmldoublequote", "htmlunquote", "jshtml", "jsattribute", "jsblock", "jssource", "jsonvalue", "uricomponent", "uristrict", "xmlcontent", "xmlsinglequote", "xmldoublequote", "xmlcomment"], ["timezone", "SITE", "INSTANCE", "utc"]]
 		},
 		"isstatus": {
 			"selfclosing": true,
