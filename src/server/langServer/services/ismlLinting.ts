@@ -488,7 +488,8 @@ export function disableLinting(connection: IConnection, documents: TextDocuments
 }
 
 export function enableLinting(connection: IConnection, documents: TextDocuments) {
-	htmlHintClient = require('htmlhint').HTMLHint;
+	htmlHintClient = require('htmlhint/dist/htmlhint').default;
+	console.log(htmlHintClient);
 	customRules.forEach(rule => htmlHintClient.addRule(rule));
 
 	// The watched .htmlhintrc has changed. Clear out the last loaded config, and revalidate all documents.
