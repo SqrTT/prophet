@@ -468,7 +468,7 @@ export const SFCC_TAGS: ITagSet = {
 	),
 	isprint: new HTMLTagSpecification(
 		'The <isprint> tag outputs the result of expressions and template variables. Even though it is possible to output expression results without <isprint>, you should always use it because it contributes to optimizing your template code.',
-		['value', 'encoding:o', 'timezone:tz', 'padding', 'style:pst']
+		['value', 'encoding:oe', 'timezone:tz', 'padding', 'style:pst']
 	),
 	iscomment: new HTMLTagSpecification(
 		'Use <iscomment> to document your templates, to include reminders or instructions for yourself and others who work with the system without making them available to anyone who "views source" on the page. Anything enclosed in an <iscomment> ... </iscomment> structure is not parsed by the template processor and does not appear in the generated storefront page.'
@@ -529,6 +529,7 @@ export function getSFCCProvider(): IHTMLTagProvider {
 		b: ['true', 'false'],
 		u: ['true', 'false', 'undefined'],
 		o: ['on', 'off'],
+		oe: ["on", "off", "htmlcontent", "htmlsinglequote", "htmldoublequote", "htmlunquote", "jshtml", "jsattribute", "jsblock", "jssource", "jsonvalue", "uricomponent", "uristrict", "xmlcontent", "xmlsinglequote", "xmldoublequote", "xmlcomment"],
 		y: ['yes', 'no'],
 		sc: ["session", "request", "page"],
 		tz: ["SITE", "INSTANCE", "utc"],
