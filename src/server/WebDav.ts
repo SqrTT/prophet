@@ -2,6 +2,7 @@
 import { relative, sep, resolve, join } from 'path';
 import { Observable } from 'rxjs';
 import { createReadStream, unlink, ReadStream } from 'fs';
+import { finished } from 'stream';
 
 
 function request$(options) {
@@ -298,17 +299,22 @@ export default class WebDav {
 					}, new yazl.ZipFile())
 					.flatMap(zipFile => {
 						return new Observable<ReadStream>(observer => {
+							zipFile.once('error', err => observer.error(err));
 
 							observer.next(zipFile.outputStream);
-							zipFile.outputStream
-								.once('close', () => { observer.complete() })
-								.once('finish', () => { observer.complete() })
-								.once('error', err => observer.error(err));
+
+							finished(zipFile.outputStream, (err) => {
+								if (err) {
+									observer.error(err);
+								} else {
+									observer.complete();
+								}
+							});
 
 							zipFile.end();
 
 							return () => {
-								zipFile.outputStream.close();
+								zipFile.outputStream.destroy();
 							}
 						});
 					});
