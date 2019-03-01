@@ -255,8 +255,8 @@ export default class WebDav {
 						).then(function (files) {
 							files.forEach(file => {
 								observer.next([
-									file.path,
-									file.path.replace(new RegExp('^' + parentProcessingFolder + sep), '')
+									file.fsPath,
+									file.fsPath.replace(parentProcessingFolder + sep, '')
 								]);
 							});
 							observer.complete();
