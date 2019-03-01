@@ -58,6 +58,9 @@ export default class Uploader {
 	isUploadEnabled() {
 		return !!workspace.getConfiguration('extension.prophet').get('upload.enabled');
 	}
+	getIgnoreList() : string[] {
+		return workspace.getConfiguration('extension.prophet').get('ignore.list', ['node_modules', '\\.git', '\\.zip$']);
+	}
 
 	askCleanCartridge(fileNamesOnSandbox: string[], cartridgesToUpload: string[]): Promise<string[]> {
 		const cartridgesNamesToUpload = cartridgesToUpload.map(cartridge => basename(cartridge));
@@ -157,7 +160,7 @@ export default class Uploader {
 						return uploadServer.init(
 							dwConf,
 							this.outputChannel,
-							{ cleanOnStart: this.cleanOnStart },
+							{ cleanOnStart: this.cleanOnStart, ignoreList: this.getIgnoreList() },
 							this.askCleanCartridge.bind(this)
 						);
 					})

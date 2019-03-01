@@ -101,7 +101,7 @@ You can temporarily disable watching or force upload cartridges (i.e. clean proj
 * `extension.prophet.cartridges.path` - List of cartridges separated by colon. Allows quick open - don't ask a user to choose the file. Automatically open file that match first cartridge in list.
 * `extension.prophet.ismlServer.activateOn` - allow activate isml server for non standatd (isml) files, ex. `html`
 * `extension.prophet.clean.on.start` - allows to enable/disable code upload on editor startup (enabled by default)
-
+* `extension.prophet.ignore.list` - list of regexp for files/folders should be excludes from zipping during clean (not from watching)
 * `extension.prophet.htmlhint.enabled` - enable/disable linting of isml files
 
 ### Improve experience

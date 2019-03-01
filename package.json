@@ -374,6 +374,16 @@
                     "default": true,
                     "description": "Enable/Disable cartridges view",
                     "scope": "window"
+                },
+                "extension.prophet.ignore.list": {
+                    "type": "array",
+                    "default": [
+                        "node_modules",
+                        "\\.git",
+                        "\\.zip$"
+                    ],
+                    "description": "list of regexp for files/folders should be excludes from zipping during clean (not from watching)",
+                    "scope": "resource"
                 }
             }
         }

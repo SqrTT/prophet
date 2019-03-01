@@ -3,7 +3,7 @@ import { relative, sep, resolve, join } from 'path';
 import { Observable } from 'rxjs';
 import { createReadStream, unlink, ReadStream } from 'fs';
 import { finished } from 'stream';
-
+import { workspace, CancellationTokenSource, RelativePattern } from 'vscode';
 
 function request$(options) {
 	//fixme: refactor to use https module
@@ -238,37 +238,37 @@ export default class WebDav {
 			}
 		});
 	}
-	getFileList(pathToCartridgesDir: string): Observable<string[]> {
+	getFileList(pathToCartridgesDir: string, { ignoreList = [] as Array<string> }): Observable<string[]> {
 		const parentProcessingFolder = resolve(pathToCartridgesDir, '..');
 
-		return Observable.fromPromise(import('vscode'))
-			.flatMap(({ workspace, CancellationTokenSource, RelativePattern }) => {
-				return new Observable<string[]>(observer => {
-					const tokenSource = new CancellationTokenSource();
 
-					workspace
-						.findFiles(
-							new RelativePattern(pathToCartridgesDir, '**/*.*'),
-							undefined,
-							undefined,
-							tokenSource.token
-						).then(function (files) {
-							files.forEach(file => {
-								observer.next([
-									file.fsPath,
-									file.fsPath.replace(parentProcessingFolder + sep, '')
-								]);
-							});
-							observer.complete();
-						}, function (err) {
-							observer.error(err);
-							tokenSource.dispose();
-						})
-					return () => {
-						tokenSource.dispose();
-					}
-				});
-			});
+		return new Observable<string[]>(observer => {
+			const tokenSource = new CancellationTokenSource();
+
+			workspace
+				.findFiles(
+					new RelativePattern(pathToCartridgesDir, '**/*.*'),
+					undefined,
+					undefined,
+					tokenSource.token
+				).then(function (files) {
+					files.forEach(file => {
+						if (!ignoreList.some(ignore => !!file.fsPath.match(ignore))) {
+							observer.next([
+								file.fsPath,
+								file.fsPath.replace(parentProcessingFolder + sep, '')
+							]);
+						}
+					});
+					observer.complete();
+				}, function (err) {
+					observer.error(err);
+					tokenSource.dispose();
+				})
+			return () => {
+				tokenSource.dispose();
+			}
+		});
 	}
 	deleteLocalFile(fileName): Observable<undefined> {
 		return Observable.create(observer => {
@@ -283,10 +283,10 @@ export default class WebDav {
 			return () => { isCanceled = true }
 		});
 	}
-	zipFiles(pathToCartridgesDir) {
+	zipFiles(pathToCartridgesDir, { ignoreList = [] as Array<string> }) {
 		return Observable.fromPromise(import('yazl'))
 			.flatMap(yazl => {
-				return this.getFileList(pathToCartridgesDir)
+				return this.getFileList(pathToCartridgesDir, { ignoreList })
 					.reduce((zipFile, files) => {
 						if (files.length === 1) {
 							zipFile.addEmptyDirectory(files[0]);
@@ -322,7 +322,8 @@ export default class WebDav {
 	}
 	uploadCartridge(
 		pathToCartridgesDir,
-		notify = (arg: string) => { }
+		notify = (arg: string) => { },
+		{ ignoreList = [] as Array<string> }
 	) {
 
 		const processingFolder = pathToCartridgesDir.split(sep).pop();
@@ -335,7 +336,7 @@ export default class WebDav {
 			})
 			.flatMap(() => {
 				notify(`[${processingFolder}] Zipping`);
-				return this.zipFiles(pathToCartridgesDir)
+				return this.zipFiles(pathToCartridgesDir, { ignoreList })
 			})
 			.flatMap((stream) => {
 				notify(`[${processingFolder}] Sending zip to remote`);
