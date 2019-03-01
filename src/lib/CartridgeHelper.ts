@@ -73,7 +73,7 @@ export const getPathsCartridges = (workspaceFolder, packageFile): Promise<string
 									exists(join(workspaceFolder, path), packagePathExists => {
 										if (packagePathExists) {
 											workspace
-												.findFiles(new RelativePattern(workspaceFolder, '.project'), '{node_modules,.git}')
+												.findFiles(new RelativePattern(workspaceFolder, '.project'))
 												.then(filesUri => {
 													resolvePathProjects(filesUri.map(fileUri => fileUri.fsPath))
 												}, rejectPathProjects);

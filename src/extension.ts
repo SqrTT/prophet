@@ -12,7 +12,7 @@ import Uploader from "./providers/Uploader";
 import { ProphetConfigurationProvider } from './providers/ConfigurationProvider';
 import { Subject, Observable } from 'rxjs';
 import { findFiles, getDWConfig, getCartridgesFolder } from './lib/FileHelper';
-//import { SandboxFS } from './providers/SandboxFileSystemProvider';
+import { SandboxFS } from './providers/SandboxFileSystemProvider';
 
 
 /**
@@ -238,33 +238,32 @@ export function activate(context: ExtensionContext) {
 		window.showErrorMessage('Your `files.exclude` excludes `.project`. Cartridge detection may not work properly');
 	}
 	// workspace.registerSearchProvider();
-	//initFS(context);
+	initFS(context);
 }
 
-// function initFS(context : ExtensionContext) {
+function initFS(context : ExtensionContext) {
 
-// 	if (!workspace.workspaceFolders) {
-// 		return;
-// 	}
-// 	const fileWorkspaceFolders = workspace.workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
+	if (!workspace.workspaceFolders) {
+		return;
+	}
+	const fileWorkspaceFolders = workspace.workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
 
-// 	getDWConfig(fileWorkspaceFolders).then(options => {
+	getDWConfig(fileWorkspaceFolders).then(options => {
 
-// 		let sandboxFS = new SandboxFS(options);
+		let sandboxFS = new SandboxFS(options);
 
-// 		context.subscriptions.push(workspace.registerFileSystemProvider('ccfs', sandboxFS, { isCaseSensitive: true }));
+		context.subscriptions.push(workspace.registerFileSystemProvider('ccfs', sandboxFS, { isCaseSensitive: true }));
 
-// 		if (workspace.workspaceFolders) {
-// 			if (!workspace.workspaceFolders.some(workspaceFolder => workspaceFolder.uri.scheme === 'ccfs')) {
-// 				workspace.updateWorkspaceFolders(0, 0, {
-// 					uri: Uri.parse('ccfs://' + options.hostname + '/'),
-// 					name: "Sandbox - FileSystem",
-// 				});
-// 			}
-// 		}
-
-// 	});
-// }
+		if (workspace.workspaceFolders) {
+			if (!workspace.workspaceFolders.some(workspaceFolder => workspaceFolder.uri.scheme === 'ccfs')) {
+				workspace.updateWorkspaceFolders(0, 0, {
+					uri: Uri.parse('ccfs://' + options.hostname + '/'),
+					name: "Sandbox - FileSystem",
+				});
+			}
+		}
+	});
+}
 
 function initDebugger() {
 	debug.onDidReceiveDebugSessionCustomEvent(event => {

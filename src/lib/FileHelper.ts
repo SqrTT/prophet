@@ -89,7 +89,7 @@ export function findFiles(include: RelativePattern, maxResults?: number, errIfNo
 
 		workspace.findFiles(
 			include,
-			'{node_modules,.git,RemoteSystemsTempFiles}',
+			undefined,
 			maxResults,
 			tokenSource.token
 		).then(files => {

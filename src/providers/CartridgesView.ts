@@ -254,7 +254,7 @@ export class CartridgesView implements TreeDataProvider<GenericTreeItem> {
 				cartridgeViewOutputChannel.appendLine('Found extra cartridges in package file paths:\n\t*' + paths.join('\n\t*'));
 			}
 
-			const filesUri = await workspace.findFiles(new RelativePattern(workspaceFolder, '**/.project'), '{node_modules,.git}');
+			const filesUri = await workspace.findFiles(new RelativePattern(workspaceFolder, '**/.project'));
 
 			let projectFiles = filesUri.map(file => file.fsPath);
 			cartridgeViewOutputChannel.appendLine('Found catridges in workspace:\n\t*' + projectFiles.join('\n\t*'));

@@ -1,7 +1,8 @@
 
 import { relative, sep, resolve, join } from 'path';
 import { Observable } from 'rxjs';
-import { createReadStream, unlink, createWriteStream } from 'fs';
+import { createReadStream, unlink, ReadStream } from 'fs';
+
 
 function request$(options) {
 	//fixme: refactor to use https module
@@ -107,6 +108,19 @@ export default class WebDav {
 			body: createReadStream(filePath)
 		})).do(body => {
 			this.log('post-response', uriPath, body);
+		});
+	}
+	postStream(filePath: string, stream: ReadStream, root: string = this.config.root): Observable<string> {
+		const uriPath = relative(root, filePath);
+
+		this.log('post', uriPath);
+
+		return request$(Object.assign(this.getOptions(), {
+			uri: '/' + uriPath,
+			method: 'PUT',
+			body: stream
+		})).do(body => {
+			this.log('post-response-stream', uriPath, body);
 		});
 	}
 	mkdir(filePath: string, root: string = this.config.root): Observable<string> {
@@ -223,77 +237,37 @@ export default class WebDav {
 			}
 		});
 	}
-	getFileList(pathToCartridgesDir: string, options): Observable<string[]> {
-		const { isCartridge = false } = options;
-		const { isDirectory = false } = options;
-		const { ignoreList = ['node_modules', '\\.git', '\\.zip$'] } = options;
-		const processingFolder = pathToCartridgesDir.split(sep).pop();
+	getFileList(pathToCartridgesDir: string): Observable<string[]> {
+		const parentProcessingFolder = resolve(pathToCartridgesDir, '..');
 
-		return Observable.fromPromise(import('walk'))
-			.flatMap(walk => {
+		return Observable.fromPromise(import('vscode'))
+			.flatMap(({ workspace, CancellationTokenSource, RelativePattern }) => {
 				return new Observable<string[]>(observer => {
-					let walker = walk.walk(pathToCartridgesDir, {
-						filters: [/node_modules/, /\.git/],
-						followLinks: true
-					});
+					const tokenSource = new CancellationTokenSource();
 
-					/**
-					 * When we have an empty Directory(eg, newly created cartridge), walking on "file" doesn't work.
-					 * So, we walk on "directories" and call function "addEmptyDirectory" to add
-					 * EMPTY DIRS to ZIP
-					 */
-					if (isDirectory) {
-						walker.on('directories', function (root, stats, next) {
-
-							stats.forEach(function (stat) {
-								const toFile = relative(isCartridge ?
-									pathToCartridgesDir.replace(processingFolder || '', '') :
-									pathToCartridgesDir, resolve(root, stat.name));
-
-								if (ignoreList.some(ignore => toFile.match(ignore))) {
-									next()
-								} else {
-									observer.next([toFile])
-								}
+					workspace
+						.findFiles(
+							new RelativePattern(pathToCartridgesDir, '**/*.*'),
+							undefined,
+							undefined,
+							tokenSource.token
+						).then(function (files) {
+							files.forEach(file => {
+								observer.next([
+									file.path,
+									file.path.replace(new RegExp('^' + parentProcessingFolder + sep), '')
+								]);
 							});
-							next();
-						});
-					} else {
-						walker.on('file', (root, fileStat, next) => {
-							const file = resolve(root, fileStat.name);
-							if (ignoreList.some(ignore => file.match(ignore))) {
-								next()
-							} else {
-								const toFile = relative(isCartridge ?
-									pathToCartridgesDir.replace(new RegExp(processingFolder + '$'), '') :
-									pathToCartridgesDir, resolve(root, fileStat.name));
-
-								//this.log('adding to zip:', file);
-
-								observer.next([file, toFile])
-								next();
-							}
-						});
-					}
-
-					walker.on('end', () => {
-						observer.complete();
-					});
-
-					walker.on('nodeError', (__, { error }) => {
-						observer.error(error);
-					});
-					walker.on('directoryError', (__, { error }) => {
-						observer.error(error);
-					});
-
+							observer.complete();
+						}, function (err) {
+							observer.error(err);
+							tokenSource.dispose();
+						})
 					return () => {
-						walker.removeAllListeners();
-						walker.pause();
+						tokenSource.dispose();
 					}
 				});
-			}
-			);
+			});
 	}
 	deleteLocalFile(fileName): Observable<undefined> {
 		return Observable.create(observer => {
@@ -308,11 +282,10 @@ export default class WebDav {
 			return () => { isCanceled = true }
 		});
 	}
-	zipFiles(pathToCartridgesDir, cartridgesPackagePath, options) {
-
+	zipFiles(pathToCartridgesDir) {
 		return Observable.fromPromise(import('yazl'))
 			.flatMap(yazl => {
-				return this.getFileList(pathToCartridgesDir, options)
+				return this.getFileList(pathToCartridgesDir)
 					.reduce((zipFile, files) => {
 						if (files.length === 1) {
 							zipFile.addEmptyDirectory(files[0]);
@@ -324,21 +297,18 @@ export default class WebDav {
 						return zipFile;
 					}, new yazl.ZipFile())
 					.flatMap(zipFile => {
+						return new Observable<ReadStream>(observer => {
 
-						zipFile.end();
-						return new Observable(observer => {
-							const inputStream = createWriteStream(cartridgesPackagePath);
-							const outputStream = zipFile.outputStream;
-
+							observer.next(zipFile.outputStream);
 							zipFile.outputStream
-								.pipe(inputStream)
-								.once('close', () => { observer.next(); observer.complete() })
+								.once('close', () => { observer.complete() })
+								.once('finish', () => { observer.complete() })
 								.once('error', err => observer.error(err));
 
+							zipFile.end();
+
 							return () => {
-								inputStream.close();
-								outputStream.unpipe(inputStream);
-								inputStream.end();
+								zipFile.outputStream.close();
 							}
 						});
 					});
@@ -346,33 +316,24 @@ export default class WebDav {
 	}
 	uploadCartridge(
 		pathToCartridgesDir,
-		notify = (string) => { },
-		options: ({ ignoreList?: string[], isCartridge?: boolean }) = {}
+		notify = (arg: string) => { }
 	) {
 
 		const processingFolder = pathToCartridgesDir.split(sep).pop();
 		const cartridgesZipFileName = join(pathToCartridgesDir, processingFolder + '_cartridge.zip');
 
 
-		return this.deleteLocalFile(cartridgesZipFileName)
+		return this.delete(cartridgesZipFileName, pathToCartridgesDir)
 			.do(() => {
-				notify(`[${processingFolder}] Deleting local zip`);
+				notify(`[${processingFolder}] Deleting remote zip (if any)`);
 			})
 			.flatMap(() => {
 				notify(`[${processingFolder}] Zipping`);
-				return this.zipFiles(pathToCartridgesDir, cartridgesZipFileName, options)
+				return this.zipFiles(pathToCartridgesDir)
 			})
-			.flatMap(() => {
-				notify(`[${processingFolder}] Deleting remote zip`);
-				return this.delete(cartridgesZipFileName, pathToCartridgesDir)
-			})
-			.flatMap(() => {
+			.flatMap((stream) => {
 				notify(`[${processingFolder}] Sending zip to remote`);
-				return this.post(cartridgesZipFileName, pathToCartridgesDir)
-			})
-			.flatMap(() => {
-				notify(`[${processingFolder}] Deleting local zip...`);
-				return this.deleteLocalFile(cartridgesZipFileName);
+				return this.postStream(cartridgesZipFileName, stream, pathToCartridgesDir)
 			})
 			.flatMap(() => {
 				notify(`[${processingFolder}] Unzipping remote zip`);

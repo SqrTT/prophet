@@ -27,7 +27,7 @@ export function getWebDavClient(config: DavOptions, outputChannel: OutputChannel
 	});
 }
 
-function fileWatcher(config, cartRoot: string, outputChannel: OutputChannel): Observable<['change' | 'delete' | 'create', string]> {
+function fileWatcher(config, cartRoot: string): Observable<['change' | 'delete' | 'create', string]> {
 	return Observable.create(observer => {
 		const watchers: FileSystemWatcher[] = [];
 		let cartridges: Promise<string[]>;
@@ -39,14 +39,6 @@ function fileWatcher(config, cartRoot: string, outputChannel: OutputChannel): Ob
 		}
 
 		cartridges.then(cartridges => {
-			// Unfortunately workspace.createFileSystemWatcher() does
-			// only support single paths and no excludes
-			// it is however very CPU friendly compared to fs.watch()
-			var excludeGlobPattern = [
-				'node_modules' + sep,
-				'.git' + sep,
-				'_cartridge.zip'
-			];
 			// ... we create an array of watchers
 			cartridges.forEach(cartridge => {
 				watchers.push(
@@ -56,9 +48,7 @@ function fileWatcher(config, cartRoot: string, outputChannel: OutputChannel): Ob
 
 			// manually check for the excludes in the callback
 			var callback = (method: 'change' | 'delete' | 'create') => ((uri: Uri) => {
-				if (!excludeGlobPattern.some(pattern => uri.fsPath.includes(pattern))) {
-					observer.next([method, uri.fsPath])
-				}
+				observer.next([method, uri.fsPath])
 			});
 			// add the listerners to all watchers
 			watchers.forEach(watcher => {
@@ -82,7 +72,7 @@ function cleanPath(rootPath, filePath) {
 const uploadCartridges = (
 	webdav: WebDav,
 	outputChannel: OutputChannel,
-	config: ({ cartridge, ignoreList?: string[] }),
+	config: ({ cartridge }),
 	cartRoot: string,
 	ask: (sb: string[], listc: string[]) => Promise<string[]>,
 	progress: Progress<{ message?: string, increment?: number }>
@@ -95,7 +85,7 @@ const uploadCartridges = (
 	};
 
 	const toUpload = cartridges.map(cartridge => webdav
-		.uploadCartridge(join(cartRoot, cartridge), notify, { isCartridge: true, ignoreList: config.ignoreList }).do(
+		.uploadCartridge(join(cartRoot, cartridge), notify).do(
 			(data) => { },
 			(error) => { },
 			() => {
@@ -115,7 +105,7 @@ const uploadCartridges = (
 function uploadWithProgress(
 	webdav: WebDav,
 	outputChannel: OutputChannel,
-	config: ({ cartridge, version, cleanOnStart: boolean, ignoreList?: string[] }),
+	config: ({ cartridge, version, cleanOnStart: boolean }),
 	rootDir: string,
 	ask: (sb: string[], listc: string[]) => Promise<string[]>
 ) {
@@ -203,14 +193,14 @@ function uploadWithProgress(
 function uploadAndWatch(
 	webdav: WebDav,
 	outputChannel: OutputChannel,
-	config: ({ cartridge, version, cleanOnStart: boolean, ignoreList?: string[] }),
+	config: ({ cartridge, version, cleanOnStart: boolean }),
 	ask: (sb: string[], listc: string[]) => Promise<string[]>,
 	rootDir: string
 ) {
 	return uploadWithProgress(webdav, outputChannel, config, rootDir, ask)
 		.flatMap(() => {
 			outputChannel.appendLine(`Watching files`);
-			return fileWatcher(config, rootDir, outputChannel)
+			return fileWatcher(config, rootDir)
 				.delay(300)// delay uploading file (allow finish writting for large files)
 				.mergeMap(([action, fileName]) => {
 					const date = new Date().toTimeString().split(' ').shift();
@@ -243,7 +233,7 @@ function uploadAndWatch(
 		});
 }
 
-export function init(dwConfig: DavOptions, outputChannel: OutputChannel, config: { ignoreList?: string[], cleanOnStart: boolean }, ask: (sb: string[], listc: string[]) => Promise<string[]>) {
+export function init(dwConfig: DavOptions, outputChannel: OutputChannel, config: { cleanOnStart: boolean }, ask: (sb: string[], listc: string[]) => Promise<string[]>) {
 	return getWebDavClient(dwConfig, outputChannel, '')
 		.flatMap(webdav => {
 			let retryCounter = 0;
