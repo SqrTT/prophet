@@ -216,7 +216,7 @@ export default class WebDav {
 			this.log('delete-response', uriPath, body);
 		}).catch(err => {
 			// it's ok to ignore 404 error if the file is not found
-			if (err && err.message.trim() === 'Not Found') {
+			if (err && err.message && err.message.trim() === 'Not Found') {
 				return Observable.of(err);
 			} else {
 				return Observable.throw(err);
