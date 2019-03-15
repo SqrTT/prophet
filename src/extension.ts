@@ -251,15 +251,17 @@ function initFS(context : ExtensionContext) {
 	getDWConfig(fileWorkspaceFolders).then(options => {
 
 		let sandboxFS = new SandboxFS(options);
-
-		context.subscriptions.push(workspace.registerFileSystemProvider('ccfs', sandboxFS, { isCaseSensitive: true }));
+		context.subscriptions.push(workspace.registerFileSystemProvider(SandboxFS.SCHEME, sandboxFS, { isCaseSensitive: true }));
 
 		if (workspace.workspaceFolders) {
-			if (!workspace.workspaceFolders.some(workspaceFolder => workspaceFolder.uri.scheme === 'ccfs')) {
-				workspace.updateWorkspaceFolders(0, 0, {
-					uri: Uri.parse('ccfs://' + options.hostname + '/'),
-					name: "Sandbox - FileSystem",
-				});
+			if (!workspace.workspaceFolders.some(workspaceFolder => workspaceFolder.uri.scheme.toLowerCase() === SandboxFS.SCHEME)) {
+				const extConf = workspace.getConfiguration('extension.prophet');
+				if (extConf.get('sandbox.filesystem.enabled')) {
+					workspace.updateWorkspaceFolders(0, 0, {
+						uri: Uri.parse(SandboxFS.SCHEME +  '://current-sandbox'),
+						name: "Sandbox - FileSystem",
+					});
+				}
 			}
 		}
 	});

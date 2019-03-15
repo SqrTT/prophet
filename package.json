@@ -384,6 +384,12 @@
                     ],
                     "description": "list of regexp for files/folders should be excludes from zipping during clean (not from watching)",
                     "scope": "resource"
+                },
+                "extension.prophet.sandbox.filesystem.enabled" : {
+                    "type" :"boolean",
+                    "default": true,
+                    "description": "Enable Sandbox File System workspace",
+                    "scope": "application"
                 }
             }
         }

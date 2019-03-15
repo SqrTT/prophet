@@ -103,6 +103,7 @@ You can temporarily disable watching or force upload cartridges (i.e. clean proj
 * `extension.prophet.clean.on.start` - allows to enable/disable code upload on editor startup (enabled by default)
 * `extension.prophet.ignore.list` - list of regexp for files/folders should be excludes from zipping during clean (not from watching)
 * `extension.prophet.htmlhint.enabled` - enable/disable linting of isml files
+* `extension.prophet.sandbox.filesystem.enabled` - Enable Sandbox File System Workspace
 
 ### Improve experience
 

@@ -83,6 +83,7 @@ export class SandboxFS implements FileSystemProvider {
 		this.webDav = new WebDav(webdavOptions);
 		this.webDav.config.version = '';
 	}
+	static readonly SCHEME = 'ccfs';
 
 	stat(uri: Uri): FileStat | Thenable<FileStat> {
 		if (uri.path === '/') {
