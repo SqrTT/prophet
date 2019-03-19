@@ -84,6 +84,7 @@ export default class Uploader {
 				return cartridgesNamesToUpload;
 			}
 		} else {
+			// Grab the configuration from the dw.json file
 			const config = await getDWConfig(this.workspaceFolders);
 
 			if(config.cartrigeResolution === 'remove') {
@@ -94,6 +95,7 @@ export default class Uploader {
 				return cartridgesNamesToUpload;
 			}
 
+			// Prompt the user for his preferred action
 			const response = await window.showWarningMessage(`Your sandbox has extra cartridge/s. "${extraOnSB.join('", "')}". What would you like to do?`,
 			'Remove All Always', 'Leave All Always', 'Remove All', 'Leave All');
 			
