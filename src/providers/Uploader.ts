@@ -62,7 +62,7 @@ export default class Uploader {
 		return workspace.getConfiguration('extension.prophet').get('ignore.list', ['node_modules', '\\.git', '\\.zip$']);
 	}
 
-	askCleanCartridge(fileNamesOnSandbox: string[], cartridgesToUpload: string[]): Promise<string[]> {
+	async askCleanCartridge(fileNamesOnSandbox: string[], cartridgesToUpload: string[]): Promise<string[]> {
 		const cartridgesNamesToUpload = cartridgesToUpload.map(cartridge => basename(cartridge));
 
 		const extraOnSB = diff(cartridgesNamesToUpload, fileNamesOnSandbox).filter(name => {
@@ -76,43 +76,34 @@ export default class Uploader {
 
 
 		if (extraOnSB.length === 0) {
-			return Promise.resolve(fileNamesOnSandbox);
+			return fileNamesOnSandbox;
 		} else if (removeFilesMode) {
 			if (removeFilesMode === 'remove') {
-				return Promise.resolve(fileNamesOnSandbox);
+				return fileNamesOnSandbox;
 			} else {
-				return Promise.resolve(cartridgesNamesToUpload);
+				return cartridgesNamesToUpload;
 			}
 		} else {
-			return new Promise((resolve, reject) => {
-				window.showWarningMessage(`Your sandbox has extra cartridge/s. "${extraOnSB.join('", "')}". What would you like to do?`,
-					'Remove All Always', 'Leave All Always', 'Remove All', 'Leave All')
-					.then(response => {
-						if (response) {
-
-							switch (response) {
-								case 'Remove All Always':
-									resolve(fileNamesOnSandbox);
-									removeFilesMode = "remove";
-									break;
-								case 'Leave All Always':
-									resolve(cartridgesNamesToUpload);
-									removeFilesMode = "leave"
-									break;
-
-								case 'Remove All':
-									resolve(fileNamesOnSandbox);
-									break;
-								default:
-									resolve(cartridgesNamesToUpload);
-									break;
-							}
-						} else {
-							resolve(cartridgesNamesToUpload);
-						}
-					}, reject);
-			})
-
+			const response = await window.showWarningMessage(`Your sandbox has extra cartridge/s. "${extraOnSB.join('", "')}". What would you like to do?`,
+			'Remove All Always', 'Leave All Always', 'Remove All', 'Leave All');
+			
+			if (response) {
+				
+				switch (response) {
+					case 'Remove All Always':
+					removeFilesMode = "remove";
+					return fileNamesOnSandbox;
+					case 'Leave All Always':
+					removeFilesMode = "leave";
+					return cartridgesNamesToUpload;
+					case 'Remove All':
+					return fileNamesOnSandbox;
+					default:
+					return cartridgesNamesToUpload;
+				}
+			} else {
+				return cartridgesNamesToUpload;
+			}
 		}
 	}
 	/**
