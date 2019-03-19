@@ -35,7 +35,8 @@ export interface DavOptions {
 	password: string,
 	version: string,
 	root: string,
-	debug?: boolean
+	debug?: boolean,
+	cartrigeResolution: 'ask'|'leave'|'remove'
 }
 
 function getMatches(string: string, regex: RegExp, index = 1) {
