@@ -84,6 +84,16 @@ export default class Uploader {
 				return cartridgesNamesToUpload;
 			}
 		} else {
+			const config = await getDWConfig(this.workspaceFolders);
+
+			if(config.cartrigeResolution === 'remove') {
+				removeFilesMode = "remove";
+				return fileNamesOnSandbox;
+			} else if (config.cartrigeResolution === 'leave') {
+				removeFilesMode = "leave";
+				return cartridgesNamesToUpload;
+			}
+
 			const response = await window.showWarningMessage(`Your sandbox has extra cartridge/s. "${extraOnSB.join('", "')}". What would you like to do?`,
 			'Remove All Always', 'Leave All Always', 'Remove All', 'Leave All');
 			
