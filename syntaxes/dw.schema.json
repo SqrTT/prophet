@@ -47,6 +47,11 @@
             "type":"boolean",
             "default": false,
             "description": "Enable more verbose logging"
+        },
+        "cartridgeResolution" : {
+            "type":"string",
+            "default": "ask",
+            "description": "Leaves all the cartridges instead of asking"
         }
     },
     "dependencies": {
