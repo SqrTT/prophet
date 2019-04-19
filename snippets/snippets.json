@@ -1,441 +1,576 @@
-{
-    "isif condition": {
-        "prefix": "isif",
-        "body": [
-            "<isif condition=\"${1}\" >",
-            "",
-            "${2:<iselse/>}",
-            "",
-            "</isif>"
+{  
+    "isactivedatahead":{  
+        "prefix":"isactivedatahead",
+        "body":[  
+            "<isactivedatahead />\n${0}"
         ],
-        "description": "isif condition"
+        "description":"isactivedatahead tag"
     },
-    "isloop": {
-        "prefix": "isloop",
-        "body": [
-            "<isloop items=\"${1}\" var=\"${2}\">",
-            "${0}",
-            "</isloop>"
+    "isactivedatacontext":{  
+        "prefix":"isactivedatacontext",
+        "body":[  
+            "<isactivedatacontext category=\"${1}\" />"
         ],
-        "description": "isloop tag"
+        "description":"isactivedatacontext tag"
     },
-    "isprint": {
-        "prefix": "isprint",
-        "body": [
-            "<isprint value=\"${1}\" encoding=\"${2|on,off,htmlcontent,htmlsinglequote,htmldoublequote,htmlunquote,jshtml,jsattribute,jsblock,jssource,jsonvalue,uricomponent,uristrict,xmlcontent,xmlsinglequote,xmldoublequote,xmlcomment|}\" />"
+    "isanalyticsoff":{  
+        "prefix":"isanalyticsoff",
+        "body":[  
+            "<isanalyticsoff />\n${0}"
         ],
-        "description": "isprint tag"
+        "description":"isanalyticsoff tag"
     },
-    "iscomment": {
-        "prefix": "iscomment",
-        "body": [
+    "isbreak":{  
+        "prefix":"isbreak",
+        "body":[  
+            "<isbreak />\n${0}"
+        ],
+        "description":"isbreak tag"
+    },
+    "iscache":{  
+        "prefix":"iscache",
+        "body":[  
+            "<iscache type=\"${1|relative,daily|}\" hour=\"${2:24}\" status=\"${3:on}\" />\n${0}"
+        ],
+        "description":"iscache tag"
+    },
+    "iscomment":{  
+        "prefix":"iscomment",
+        "body":[  
             "<iscomment>",
-            "${0}",
+            "    ${0}",
             "</iscomment>"
         ],
-        "description": "iscomment tag"
+        "description":"iscomment tag"
     },
-    "isset": {
-        "prefix": "isset",
-        "body": [
-            "<isset name=\"${1}\" value=\"${2}\" scope=\"${3}\"/>\n${0}"
+    "iscomponent":{  
+        "prefix":"iscomponent",
+        "body":[  
+            "<iscomponent pipeline=\"${1}\" ${2:locale=\"${3}\" }/>"
         ],
-        "description": "isset tag"
+        "description":"iscomponent tag"
     },
-    "isdecorate": {
-        "prefix": "isdecorate",
-        "body": [
+    "iscontent":{  
+        "prefix":"iscontent",
+        "body":[  
+            "<iscontent type=\"${1|text/html,text/plain,application/json|}\" charset=\"UTF-8\" compact=\"${2|true,false|\" />"
+        ],
+        "description":"iscontent tag"
+    },
+    "iscontentasset":{  
+        "prefix":"iscontentasset",
+        "body":[  
+            "<iscontentasset aid=\"${1}\" />"
+        ],
+        "description":"iscontentasset tag"
+    },
+    "iscontinue":{  
+        "prefix":"iscontinue",
+        "body":[  
+            "<iscontinue />\n${0}"
+        ],
+        "description":"iscontinue tag"
+    },
+    "iscookie":{  
+        "prefix":"iscookie",
+        "body":[  
+            "<iscookie name=\"${1}\" value=\"${2}\" />"
+        ],
+        "description":"iscookie tag"
+    },
+    "isdecorate":{  
+        "prefix":"isdecorate",
+        "body":[  
             "<isdecorate template=\"${1}\">",
-            "${0}",
+            "    ${0}",
             "</isdecorate>"
         ],
-        "description": "isdecorate tag"
+        "description":"isdecorate tag"
     },
-    "isscript": {
-        "prefix": "isscript",
-        "body": [
+    "iselse condition":{  
+        "prefix":"iselse",
+        "body":[  
+            "<iselse />",
+            "    ${0}"
+        ],
+        "description":"iselse condition"
+    },
+    "iselseif condition":{  
+        "prefix":"iselseif",
+        "body":[  
+            "<iselseif condition=\"${1}\" />",
+            "    ${0}"
+        ],
+        "description":"iselseif condition"
+    },
+    "isif condition":{  
+        "prefix":"isif",
+        "body":[  
+            "<isif condition=\"${1}\">",
+            "${2:    ${3}\n<iselse />\n    ${4}}",
+            "</isif>"
+        ],
+        "description":"isif condition"
+    },
+    "isinclude template":{  
+        "prefix":"isinclude_template",
+        "body":[  
+            "<isinclude template=\"${1}\" sf-toolkit=\"${2|on,off|}\" />\n${0}"
+        ],
+        "description":"isinclude template tag"
+    },
+    "isinclude url":{  
+        "prefix":"isinclude_url",
+        "body":[  
+            "<isinclude url=\"${1}\" sf-toolkit=\"${2|on,off|}\" />\n${0}"
+        ],
+        "description":"isinclude url tag"
+    },
+    "isinputfield":{  
+        "prefix":"isinputfield",
+        "body":[  
+            "<isinputfield formfield=\"${1}\" type=\"${2:input}\" />"
+        ],
+        "description":"isinputfield tag"
+    },
+    "isloop":{  
+        "prefix":"isloop",
+        "body":[  
+            "<isloop items=\"${1}\" var=\"${2}\" ${3:status=\"${4:loopstatus}\"}>",
+            "    ${0}",
+            "</isloop>"
+        ],
+        "description":"isloop tag"
+    },
+    "ismodule":{  
+        "prefix":"ismodule",
+        "body":[  
+            "<ismodule template=\"${1}\" name=\"${2}\" attribute=\"${3}\" />"
+        ],
+        "description":"ismodule tag"
+    },
+    "isnext":{  
+        "prefix":"isnext",
+        "body":[  
+            "<isnext />\n${0}"
+        ],
+        "description":"isnext tag"
+    },
+    "isobject":{  
+        "prefix":"isobject",
+        "body":[  
+            "<isobject object=\"${1}\" view=\"${2|none,searchhit,recommendation,setproduct,detail|}\">",
+            "    ${0}",
+            "</isobject>"
+        ],
+        "description":"isobject tag"
+    },
+    "isprint":{  
+        "prefix":"isprint",
+        "body":[  
+            "<isprint value=\"${1}\" encoding=\"${2|on,off,htmlcontent,htmlsinglequote,htmldoublequote,htmlunquote,jshtml,jsattribute,jsblock,jssource,jsonvalue,uricomponent,uristrict,xmlcontent,xmlsinglequote,xmldoublequote,xmlcomment|}\" />"
+        ],
+        "description":"isprint tag"
+    },
+    "isredirect":{  
+        "prefix":"isredirect",
+        "body":[  
+            "<isredirect location=\"${1}\" permanent=\"${2|false,true|}\">"
+        ],
+        "description":"isredirect tag"
+    },
+    "isremove":{  
+        "prefix":"isremove",
+        "body":[  
+            "<isremove name=\"${1}\" scope=\"${2|page,session,request|}\" />\n${0}"
+        ],
+        "description":"isremove tag"
+    },
+    "isreplace":{  
+        "prefix":"isreplace",
+        "body":[  
+            "<isreplace />\n${0}"
+        ],
+        "description":"isreplace tag"
+    },
+    "isselect":{  
+        "prefix":"isselect",
+        "body":[  
+            "<isselect name=\"${1}\" iterator=\"${2}\" description=\"${3}\" value=\"${4}\" ${5:condition=\"${6}\" }encoding=\"${7|on:off|}\" />\n${0}"
+        ],
+        "description":"isselect tag"
+    },
+    "isscript":{  
+        "prefix":"isscript",
+        "body":[  
             "<isscript>",
-            "${0}",
+            "    ${0}",
             "</isscript>"
         ],
-        "description": "isscript tag"
+        "description":"isscript tag"
     },
-    "isinclude": {
-        "prefix": "isinclude_url",
-        "body": [
-            "<isinclude url=\"${1}\"/>\n${0}"
+    "isset":{  
+        "prefix":"isset",
+        "body":[  
+            "<isset name=\"${1}\" value=\"${2}\" scope=\"${3|page,session,request|}\" />\n${0}"
         ],
-        "description": "isinclude url tag"
+        "description":"isset tag"
     },
-    "isinclude template": {
-        "prefix": "isinclude_template",
-        "body": [
-            "<isinclude template=\"${1}\" />\n${0}"
+    "isslot":{  
+        "prefix":"isslot",
+        "body":[  
+            "<isslot id=\"${0}\" context=\"${1|global,category,folder|}\" description=\"${2}\" ${3:context-object=\"${4}} ${5:preview-url=\"${6}}\" />\n"
         ],
-        "description": "isinclude template tag"
+        "description":"isslot tag"
     },
-    "iscontent": {
-        "prefix": "iscontent",
-        "body": [
-            "<iscontent type=\"text/html\" charset=\"UTF-8\" compact=\"true\" />"
+    "isstatus":{  
+        "prefix":"isstatus",
+        "body":[  
+            "<isstatus value=\"${1}\" />\n${0}"
         ],
-        "description": "iscontent tag"
+        "description":"isstatus tag"
     },
-    "isinputfield": {
-        "prefix": "isinputfield",
-        "body": [
-            "<isinputfield formfield=\"${1}\" type=\"${2:input\" />"
-        ],
-        "description": "isinputfield tag"
-    },
-    "iscache": {
-        "prefix": "iscache",
-        "body": [
-            "<iscache type=\"${1:relative}\" hour=\"${2:24}\" status=\"${3:on}\" />\n${0}"
-        ],
-        "description": "iscache tag"
-    },
-    "doctype": {
-        "prefix": "doctype",
-        "body": [
+    "doctype":{  
+        "prefix":"doctype",
+        "body":[  
             "<!DOCTYPE>",
             "$1"
         ],
-        "description": "HTML - Defines the document type"
+        "description":"HTML - Defines the document type"
     },
-    "a": {
-        "prefix": "a",
-        "body": "<a href=\"$1\">$2</a>$3",
-        "description": "HTML - Defines a hyperlink"
+    "a":{  
+        "prefix":"a",
+        "body":"<a href=\"$1\">$2</a>$3",
+        "description":"HTML - Defines a hyperlink"
     },
-    "abbr": {
-        "prefix": "abbr",
-        "body": "<abbr title=\"$1\">$2</abbr>$3",
-        "description": "HTML - Defines an abbreviation"
+    "abbr":{  
+        "prefix":"abbr",
+        "body":"<abbr title=\"$1\">$2</abbr>$3",
+        "description":"HTML - Defines an abbreviation"
     },
-    "address": {
-        "prefix": "address",
-        "body": [
+    "address":{  
+        "prefix":"address",
+        "body":[  
             "<address>",
             "$1",
             "</address>"
         ],
-        "description": "HTML - Defines an address element"
+        "description":"HTML - Defines an address element"
     },
-    "area": {
-        "prefix": "area",
-        "body": "<area shape=\"$1\" coords=\"$2\" href=\"$3\" alt=\"$4\">$5",
-        "description": "HTML - Defines an area inside an image map"
+    "area":{  
+        "prefix":"area",
+        "body":"<area shape=\"$1\" coords=\"$2\" href=\"$3\" alt=\"$4\">$5",
+        "description":"HTML - Defines an area inside an image map"
     },
-    "article": {
-        "prefix": "article",
-        "body": [
+    "article":{  
+        "prefix":"article",
+        "body":[  
             "<article>",
             "\t$1",
             "</article>"
         ],
-        "description": "HTML - Defines an article"
+        "description":"HTML - Defines an article"
     },
-    "aside": {
-        "prefix": "aside",
-        "body": [
+    "aside":{  
+        "prefix":"aside",
+        "body":[  
             "<aside>",
             "\t$1",
             "</aside>$2"
         ],
-        "description": "HTML - Defines content aside from the page content"
+        "description":"HTML - Defines content aside from the page content"
     },
-    "audio": {
-        "prefix": "audio",
-        "body": [
+    "audio":{  
+        "prefix":"audio",
+        "body":[  
             "<audio controls>",
             "\t$1",
             "</audio>"
         ],
-        "description": "HTML - Defines sounds content"
+        "description":"HTML - Defines sounds content"
     },
-    "b": {
-        "prefix": "b",
-        "body": "<b>$1</b>$2",
-        "description": "HTML - Defines bold text"
+    "b":{  
+        "prefix":"b",
+        "body":"<b>$1</b>$2",
+        "description":"HTML - Defines bold text"
     },
-    "base": {
-        "prefix": "base",
-        "body": "<base href=\"$1\" target=\"$2\">$3",
-        "description": "HTML - Defines a base URL for all the links in a page"
+    "base":{  
+        "prefix":"base",
+        "body":"<base href=\"$1\" target=\"$2\">$3",
+        "description":"HTML - Defines a base URL for all the links in a page"
     },
-    "bdi": {
-        "prefix": "bdi",
-        "body": "<bdi>$1</bdi>$2",
-        "description": "HTML - Used to isolate text that is of unknown directionality"
+    "bdi":{  
+        "prefix":"bdi",
+        "body":"<bdi>$1</bdi>$2",
+        "description":"HTML - Used to isolate text that is of unknown directionality"
     },
-    "bdo": {
-        "prefix": "bdo",
-        "body": [
+    "bdo":{  
+        "prefix":"bdo",
+        "body":[  
             "<bdo dir=\"$1\">",
             "$2",
             "</bdo>"
         ],
-        "description": "HTML - Defines the direction of text display"
+        "description":"HTML - Defines the direction of text display"
     },
-    "big": {
-        "prefix": "big",
-        "body": "<big>$1</big>$2",
-        "description": "HTML - Used to make text bigger"
+    "big":{  
+        "prefix":"big",
+        "body":"<big>$1</big>$2",
+        "description":"HTML - Used to make text bigger"
     },
-    "blockquote": {
-        "prefix": "blockquote",
-        "body": [
+    "blockquote":{  
+        "prefix":"blockquote",
+        "body":[  
             "<blockquote cite=\"$2\">",
             "\t$1",
             "</blockquote>"
         ],
-        "description": "HTML - Defines a long quotation"
+        "description":"HTML - Defines a long quotation"
     },
-    "body": {
-        "prefix": "body",
-        "body": [
+    "body":{  
+        "prefix":"body",
+        "body":[  
             "<body>",
             "\t$1",
             "</body>"
         ],
-        "description": "HTML - Defines the body element"
+        "description":"HTML - Defines the body element"
     },
-    "br": {
-        "prefix": "br",
-        "body": "<br>",
-        "description": "HTML - Inserts a single line break"
+    "br":{  
+        "prefix":"br",
+        "body":"<br>",
+        "description":"HTML - Inserts a single line break"
     },
-    "button": {
-        "prefix": "button",
-        "body": "<button type=\"$1\">$2</button>$3",
-        "description": "HTML - Defines a push button"
+    "button":{  
+        "prefix":"button",
+        "body":"<button type=\"$1\">$2</button>$3",
+        "description":"HTML - Defines a push button"
     },
-    "canvas": {
-        "prefix": "canvas",
-        "body": "<canvas id=\"$1\">$2</canvas>$3",
-        "description": "HTML - Defines graphics"
+    "canvas":{  
+        "prefix":"canvas",
+        "body":"<canvas id=\"$1\">$2</canvas>$3",
+        "description":"HTML - Defines graphics"
     },
-    "caption": {
-        "prefix": "caption",
-        "body": "<caption>$1</caption>$2",
-        "description": "HTML - Defines a table caption"
+    "caption":{  
+        "prefix":"caption",
+        "body":"<caption>$1</caption>$2",
+        "description":"HTML - Defines a table caption"
     },
-    "cite": {
-        "prefix": "cite",
-        "body": "<cite>$1</cite>$2",
-        "description": "HTML - Defines a citation"
+    "cite":{  
+        "prefix":"cite",
+        "body":"<cite>$1</cite>$2",
+        "description":"HTML - Defines a citation"
     },
-    "code": {
-        "prefix": "code",
-        "body": "<code>$1</code>$2",
-        "description": "HTML - Defines computer code text"
+    "code":{  
+        "prefix":"code",
+        "body":"<code>$1</code>$2",
+        "description":"HTML - Defines computer code text"
     },
-    "col": {
-        "prefix": "col",
-        "body": "<col>$2",
-        "description": "HTML - Defines attributes for table columns"
+    "col":{  
+        "prefix":"col",
+        "body":"<col>$2",
+        "description":"HTML - Defines attributes for table columns"
     },
-    "colgroup": {
-        "prefix": "colgroup",
-        "body": [
+    "colgroup":{  
+        "prefix":"colgroup",
+        "body":[  
             "<colgroup>",
             "\t$1",
             "</colgroup>"
         ],
-        "description": "HTML - Defines group of table columns"
+        "description":"HTML - Defines group of table columns"
     },
-    "command": {
-        "prefix": "command",
-        "body": "<command>$1</command>$2",
-        "description": "HTML - Defines a command button [not supported]"
+    "command":{  
+        "prefix":"command",
+        "body":"<command>$1</command>$2",
+        "description":"HTML - Defines a command button [not supported]"
     },
-    "datalist": {
-        "prefix": "datalist",
-        "body": [
+    "datalist":{  
+        "prefix":"datalist",
+        "body":[  
             "<datalist>",
             "\t$1",
             "</datalist>"
         ],
-        "description": "HTML - Defines a dropdown list"
+        "description":"HTML - Defines a dropdown list"
     },
-    "dd": {
-        "prefix": "dd",
-        "body": "<dd>$1</dd>$2",
-        "description": "HTML - Defines a definition description"
+    "dd":{  
+        "prefix":"dd",
+        "body":"<dd>$1</dd>$2",
+        "description":"HTML - Defines a definition description"
     },
-    "del": {
-        "prefix": "del",
-        "body": "<del>$1</del>$2",
-        "description": "HTML - Defines deleted text"
+    "del":{  
+        "prefix":"del",
+        "body":"<del>$1</del>$2",
+        "description":"HTML - Defines deleted text"
     },
-    "details": {
-        "prefix": "details",
-        "body": [
+    "details":{  
+        "prefix":"details",
+        "body":[  
             "<details>",
             "\t$1",
             "</details>"
         ],
-        "description": "HTML - Defines details of an element"
+        "description":"HTML - Defines details of an element"
     },
-    "dialog": {
-        "prefix": "dialog",
-        "body": "<dialog>$1</dialog>$2",
-        "description": "HTML - Defines a dialog (conversation)"
+    "dialog":{  
+        "prefix":"dialog",
+        "body":"<dialog>$1</dialog>$2",
+        "description":"HTML - Defines a dialog (conversation)"
     },
-    "dfn": {
-        "prefix": "dfn",
-        "body": "<dfn>$1</dfn>$2",
-        "description": "HTML - Defines a definition term"
+    "dfn":{  
+        "prefix":"dfn",
+        "body":"<dfn>$1</dfn>$2",
+        "description":"HTML - Defines a definition term"
     },
-    "div": {
-        "prefix": "div",
-        "body": [
+    "div":{  
+        "prefix":"div",
+        "body":[  
             "<div>",
             "\t$1",
             "</div>"
         ],
-        "description": "HTML - Defines a section in a document"
+        "description":"HTML - Defines a section in a document"
     },
-    "dl": {
-        "prefix": "dl",
-        "body": [
+    "dl":{  
+        "prefix":"dl",
+        "body":[  
             "<dl>",
             "\t$1",
             "</dl>"
         ],
-        "description": "HTML - Defines a definition list"
+        "description":"HTML - Defines a definition list"
     },
-    "dt": {
-        "prefix": "dt",
-        "body": "<dt>$1</dt>$2",
-        "description": "HTML - Defines a definition term"
+    "dt":{  
+        "prefix":"dt",
+        "body":"<dt>$1</dt>$2",
+        "description":"HTML - Defines a definition term"
     },
-    "em": {
-        "prefix": "em",
-        "body": "<em>$1</em>$2",
-        "description": "HTML - Defines emphasized text"
+    "em":{  
+        "prefix":"em",
+        "body":"<em>$1</em>$2",
+        "description":"HTML - Defines emphasized text"
     },
-    "embed": {
-        "prefix": "embed",
-        "body": "<embed src=\"$1\">$2",
-        "description": "HTML - Defines external interactive content ot plugin"
+    "embed":{  
+        "prefix":"embed",
+        "body":"<embed src=\"$1\">$2",
+        "description":"HTML - Defines external interactive content ot plugin"
     },
-    "fieldset": {
-        "prefix": "fieldset",
-        "body": [
+    "fieldset":{  
+        "prefix":"fieldset",
+        "body":[  
             "<fieldset>",
             "\t$1",
             "</fieldset>"
         ],
-        "description": "HTML - Defines a fieldset"
+        "description":"HTML - Defines a fieldset"
     },
-    "figcaption": {
-        "prefix": "figcaption",
-        "body": "<figcaption>$1</figcaption>$2",
-        "description": "HTML - Defines a caption for a figure"
+    "figcaption":{  
+        "prefix":"figcaption",
+        "body":"<figcaption>$1</figcaption>$2",
+        "description":"HTML - Defines a caption for a figure"
     },
-    "figure": {
-        "prefix": "figure",
-        "body": [
+    "figure":{  
+        "prefix":"figure",
+        "body":[  
             "<figure>",
             "\t$1",
             "</figure>"
         ],
-        "description": "HTML - Defines a group of media content"
+        "description":"HTML - Defines a group of media content"
     },
-    "footer": {
-        "prefix": "footer",
-        "body": [
+    "footer":{  
+        "prefix":"footer",
+        "body":[  
             "<footer>",
             "\t$1",
             "</footer>"
         ],
-        "description": "HTML - Defines a footer for a section or page"
+        "description":"HTML - Defines a footer for a section or page"
     },
-    "form": {
-        "prefix": "form",
-        "body": [
+    "form":{  
+        "prefix":"form",
+        "body":[  
             "<form>",
             "\t$1",
             "</form>"
         ],
-        "description": "HTML - Defines a form"
+        "description":"HTML - Defines a form"
     },
-    "h1": {
-        "prefix": "h1",
-        "body": "<h1>$1</h1>$2",
-        "description": "HTML - Defines header 1"
+    "h1":{  
+        "prefix":"h1",
+        "body":"<h1>$1</h1>$2",
+        "description":"HTML - Defines header 1"
     },
-    "h2": {
-        "prefix": "h2",
-        "body": "<h2>$1</h2>$2",
-        "description": "HTML - Defines header 2"
+    "h2":{  
+        "prefix":"h2",
+        "body":"<h2>$1</h2>$2",
+        "description":"HTML - Defines header 2"
     },
-    "h3": {
-        "prefix": "h3",
-        "body": "<h3>$1</h3>$2",
-        "description": "HTML - Defines header 3"
+    "h3":{  
+        "prefix":"h3",
+        "body":"<h3>$1</h3>$2",
+        "description":"HTML - Defines header 3"
     },
-    "h4": {
-        "prefix": "h4",
-        "body": "<h4>$1</h4>$2",
-        "description": "HTML - Defines header 4"
+    "h4":{  
+        "prefix":"h4",
+        "body":"<h4>$1</h4>$2",
+        "description":"HTML - Defines header 4"
     },
-    "h5": {
-        "prefix": "h5",
-        "body": "<h5>$1</h5>$2",
-        "description": "HTML - Defines header 5"
+    "h5":{  
+        "prefix":"h5",
+        "body":"<h5>$1</h5>$2",
+        "description":"HTML - Defines header 5"
     },
-    "h6": {
-        "prefix": "h6",
-        "body": "<h6>$1</h6>$2",
-        "description": "HTML - Defines header 6"
+    "h6":{  
+        "prefix":"h6",
+        "body":"<h6>$1</h6>$2",
+        "description":"HTML - Defines header 6"
     },
-    "head": {
-        "prefix": "head",
-        "body": [
+    "head":{  
+        "prefix":"head",
+        "body":[  
             "<head>",
             "\t$1",
             "</head>"
         ],
-        "description": "HTML - Defines information about the document"
+        "description":"HTML - Defines information about the document"
     },
-    "header": {
-        "prefix": "header",
-        "body": [
+    "header":{  
+        "prefix":"header",
+        "body":[  
             "<header>",
             "\t$1",
             "</header>"
         ],
-        "description": "HTML - Defines a header for a section of page"
+        "description":"HTML - Defines a header for a section of page"
     },
-    "hgroup": {
-        "prefix": "hgroup",
-        "body": [
+    "hgroup":{  
+        "prefix":"hgroup",
+        "body":[  
             "<hgroup>",
             "\t$1",
             "</hgroup>"
         ],
-        "description": "HTML - Defines information about a section in a document"
+        "description":"HTML - Defines information about a section in a document"
     },
-    "hr": {
-        "prefix": "hr",
-        "body": "<hr>",
-        "description": "HTML - Defines a horizontal rule"
+    "hr":{  
+        "prefix":"hr",
+        "body":"<hr>",
+        "description":"HTML - Defines a horizontal rule"
     },
-    "html": {
-        "prefix": "html",
-        "body": [
+    "html":{  
+        "prefix":"html",
+        "body":[  
             "<html>",
             "\t$1",
             "</html>"
         ],
-        "description": "HTML - Defines an html document"
+        "description":"HTML - Defines an html document"
     },
-    "html5": {
-        "prefix": "html5",
-        "body": [
+    "html5":{  
+        "prefix":"html5",
+        "body":[  
             "<!DOCTYPE html>",
             "<html lang=\"$1en\">",
             "\t<head>",
@@ -449,387 +584,387 @@
             "\t</body>",
             "</html>"
         ],
-        "description": "HTML - Defines a template for a html5 document"
+        "description":"HTML - Defines a template for a html5 document"
     },
-    "i": {
-        "prefix": "i",
-        "body": "<i>$1</i>$2",
-        "description": "HTML - Defines italic text"
+    "i":{  
+        "prefix":"i",
+        "body":"<i>$1</i>$2",
+        "description":"HTML - Defines italic text"
     },
-    "iframe": {
-        "prefix": "iframe",
-        "body": "<iframe src=\"$1\">$2</iframe>$3",
-        "description": "HTML - Defines an inline sub window"
+    "iframe":{  
+        "prefix":"iframe",
+        "body":"<iframe src=\"$1\">$2</iframe>$3",
+        "description":"HTML - Defines an inline sub window"
     },
-    "img": {
-        "prefix": "img",
-        "body": "<img src=\"$1\" alt=\"$2\">$3",
-        "description": "HTML - Defines an image"
+    "img":{  
+        "prefix":"img",
+        "body":"<img src=\"$1\" alt=\"$2\">$3",
+        "description":"HTML - Defines an image"
     },
-    "input": {
-        "prefix": "input",
-        "body": "<input type=\"$1\" name=\"$2\" value=\"$3\">$4",
-        "description": "HTML - Defines an input field"
+    "input":{  
+        "prefix":"input",
+        "body":"<input type=\"$1\" name=\"$2\" value=\"$3\">$4",
+        "description":"HTML - Defines an input field"
     },
-    "ins": {
-        "prefix": "ins",
-        "body": "<ins>$1</ins>$2",
-        "description": "HTML - Defines inserted text"
+    "ins":{  
+        "prefix":"ins",
+        "body":"<ins>$1</ins>$2",
+        "description":"HTML - Defines inserted text"
     },
-    "keygen": {
-        "prefix": "keygen",
-        "body": "<keygen name=\"$1\">$2",
-        "description": "HTML - Defines a generated key in a form"
+    "keygen":{  
+        "prefix":"keygen",
+        "body":"<keygen name=\"$1\">$2",
+        "description":"HTML - Defines a generated key in a form"
     },
-    "kbd": {
-        "prefix": "kbd",
-        "body": "<kbd>$1</kbd>$2",
-        "description": "HTML - Defines keyboard text"
+    "kbd":{  
+        "prefix":"kbd",
+        "body":"<kbd>$1</kbd>$2",
+        "description":"HTML - Defines keyboard text"
     },
-    "label": {
-        "prefix": "label",
-        "body": "<label for=\"$1\">$2</label>$3",
-        "description": "HTML - Defines an inline window"
+    "label":{  
+        "prefix":"label",
+        "body":"<label for=\"$1\">$2</label>$3",
+        "description":"HTML - Defines an inline window"
     },
-    "legend": {
-        "prefix": "legend",
-        "body": "<legend>$1</legend>$2",
-        "description": "HTML - Defines a title in a fieldset"
+    "legend":{  
+        "prefix":"legend",
+        "body":"<legend>$1</legend>$2",
+        "description":"HTML - Defines a title in a fieldset"
     },
-    "li": {
-        "prefix": "li",
-        "body": "<li>$1</li>$2",
-        "description": "HTML - Defines a list item"
+    "li":{  
+        "prefix":"li",
+        "body":"<li>$1</li>$2",
+        "description":"HTML - Defines a list item"
     },
-    "link": {
-        "prefix": "link",
-        "body": "<link rel=\"$1\" type=\"$2\" href=\"$3\">$4",
-        "description": "HTML - Defines a resource reference"
+    "link":{  
+        "prefix":"link",
+        "body":"<link rel=\"$1\" type=\"$2\" href=\"$3\">$4",
+        "description":"HTML - Defines a resource reference"
     },
-    "main": {
-        "prefix": "main",
-        "body": [
+    "main":{  
+        "prefix":"main",
+        "body":[  
             "<main>",
             "\t$1",
             "</main>"
         ],
-        "description": "HTML - Defines an image map"
+        "description":"HTML - Defines an image map"
     },
-    "map": {
-        "prefix": "map",
-        "body": [
+    "map":{  
+        "prefix":"map",
+        "body":[  
             "<map name=\"$1\">",
             "\t$2",
             "</map>"
         ],
-        "description": "HTML - Defines an image map"
+        "description":"HTML - Defines an image map"
     },
-    "mark": {
-        "prefix": "mark",
-        "body": "<mark>$1</mark>$2",
-        "description": "HTML - Defines marked text"
+    "mark":{  
+        "prefix":"mark",
+        "body":"<mark>$1</mark>$2",
+        "description":"HTML - Defines marked text"
     },
-    "menu": {
-        "prefix": "menu",
-        "body": [
+    "menu":{  
+        "prefix":"menu",
+        "body":[  
             "<menu>",
             "\t$1",
             "</menu>"
         ],
-        "description": "HTML - Defines a menu list"
+        "description":"HTML - Defines a menu list"
     },
-    "menuitem": {
-        "prefix": "menuitem",
-        "body": "<menuitem>$1</menuitem>$2",
-        "description": "HTML - Defines a menu item [firefox only]"
+    "menuitem":{  
+        "prefix":"menuitem",
+        "body":"<menuitem>$1</menuitem>$2",
+        "description":"HTML - Defines a menu item [firefox only]"
     },
-    "meta": {
-        "prefix": "meta",
-        "body": "<meta name=\"$1\" content=\"$2\">$3",
-        "description": "HTML - Defines meta information"
+    "meta":{  
+        "prefix":"meta",
+        "body":"<meta name=\"$1\" content=\"$2\">$3",
+        "description":"HTML - Defines meta information"
     },
-    "meter": {
-        "prefix": "meter",
-        "body": "<meter value=\"$1\">$2</meter>$3",
-        "description": "HTML - Defines measurement within a predefined range"
+    "meter":{  
+        "prefix":"meter",
+        "body":"<meter value=\"$1\">$2</meter>$3",
+        "description":"HTML - Defines measurement within a predefined range"
     },
-    "nav": {
-        "prefix": "nav",
-        "body": [
+    "nav":{  
+        "prefix":"nav",
+        "body":[  
             "<nav>",
             "\t$1",
             "</nav>"
         ],
-        "description": "HTML - Defines navigation links"
+        "description":"HTML - Defines navigation links"
     },
-    "noscript": {
-        "prefix": "noscript",
-        "body": [
+    "noscript":{  
+        "prefix":"noscript",
+        "body":[  
             "<noscript>",
             "$1",
             "</noscript>"
         ],
-        "description": "HTML - Defines a noscript section"
+        "description":"HTML - Defines a noscript section"
     },
-    "object": {
-        "prefix": "object",
-        "body": "<object width=\"$1\" height=\"$2\" data=\"$3\">$4</object>$5",
-        "description": "HTML - Defines an embedded object"
+    "object":{  
+        "prefix":"object",
+        "body":"<object width=\"$1\" height=\"$2\" data=\"$3\">$4</object>$5",
+        "description":"HTML - Defines an embedded object"
     },
-    "ol": {
-        "prefix": "ol",
-        "body": [
+    "ol":{  
+        "prefix":"ol",
+        "body":[  
             "<ol>",
             "\t$1",
             "</ol>"
         ],
-        "description": "HTML - Defines an ordered list"
+        "description":"HTML - Defines an ordered list"
     },
-    "optgroup": {
-        "prefix": "optgroup",
-        "body": [
+    "optgroup":{  
+        "prefix":"optgroup",
+        "body":[  
             "<optgroup>",
             "\t$1",
             "</optgroup>"
         ],
-        "description": "HTML - Defines an option group"
+        "description":"HTML - Defines an option group"
     },
-    "option": {
-        "prefix": "option",
-        "body": "<option value=\"$1\">$2</option>$3",
-        "description": "HTML - Defines an option in a drop-down list"
+    "option":{  
+        "prefix":"option",
+        "body":"<option value=\"$1\">$2</option>$3",
+        "description":"HTML - Defines an option in a drop-down list"
     },
-    "output": {
-        "prefix": "output",
-        "body": "<output name=\"$1\" for=\"$2\">$3</output>$4",
-        "description": "HTML - Defines some types of output"
+    "output":{  
+        "prefix":"output",
+        "body":"<output name=\"$1\" for=\"$2\">$3</output>$4",
+        "description":"HTML - Defines some types of output"
     },
-    "p": {
-        "prefix": "p",
-        "body": "<p>$1</p>$2",
-        "description": "HTML - Defines a paragraph"
+    "p":{  
+        "prefix":"p",
+        "body":"<p>$1</p>$2",
+        "description":"HTML - Defines a paragraph"
     },
-    "param": {
-        "prefix": "param",
-        "body": "<param name=\"$1\" value=\"$2\">$3",
-        "description": "HTML - Defines a parameter for an object"
+    "param":{  
+        "prefix":"param",
+        "body":"<param name=\"$1\" value=\"$2\">$3",
+        "description":"HTML - Defines a parameter for an object"
     },
-    "pre": {
-        "prefix": "pre",
-        "body": [
+    "pre":{  
+        "prefix":"pre",
+        "body":[  
             "<pre>",
             "$1",
             "</pre>"
         ],
-        "description": "HTML - Defines preformatted text"
+        "description":"HTML - Defines preformatted text"
     },
-    "progress": {
-        "prefix": "progress",
-        "body": "<progress value=\"$1\" max=\"$2\">$3</progress>$4",
-        "description": "HTML - Defines progress of a task of any kind"
+    "progress":{  
+        "prefix":"progress",
+        "body":"<progress value=\"$1\" max=\"$2\">$3</progress>$4",
+        "description":"HTML - Defines progress of a task of any kind"
     },
-    "q": {
-        "prefix": "q",
-        "body": "<q>$1</q>$2",
-        "description": "HTML - Defines a short quotation"
+    "q":{  
+        "prefix":"q",
+        "body":"<q>$1</q>$2",
+        "description":"HTML - Defines a short quotation"
     },
-    "rp": {
-        "prefix": "rp",
-        "body": "<rp>$1</rp>$2",
-        "description": "HTML - Used in ruby annotations to define what to show browsers that do not support the ruby element"
+    "rp":{  
+        "prefix":"rp",
+        "body":"<rp>$1</rp>$2",
+        "description":"HTML - Used in ruby annotations to define what to show browsers that do not support the ruby element"
     },
-    "rt": {
-        "prefix": "rt",
-        "body": "<rt>$1</rt>$2",
-        "description": "HTML - Defines explanation to ruby annotations"
+    "rt":{  
+        "prefix":"rt",
+        "body":"<rt>$1</rt>$2",
+        "description":"HTML - Defines explanation to ruby annotations"
     },
-    "ruby": {
-        "prefix": "ruby",
-        "body": [
+    "ruby":{  
+        "prefix":"ruby",
+        "body":[  
             "<ruby>",
             "$1",
             "</ruby>"
         ],
-        "description": "HTML - Defines ruby annotations"
+        "description":"HTML - Defines ruby annotations"
     },
-    "s": {
-        "prefix": "s",
-        "body": "<s>$1</s>$2",
-        "description": "HTML - Used to define strikethrough text"
+    "s":{  
+        "prefix":"s",
+        "body":"<s>$1</s>$2",
+        "description":"HTML - Used to define strikethrough text"
     },
-    "samp": {
-        "prefix": "samp",
-        "body": "<samp>$1</samp>$2",
-        "description": "HTML - Defines sample computer code"
+    "samp":{  
+        "prefix":"samp",
+        "body":"<samp>$1</samp>$2",
+        "description":"HTML - Defines sample computer code"
     },
-    "script": {
-        "prefix": "script",
-        "body": [
+    "script":{  
+        "prefix":"script",
+        "body":[  
             "<script>",
             "\t$1",
             "</script>"
         ],
-        "description": "HTML - Defines a script"
+        "description":"HTML - Defines a script"
     },
-    "section": {
-        "prefix": "section",
-        "body": [
+    "section":{  
+        "prefix":"section",
+        "body":[  
             "<section>",
             "\t$1",
             "</section>"
         ],
-        "description": "HTML - Defines a section"
+        "description":"HTML - Defines a section"
     },
-    "select": {
-        "prefix": "select",
-        "body": [
+    "select":{  
+        "prefix":"select",
+        "body":[  
             "<select>",
             "\t$1",
             "</select>"
         ],
-        "description": "HTML - Defines a selectable list"
+        "description":"HTML - Defines a selectable list"
     },
-    "small": {
-        "prefix": "small",
-        "body": "<small>$1</small>$2",
-        "description": "HTML - Defines small text"
+    "small":{  
+        "prefix":"small",
+        "body":"<small>$1</small>$2",
+        "description":"HTML - Defines small text"
     },
-    "source": {
-        "prefix": "source",
-        "body": "<source src=\"$1\" type=\"$2\">$3",
-        "description": "HTML - Defines media resource"
+    "source":{  
+        "prefix":"source",
+        "body":"<source src=\"$1\" type=\"$2\">$3",
+        "description":"HTML - Defines media resource"
     },
-    "span": {
-        "prefix": "span",
-        "body": "<span>$1</span>$2",
-        "description": "HTML - Defines a section in a document"
+    "span":{  
+        "prefix":"span",
+        "body":"<span>$1</span>$2",
+        "description":"HTML - Defines a section in a document"
     },
-    "strong": {
-        "prefix": "strong",
-        "body": "<strong>$1</strong>$2",
-        "description": "HTML - Defines strong text"
+    "strong":{  
+        "prefix":"strong",
+        "body":"<strong>$1</strong>$2",
+        "description":"HTML - Defines strong text"
     },
-    "style": {
-        "prefix": "style",
-        "body": [
+    "style":{  
+        "prefix":"style",
+        "body":[  
             "<style>",
             "$1",
             "</style>"
         ],
-        "description": "HTML - Defines a style definition"
+        "description":"HTML - Defines a style definition"
     },
-    "sub": {
-        "prefix": "sub",
-        "body": "<sub>$1</sub>$2",
-        "description": "HTML - Defines sub-scripted text"
+    "sub":{  
+        "prefix":"sub",
+        "body":"<sub>$1</sub>$2",
+        "description":"HTML - Defines sub-scripted text"
     },
-    "sup": {
-        "prefix": "sup",
-        "body": "<sup>$1</sup>$2",
-        "description": "HTML - Defines super-scripted text"
+    "sup":{  
+        "prefix":"sup",
+        "body":"<sup>$1</sup>$2",
+        "description":"HTML - Defines super-scripted text"
     },
-    "summary": {
-        "prefix": "summary",
-        "body": "<summary>$1</summary>$2",
-        "description": "HTML - Defines a visible heading for the detail element [limited support]"
+    "summary":{  
+        "prefix":"summary",
+        "body":"<summary>$1</summary>$2",
+        "description":"HTML - Defines a visible heading for the detail element [limited support]"
     },
-    "table": {
-        "prefix": "table",
-        "body": [
+    "table":{  
+        "prefix":"table",
+        "body":[  
             "<table>",
             "\t$1",
             "</table>"
         ],
-        "description": "HTML - Defines a table"
+        "description":"HTML - Defines a table"
     },
-    "tbody": {
-        "prefix": "tbody",
-        "body": [
+    "tbody":{  
+        "prefix":"tbody",
+        "body":[  
             "<tbody>",
             "\t$1",
             "</tbody>"
         ],
-        "description": "HTML - Defines a table body"
+        "description":"HTML - Defines a table body"
     },
-    "td": {
-        "prefix": "td",
-        "body": "<td>$1</td>$2",
-        "description": "HTML - Defines a table cell"
+    "td":{  
+        "prefix":"td",
+        "body":"<td>$1</td>$2",
+        "description":"HTML - Defines a table cell"
     },
-    "textarea": {
-        "prefix": "textarea",
-        "body": "<textarea rows=\"$1\" cols=\"$2\">$3</textarea>$4",
-        "description": "HTML - Defines a text area"
+    "textarea":{  
+        "prefix":"textarea",
+        "body":"<textarea rows=\"$1\" cols=\"$2\">$3</textarea>$4",
+        "description":"HTML - Defines a text area"
     },
-    "tfoot": {
-        "prefix": "tfoot",
-        "body": [
+    "tfoot":{  
+        "prefix":"tfoot",
+        "body":[  
             "<tfoot>",
             "\t$1",
             "</tfoot>"
         ],
-        "description": "HTML - Defines a table footer"
+        "description":"HTML - Defines a table footer"
     },
-    "thead": {
-        "prefix": "thead",
-        "body": [
+    "thead":{  
+        "prefix":"thead",
+        "body":[  
             "<thead>",
             "$1",
             "</thead>"
         ],
-        "description": "HTML - Defines a table head"
+        "description":"HTML - Defines a table head"
     },
-    "th": {
-        "prefix": "th",
-        "body": "<th>$1</th>$2",
-        "description": "HTML - Defines a table header"
+    "th":{  
+        "prefix":"th",
+        "body":"<th>$1</th>$2",
+        "description":"HTML - Defines a table header"
     },
-    "time": {
-        "prefix": "time",
-        "body": "<time datetime=\"$1\">$2</time>$3",
-        "description": "HTML - Defines a date/time"
+    "time":{  
+        "prefix":"time",
+        "body":"<time datetime=\"$1\">$2</time>$3",
+        "description":"HTML - Defines a date/time"
     },
-    "title": {
-        "prefix": "title",
-        "body": "<title>$1</title>$2",
-        "description": "HTML - Defines the document title"
+    "title":{  
+        "prefix":"title",
+        "body":"<title>$1</title>$2",
+        "description":"HTML - Defines the document title"
     },
-    "tr": {
-        "prefix": "tr",
-        "body": "<tr>$1</tr>$2",
-        "description": "HTML - Defines a table row"
+    "tr":{  
+        "prefix":"tr",
+        "body":"<tr>$1</tr>$2",
+        "description":"HTML - Defines a table row"
     },
-    "track": {
-        "prefix": "track",
-        "body": "<track src=\"$1\" kind=\"$2\" srclang=\"$3\" label=\"$4\">$5",
-        "description": "HTML - Defines a table row"
+    "track":{  
+        "prefix":"track",
+        "body":"<track src=\"$1\" kind=\"$2\" srclang=\"$3\" label=\"$4\">$5",
+        "description":"HTML - Defines a table row"
     },
-    "u": {
-        "prefix": "u",
-        "body": "<u>$1</u>$2",
-        "description": "HTML - Used to define underlined text"
+    "u":{  
+        "prefix":"u",
+        "body":"<u>$1</u>$2",
+        "description":"HTML - Used to define underlined text"
     },
-    "ul": {
-        "prefix": "ul",
-        "body": [
+    "ul":{  
+        "prefix":"ul",
+        "body":[  
             "<ul>",
             "\t$1",
             "</ul>"
         ],
-        "description": "HTML - Defines an unordered list"
+        "description":"HTML - Defines an unordered list"
     },
-    "var": {
-        "prefix": "var",
-        "body": "<var>$1</var>$2",
-        "description": "HTML - Defines a variable"
+    "var":{  
+        "prefix":"var",
+        "body":"<var>$1</var>$2",
+        "description":"HTML - Defines a variable"
     },
-    "video": {
-        "prefix": "video",
-        "body": [
+    "video":{  
+        "prefix":"video",
+        "body":[  
             "<video width=\"$1\" height=\"$2\" controls>",
             "\t$3",
             "</video>"
         ],
-        "description": "HTML - Defines a video"
+        "description":"HTML - Defines a video"
     }
 }
