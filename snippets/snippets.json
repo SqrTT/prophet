@@ -196,7 +196,7 @@
 	"isselect": {
         "prefix": "isselect",
         "body": [
-            "<isselect name=\"${1}\" iterator=\"${2}\" description=\"${3}\" value=\"${4}\" ${5:condition=\"${6}\" }encoding=\"${7|on:off|}\" />\n${0}"
+            "<isselect name=\"${1}\" iterator=\"${2}\" description=\"${3}\" value=\"${4}\" ${5:condition=\"${6}\" }encoding=\"${7|on,off|}\" />\n${0}"
         ],
         "description": "isselect tag"
 	},
