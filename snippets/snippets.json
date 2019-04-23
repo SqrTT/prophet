@@ -219,7 +219,7 @@
     "isslot": {
         "prefix": "isslot",
         "body": [
-            "<isslot id=\"${0}\" context=\"${1|global,category,folder|}\" description=\"${2}\" ${3:context-object=\"${4}} ${5:preview-url=\"${6}}\" />\n"
+            "<isslot id=\"${0}\" context=\"${1|global,category,folder|}\" description=\"${2}\" ${3:context-object=\"${4}\"} ${5:preview-url=\"${6}\"} />\n"
         ],
         "description": "isslot tag"
     },
