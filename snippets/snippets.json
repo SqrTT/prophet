@@ -1,23 +1,169 @@
 {
-    "isif condition": {
+	"isactivedatahead": {
+        "prefix": "isactivedatahead",
+        "body": [
+            "<isactivedatahead />\n${0}"
+        ],
+        "description": "isactivedatahead tag"
+    },
+    "isactivedatacontext": {
+        "prefix": "isactivedatacontext",
+        "body": [
+            "<isactivedatacontext category=\"${1}\" />"
+        ],
+        "description": "isactivedatacontext tag"
+    },
+    "isanalyticsoff": {
+        "prefix": "isanalyticsoff",
+        "body": [
+            "<isanalyticsoff />\n${0}"
+        ],
+        "description": "isanalyticsoff tag"
+	},
+    "isbreak": {
+        "prefix": "isbreak",
+        "body": [
+            "<isbreak />\n${0}"
+        ],
+        "description": "isbreak tag"
+    },
+    "iscache": {
+        "prefix": "iscache",
+        "body": [
+            "<iscache type=\"${1|relative,daily|}\" hour=\"${2:24}\" status=\"${3:on}\" />\n${0}"
+        ],
+        "description": "iscache tag"
+	},
+    "iscomment": {
+        "prefix": "iscomment",
+        "body": [
+            "<iscomment>",
+            "    ${0}",
+            "</iscomment>"
+        ],
+        "description": "iscomment tag"
+    },
+    "iscomponent": {
+        "prefix": "iscomponent",
+        "body": [
+            "<iscomponent pipeline=\"${1}\" ${2:locale=\"${3}\" }/>"
+        ],
+        "description": "iscomponent tag"
+    },
+    "iscontent": {
+        "prefix": "iscontent",
+        "body": [
+            "<iscontent type=\"${1|text/html,text/plain,application/json|}\" charset=\"UTF-8\" compact=\"${2|true,false|\" />"
+        ],
+        "description": "iscontent tag"
+    },
+    "iscontentasset": {
+        "prefix": "iscontentasset",
+        "body": [
+            "<iscontentasset aid=\"${1}\" />"
+        ],
+        "description": "iscontentasset tag"
+    },
+    "iscontinue": {
+        "prefix": "iscontinue",
+        "body": [
+            "<iscontinue />\n${0}"
+        ],
+        "description": "iscontinue tag"
+    },
+    "iscookie": {
+        "prefix": "iscookie",
+        "body": [
+            "<iscookie name=\"${1}\" value=\"${2}\" />"
+        ],
+        "description": "iscookie tag"
+    },
+    "isdecorate": {
+        "prefix": "isdecorate",
+        "body": [
+            "<isdecorate template=\"${1}\">",
+            "    ${0}",
+            "</isdecorate>"
+        ],
+        "description": "isdecorate tag"
+	},
+	"iselse condition": {
+        "prefix": "iselse",
+        "body": [
+            "<iselse />",
+            "    ${0}"
+        ],
+        "description": "iselse condition"
+    },
+	"iselseif condition": {
+        "prefix": "iselseif",
+        "body": [
+            "<iselseif condition=\"${1}\" />",
+            "    ${0}"
+        ],
+        "description": "iselseif condition"
+	},
+	"isif condition": {
         "prefix": "isif",
         "body": [
-            "<isif condition=\"${1}\" >",
-            "",
-            "${2:<iselse/>}",
-            "",
+            "<isif condition=\"${1}\">",
+            "${2:    ${3}\n<iselse />\n    ${4}}",
             "</isif>"
         ],
         "description": "isif condition"
     },
+	"isinclude template": {
+		"prefix": "isinclude_template",
+		"body": [
+			"<isinclude template=\"${1}\" sf-toolkit=\"${2|on,off|}\" />\n${0}"
+		],
+		"description": "isinclude template tag"
+	},
+    "isinclude url": {
+        "prefix": "isinclude_url",
+        "body": [
+            "<isinclude url=\"${1}\" sf-toolkit=\"${2|on,off|}\" />\n${0}"
+        ],
+        "description": "isinclude url tag"
+    },
+    "isinputfield": {
+        "prefix": "isinputfield",
+        "body": [
+            "<isinputfield formfield=\"${1}\" type=\"${2:input}\" />"
+        ],
+        "description": "isinputfield tag"
+    },
     "isloop": {
         "prefix": "isloop",
         "body": [
-            "<isloop items=\"${1}\" var=\"${2}\">",
-            "${0}",
+            "<isloop items=\"${1}\" var=\"${2}\" ${3:status=\"${4:loopstatus}\"}>",
+            "    ${0}",
             "</isloop>"
         ],
         "description": "isloop tag"
+    },
+    "ismodule": {
+        "prefix": "ismodule",
+        "body": [
+			"<ismodule template=\"${1}\" name=\"${2}\" attribute=\"${3}\" />"
+        ],
+        "description": "ismodule tag"
+	},
+	"isnext": {
+        "prefix": "isnext",
+        "body": [
+            "<isnext />\n${0}"
+        ],
+        "description": "isnext tag"
+    },
+    "isobject": {
+        "prefix": "isobject",
+        "body": [
+			"<isobject object=\"${1}\" view=\"${2|none,searchhit,recommendation,setproduct,detail|}\">",
+            "    ${0}",
+			"</isobject>"
+        ],
+        "description": "isobject tag"
     },
     "isprint": {
         "prefix": "isprint",
@@ -26,74 +172,63 @@
         ],
         "description": "isprint tag"
     },
-    "iscomment": {
-        "prefix": "iscomment",
+    "isredirect": {
+        "prefix": "isredirect",
         "body": [
-            "<iscomment>",
-            "${0}",
-            "</iscomment>"
+			"<isredirect location=\"${1}\" permanent=\"${2|false,true|}\">"
         ],
-        "description": "iscomment tag"
+        "description": "isredirect tag"
     },
-    "isset": {
-        "prefix": "isset",
+    "isremove": {
+        "prefix": "isremove",
         "body": [
-            "<isset name=\"${1}\" value=\"${2}\" scope=\"${3}\"/>\n${0}"
+            "<isremove name=\"${1}\" scope=\"${2|page,session,request|}\" />\n${0}"
         ],
-        "description": "isset tag"
+        "description": "isremove tag"
     },
-    "isdecorate": {
-        "prefix": "isdecorate",
+    "isreplace": {
+        "prefix": "isreplace",
         "body": [
-            "<isdecorate template=\"${1}\">",
-            "${0}",
-            "</isdecorate>"
+            "<isreplace />\n${0}"
         ],
-        "description": "isdecorate tag"
-    },
+        "description": "isreplace tag"
+	},
+	"isselect": {
+        "prefix": "isselect",
+        "body": [
+            "<isselect name=\"${1}\" iterator=\"${2}\" description=\"${3}\" value=\"${4}\" ${5:condition=\"${6}\" }encoding=\"${7|on,off|}\" />\n${0}"
+        ],
+        "description": "isselect tag"
+	},
     "isscript": {
         "prefix": "isscript",
         "body": [
             "<isscript>",
-            "${0}",
+            "    ${0}",
             "</isscript>"
         ],
         "description": "isscript tag"
-    },
-    "isinclude": {
-        "prefix": "isinclude_url",
+	},
+	"isset": {
+        "prefix": "isset",
         "body": [
-            "<isinclude url=\"${1}\"/>\n${0}"
+            "<isset name=\"${1}\" value=\"${2}\" scope=\"${3|page,session,request|}\" />\n${0}"
         ],
-        "description": "isinclude url tag"
+        "description": "isset tag"
     },
-    "isinclude template": {
-        "prefix": "isinclude_template",
+    "isslot": {
+        "prefix": "isslot",
         "body": [
-            "<isinclude template=\"${1}\" />\n${0}"
+            "<isslot id=\"${0}\" context=\"${1|global,category,folder|}\" description=\"${2}\" ${3:context-object=\"${4}\"} ${5:preview-url=\"${6}\"} />\n"
         ],
-        "description": "isinclude template tag"
+        "description": "isslot tag"
     },
-    "iscontent": {
-        "prefix": "iscontent",
+	"isstatus": {
+        "prefix": "isstatus",
         "body": [
-            "<iscontent type=\"text/html\" charset=\"UTF-8\" compact=\"true\" />"
+            "<isstatus value=\"${1}\" />\n${0}"
         ],
-        "description": "iscontent tag"
-    },
-    "isinputfield": {
-        "prefix": "isinputfield",
-        "body": [
-            "<isinputfield formfield=\"${1}\" type=\"${2:input\" />"
-        ],
-        "description": "isinputfield tag"
-    },
-    "iscache": {
-        "prefix": "iscache",
-        "body": [
-            "<iscache type=\"${1:relative}\" hour=\"${2:24}\" status=\"${3:on}\" />\n${0}"
-        ],
-        "description": "iscache tag"
+        "description": "isstatus tag"
     },
     "doctype": {
         "prefix": "doctype",
