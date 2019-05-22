@@ -14,6 +14,7 @@ import * as path from 'path';
 
 let stripJsonComments: any = require('strip-json-comments');
 import fs = require('fs');
+import ismllinter = require('isml-linter');
 
 import * as htmlhint from '../htmlhint';
 var htmlHintClient: any = null;
@@ -430,6 +431,42 @@ function makeDiagnostic(problem: htmlhint.Error, lines: string[]): Diagnostic {
 	};
 }
 
+function addIsmlLinterErrors(document: TextDocument, diagnostics: Diagnostic[]) {
+	const path   = unescape(document.uri.substring('file://'.length));
+	const result = ismllinter.parse(path, document.getText());
+
+	if (result.errors) {
+		for (const brokenRule in result.errors) { 
+			result.errors[brokenRule][path].forEach( function(occurrence) {
+				const diagnosic = {
+					severity : DiagnosticSeverity.Error,
+					range    : {
+						start : document.positionAt(occurrence.globalPos),
+						end   : document.positionAt(occurrence.globalPos + occurrence.length)
+					},
+					message  : brokenRule
+				};
+
+				diagnostics.push(diagnosic);
+			});
+		}
+	}
+
+	if (result.INVALID_TEMPLATE) {
+		const occurrence = result.INVALID_TEMPLATE[0]
+		const diagnosic = {
+			severity : DiagnosticSeverity.Error,
+			range    : {
+				start : document.positionAt(occurrence.globalPos),
+				end   : document.positionAt(occurrence.globalPos + occurrence.length)
+			},
+			message  : occurrence.message
+		};
+
+		diagnostics.push(diagnosic);
+	}
+}
+
 function doValidate(connection: IConnection, document: TextDocument): void {
 	let uri = document.uri;
 	if (htmlHintClient) {
@@ -448,6 +485,8 @@ function doValidate(connection: IConnection, document: TextDocument): void {
 					diagnostics.push(makeDiagnostic(each, lines));
 				});
 			}
+
+			addIsmlLinterErrors(document, diagnostics)
 			connection.sendDiagnostics({ uri, diagnostics });
 		} catch (err) {
 			let message: string;
