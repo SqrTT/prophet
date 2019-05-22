@@ -31,6 +31,7 @@
     },
     "dependencies": {
         "htmlhint": "^0.11.0",
+        "isml-linter": "^5.5.1",
         "js-beautify": "^1.9.0",
         "request": "^2.88.0",
         "rxjs": "^5.5.10",
