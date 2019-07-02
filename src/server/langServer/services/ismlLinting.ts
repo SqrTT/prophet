@@ -8,7 +8,7 @@ import {
 	DidChangeConfigurationParams
 } from "vscode-languageserver";
 
-import URI from 'vscode-uri';
+import { URI } from 'vscode-uri';
 
 import * as path from 'path';
 

@@ -8,7 +8,7 @@ import { TokenType, createScanner } from '../parser/htmlScanner';
 import { TextDocument, Range } from 'vscode-languageserver-types';
 // import * as paths from '../utils/paths';
 // import * as strings from '../utils/strings';
-import Uri from 'vscode-uri';
+import { URI } from 'vscode-uri';
 
 import { DocumentLink, DocumentContext } from '../htmlLanguageService';
 
@@ -18,7 +18,7 @@ function stripQuotes(url: string): string {
 		.replace(/^"([^"]*)"$/, (substr, match1) => match1);
 }
 
-function getWorkspaceUrl(modelAbsoluteUri: Uri, tokenContent: string, documentContext: DocumentContext, base?: string): string | undefined {
+function getWorkspaceUrl(modelAbsoluteUri: URI, tokenContent: string, documentContext: DocumentContext, base?: string): string | undefined {
 	if (/^\s*javascript\:/i.test(tokenContent) || /^\s*\#/i.test(tokenContent) || /[\n\r]/.test(tokenContent)) {
 		return void 0;
 	}
@@ -43,8 +43,8 @@ function getWorkspaceUrl(modelAbsoluteUri: Uri, tokenContent: string, documentCo
 	return tokenContent;
 }
 
-function createLink(document: TextDocument, documentContext: DocumentContext, attributeValue: string, startOffset: number, endOffset: number, base?: string): DocumentLink | undefined{
-	let documentUri = Uri.parse(document.uri);
+function createLink(document: TextDocument, documentContext: DocumentContext, attributeValue: string, startOffset: number, endOffset: number, base?: string): DocumentLink | undefined {
+	let documentUri = URI.parse(document.uri);
 	let tokenContent = stripQuotes(attributeValue);
 	if (tokenContent.length === 0) {
 		return void 0;
@@ -65,7 +65,7 @@ function createLink(document: TextDocument, documentContext: DocumentContext, at
 
 function isValidURI(uri: string) {
 	try {
-		Uri.parse(uri);
+		URI.parse(uri);
 		return true;
 	} catch (e) {
 		return false;
@@ -79,7 +79,7 @@ export function findDocumentLinks(document: TextDocument, documentContext: Docum
 	let token = scanner.scan();
 	let afterHrefOrSrc = false;
 	let afterBase = false;
-	let base : string | undefined = void 0;
+	let base: string | undefined = void 0;
 	while (token !== TokenType.EOS) {
 		switch (token) {
 			case TokenType.StartTag:

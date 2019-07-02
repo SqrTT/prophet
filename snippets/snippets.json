@@ -90,7 +90,7 @@
 	"iselse condition": {
         "prefix": "iselse",
         "body": [
-            "<iselse />",
+            "<iselse/>",
             "    ${0}"
         ],
         "description": "iselse condition"

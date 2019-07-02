@@ -8,11 +8,10 @@ import {
 } from 'vscode-languageserver';
 import { getLanguageService } from './langServer/htmlLanguageService';
 
-import Uri from 'vscode-uri';
+import { URI } from 'vscode-uri';
 
 import { readFile } from 'fs';
 import { EventEmitter } from 'events';
-
 
 import { enableLinting, validateTextDocument, onDidChangeConfiguration, disableLinting } from './langServer/services/ismlLinting';
 
@@ -220,7 +219,7 @@ connection.onDocumentLinkResolve(documentLink => {
 					} else if (files.length === 1) {
 						let doc = DocumentLink.create(
 							documentLink.range,
-							Uri.file(files.pop()!).toString()
+							URI.file(files.pop()!).toString()
 						);
 						connection.console.log('fileToOpen opening: ' + JSON.stringify(doc));
 						resolve(doc);
@@ -229,7 +228,7 @@ connection.onDocumentLinkResolve(documentLink => {
 							if (selected) {
 								let doc = DocumentLink.create(
 									documentLink.range,
-									Uri.file(selected).toString()
+									URI.file(selected).toString()
 								);
 								connection.console.log('fileToOpen opening: ' + JSON.stringify(doc));
 								resolve(doc);

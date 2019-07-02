@@ -229,7 +229,7 @@ export function activate(context: ExtensionContext) {
 
 	context.subscriptions.push(createIsmlLanguageServer(context).start());
 
-	const excludedMasks = workspace.getConfiguration('files', null).get('exclude');
+	const excludedMasks = workspace.getConfiguration('files', null).get<{}>('exclude') || {};
 
 	const ignoreProjects = Object.keys(excludedMasks || {})
 		.some(excludedMask => excludedMask.includes('.project') && excludedMasks && excludedMasks[excludedMask]);
