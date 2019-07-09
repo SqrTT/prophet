@@ -17,11 +17,11 @@ import {
 } from 'vscode';
 
 import { join, basename } from 'path';
-import { default as WebDav, readConfigFile } from '../server/WebDav';
+import { default as WebDav } from '../server/WebDav';
 import { DOMParser } from 'xmldom';
 import { Observable, Subject } from 'rxjs';
 import timeago from 'timeago.js';
-import { getCartridgesFolder } from '../lib/FileHelper';
+import { getCartridgesFolder, getConfig } from '../lib/FileHelper';
 
 
 const domParser = new DOMParser();
@@ -105,7 +105,7 @@ export class LogsView implements TreeDataProvider<LogItem> {
 			return dwConfig$
 				.do(() => { }, undefined, () => { end$.next(); end$.complete() })
 				.flatMap((dwConfig) => {
-					return readConfigFile(dwConfig.fsPath);
+					return getConfig(dwConfig.fsPath);
 				})
 				.flatMap((davOptins) => {
 					return new Observable((observer) => {
