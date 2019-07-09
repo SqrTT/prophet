@@ -18,7 +18,7 @@
     "icon": "images/mock-debug-icon.ico",
     "categories": [
         "Debuggers",
-        "Languages",
+        "Programming Languages",
         "Snippets"
     ],
     "private": true,

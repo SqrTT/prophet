@@ -117,7 +117,7 @@ function uploadWithProgress(
 			outputChannel.appendLine(`Unable validate connection!`);
 
 			if (err instanceof Error) {
-				if (err.message === 'Not Found') {
+				if (err.message.includes('Not Found')) {
 					outputChannel.appendLine(`Please check existence of code version: "${config.version}"`);
 				} else if (err.message === 'Unauthorized') {
 					outputChannel.appendLine(`Please check your credentials (login, password, etc)`);
