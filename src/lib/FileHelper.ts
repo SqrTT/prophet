@@ -6,7 +6,10 @@ import { Observable } from 'rxjs';
 import WebDav, { readConfigFile, DavOptions } from '../server/WebDav';
 import { checkIfCartridge$ } from './CartridgeHelper';
 
-
+/**
+ * The saved password when not provided via configuration
+ */
+let savedPassword: string | undefined;
 
 async function readDir(src: string) {
 	return new Promise<string[]>((resolve, reject) => {
@@ -119,7 +122,7 @@ export function getCartridgesFolder(workspaceFolder: WorkspaceFolder): Observabl
 		})
 		.map(project => dirname(project.fsPath));
 };
-let savedPassword: string | undefined;
+
 export function getDWConfig(workspaceFolders?: WorkspaceFolder[]): Promise<DavOptions> {
 	if (workspaceFolders) {
 		const filesWorkspaceFolders = workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
@@ -140,42 +143,49 @@ export function getDWConfig(workspaceFolders?: WorkspaceFolder[]): Promise<DavOp
 			} else {
 				return Promise.reject('Unable to find sandbox configuration (dw.json)');
 			}
-		}).then(filepath => {
-			if (filepath) {
-				return readConfigFile(filepath).toPromise().then(config => {
-					if (config.password) {
-						return config;
-					} else if (savedPassword) {
-						config.password = savedPassword;
-						return config;
-					} else {
-						return new Promise<DavOptions>((resolve, reject) => {
-							window.showInputBox({
-								password: true,
-								placeHolder: `Enter password for ${config.hostname}`
-							}).then(pass => {
-								if (pass) {
-									config.password = pass;
-									const webdav = new WebDav(config);
-									webdav.getActiveCodeVersion().toPromise().then(() => {
-										savedPassword = pass;
-										resolve(config);
-									}, err => {
-										window.showErrorMessage(`${config.username}@${config.hostname} :  ${err}`);
-										reject(err);
-									});
-								} else {
-									reject('No password provided');
-								}
-							}, reject);
-						})
-					}
-				});
-			} else {
-				return Promise.reject('Please choose configuration first');
-			}
-		});
+		}).then(getConfig);
 	} else {
 		return Promise.reject('Workspaces not found');
 	}
 }
+
+/**
+ * Get config for a file path, complete the config via user input when required
+ * 
+ * @param filepath 
+ */
+export function getConfig(filepath : string) {
+	if (filepath) {
+		return readConfigFile(filepath).toPromise().then(config => {
+			if (config.password) {
+				return config;
+			} else if (savedPassword) {
+				config.password = savedPassword;
+				return config;
+			} else {
+				return new Promise<DavOptions>((resolve, reject) => {
+					window.showInputBox({
+						password: true,
+						placeHolder: `Enter password for ${config.hostname}`
+					}).then(pass => {
+						if (pass) {
+							config.password = pass;
+							const webdav = new WebDav(config);
+							webdav.getActiveCodeVersion().toPromise().then(() => {
+								savedPassword = pass;
+								resolve(config);
+							}, err => {
+								window.showErrorMessage(`${config.username}@${config.hostname} :  ${err}`);
+								reject(err);
+							});
+						} else {
+							reject('No password provided');
+						}
+					}, reject);
+				})
+			}
+		});
+	} else {
+		return Promise.reject('Please choose configuration first');
+	}
+};
