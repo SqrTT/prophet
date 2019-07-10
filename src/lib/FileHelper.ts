@@ -11,6 +11,8 @@ import { checkIfCartridge$ } from './CartridgeHelper';
  */
 let savedPassword: string | undefined;
 
+let passwordInputPromise: Promise<DavOptions> | undefined;
+
 async function readDir(src: string) {
 	return new Promise<string[]>((resolve, reject) => {
 		readdir(src, function (err, result) {
@@ -163,26 +165,32 @@ export function getConfig(filepath : string) {
 				config.password = savedPassword;
 				return config;
 			} else {
-				return new Promise<DavOptions>((resolve, reject) => {
-					window.showInputBox({
-						password: true,
-						placeHolder: `Enter password for ${config.hostname}`
-					}).then(pass => {
-						if (pass) {
-							config.password = pass;
-							const webdav = new WebDav(config);
-							webdav.getActiveCodeVersion().toPromise().then(() => {
-								savedPassword = pass;
-								resolve(config);
-							}, err => {
-								window.showErrorMessage(`${config.username}@${config.hostname} :  ${err}`);
-								reject(err);
-							});
-						} else {
-							reject('No password provided');
-						}
-					}, reject);
-				})
+				if(!passwordInputPromise) {
+					passwordInputPromise = new Promise<DavOptions>((resolve, reject) => {
+						window.showInputBox({
+							password: true,
+							placeHolder: `Enter password for ${config.hostname}`
+						}).then(pass => {
+							if (pass) {
+								config.password = pass;
+								const webdav = new WebDav(config);
+								webdav.getActiveCodeVersion().toPromise().then(() => {
+									savedPassword = pass;
+									passwordInputPromise = undefined;
+									resolve(config);
+								}, err => {
+									window.showErrorMessage(`${config.username}@${config.hostname} :  ${err}`);
+									passwordInputPromise = undefined;
+									reject(err);
+								});
+							} else {
+								passwordInputPromise = undefined;
+								reject('No password provided');
+							}
+						}, reject);
+					})
+				}
+				return passwordInputPromise;
 			}
 		});
 	} else {
