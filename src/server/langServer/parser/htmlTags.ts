@@ -473,6 +473,9 @@ export const SFCC_TAGS: ITagSet = {
 	iscomment: new HTMLTagSpecification(
 		'Use <iscomment> to document your templates, to include reminders or instructions for yourself and others who work with the system without making them available to anyone who "views source" on the page. Anything enclosed in an <iscomment> ... </iscomment> structure is not parsed by the template processor and does not appear in the generated storefront page.'
 	),
+	isreplace: new HTMLTagSpecification(
+		'The decorator template uses the tag <isreplace/> to identify where the decorated content is to be included. Typically, only one tag (<isreplace/>) is used in the decorator template. However, multiple or zero <isreplace/> tags can also be used.'
+	),
 	isdecorate: new HTMLTagSpecification(
 		'The decorator template has the tag <isreplace/> identifying where the decorated content shall be included. Typically, only one tag (<isreplace/>) is used in the decorator template. However, multiple or zero <isreplace/> tags can also be used. If the decorating template does not have an <isreplace/> tag, the decorated content is omitted from the resultant output.',
 		['template']

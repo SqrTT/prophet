@@ -147,6 +147,8 @@ export function format(document: TextDocument, range: Range, options: HTMLFormat
 	result = result.replace(/[ ]{4}<iselseif /ig, '<iselseif ')
 	result = result.replace(/<iscontinue \/>/ig, '<iscontinue/>')
 	result = result.replace(/<isbreak \/>/ig, '<isbreak/>')
+	result = result.replace(/<isreplace \/>/ig, '<isreplace/>')
+  result = result.replace(/<isactivedatahead \/>/ig, '<isactivedatahead/>')
 
 
 
