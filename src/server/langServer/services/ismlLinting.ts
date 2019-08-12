@@ -30,6 +30,9 @@ interface Settings {
 let settings: Settings | null = null;
 
 const tagsTypings = {
+	br: {
+		denyTag: true,
+	},
 	a: {
 		selfclosing: false,
 		attrsRequired: ['href'],
@@ -48,7 +51,7 @@ const tagsTypings = {
 	},
 	script: {
 		attrsOptional: [['async', 'async'], ['defer', 'defer']],
-		redundantAttrs: ['type']
+		redundantAttrs: ['type=javascript']
 	},
 	img: {
 		selfclosing: true,
@@ -63,7 +66,7 @@ const defaultLinterConfig = {
 	"attr-lowercase": false,
 	"attr-value-double-quotes": false,
 	"doctype-first": false,
-	"max-lenght": false,
+	"max-length": false,
 	"tag-pair": true,
 	"spec-char-escape": false,
 	"id-unique": false,
@@ -72,8 +75,9 @@ const defaultLinterConfig = {
 	"title-require": false,
 	"doctype-html5": true,
 	"space-tab-mixed-disabled": "space",
-	"inline-style-disabled": false,
+	"inline-style-disabled": true,
 	"tag-self-close": true,
+	"localize-strings" : true,
 	"tags-check": {
 		"isslot": {
 			"selfclosing": true,
@@ -126,7 +130,8 @@ const defaultLinterConfig = {
 			"selfclosing": true
 		},
 		"isscript": {
-			"selfclosing": false
+			"selfclosing": false,
+			denyTag: true
 		},
 		"iselse": {
 			"selfclosing": true
@@ -229,13 +234,31 @@ const customRules = [{
 				}
 
 				if (currentTagType.redundantAttrs) {
-					currentTagType.redundantAttrs.forEach(attrName => {
-						if (attrs.some(attr => attr.name === attrName)) {
-							reporter.error(`The attr '${attrName}' is redundant for <${tagName}> and should be ommited.`, event.line, col, self, event.raw);
+					currentTagType.redundantAttrs.forEach((attrName: string) => {
+						if (attrName.includes('=')) {
+							const [nameOfAttr, attrValues] = attrName.split('=');
+							const valuesOfAttr = attrValues.split(',');
+
+							const found = attrs.find((attr: { name: string; value: string; }) => attr.name === nameOfAttr && valuesOfAttr.includes(attr.value))
+
+							if (found) {
+								const spaces = found.raw.length - found.raw.trimLeft().length;
+								reporter.error(`The attr '${found.name}' with  '${found.value}' is redundant for <${tagName}> and should be omitted.`, event.line, col + found.index + spaces, self, event.raw);
+							}
+						} else {
+							const found = attrs.find(attr => attr.name === attrName);
+
+							if (found) {
+								const spaces = found.raw.length - found.raw.trimLeft().length;
+								reporter.error(`The attr '${found.name}' is redundant for <${tagName}> and should be omitted.`, event.line, col + found.index + spaces, self, event.raw);
+							}
 						}
 					});
 				}
+				if (currentTagType.denyTag) {
 
+					reporter.error(`The <${tagName}> tag is deny to use.`, event.line, event.col, self, event.raw);
+				}
 			}
 		});
 	}
@@ -269,13 +292,13 @@ const customRules = [{
 		});
 	}
 }, {
-	id: 'max-lenght',
+	id: 'max-length',
 	description: 'Lines limitation.',
 	init(parser, reporter, option) {
 		var self = this;
 
 		if (option) {
-			const checkLenght = event => {
+			const checkLength = event => {
 				if (event.col > option) {
 					reporter.error(
 						`Line must be at most ${option} characters`,
@@ -287,22 +310,49 @@ const customRules = [{
 				}
 			};
 
-			parser.addListener('tagstart', checkLenght);
-			parser.addListener('text', checkLenght);
-			parser.addListener('cdata', checkLenght);
-			parser.addListener('tagend', checkLenght);
-			parser.addListener('comment', checkLenght);
+			parser.addListener('tagstart', checkLength);
+			parser.addListener('text', checkLength);
+			parser.addListener('cdata', checkLength);
+			parser.addListener('tagend', checkLength);
+			parser.addListener('comment', checkLength);
 		}
-	}
-}
-];
+	},
+},
+{
+	id: 'localize-strings',
+	description: 'Localizable string is only allowed.',
+	init(parser, reporter, option) {
+		var self = this;
+
+		parser.addListener('text', event => {
+			const str : string = event.raw.trim();
+			if (str.length && !str.startsWith('${')) {// non empty text
+				if (event.lastEvent && ['isscript', 'iscomment'].includes(event.lastEvent.tagName)) {
+					return;
+				}
+
+				const spaces = event.raw.length - event.raw.trimLeft().length;
+
+				reporter.error(
+					`Use localization for strings (Resource.msg)`,
+					event.line,
+					event.col + spaces,
+					self,
+					event.raw
+				);
+			};
+		});
+
+	},
+
+}];
 
 function getErrorMessage(err: any, document: TextDocument): string {
 	let result: string;
 	if (typeof err.message === 'string' || err.message instanceof String) {
 		result = <string>err.message;
 	} else {
-		result = `An unknown error occured while validating file: ${URI.parse(document.uri).fsPath}`;
+		result = `An unknown error occurred while validating file: ${URI.parse(document.uri).fsPath}`;
 	}
 	return result;
 }
