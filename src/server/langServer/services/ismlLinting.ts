@@ -31,7 +31,7 @@ let settings: Settings | null = null;
 
 const tagsTypings = {
 	br: {
-		denyTag: true,
+		denyTag: 'error',
 	},
 	a: {
 		selfclosing: false,
@@ -51,7 +51,7 @@ const tagsTypings = {
 	},
 	script: {
 		attrsOptional: [['async', 'async'], ['defer', 'defer']],
-		redundantAttrs: ['type=javascript']
+		redundantAttrs: ['type=javascript,text/javascript']
 	},
 	img: {
 		selfclosing: true,
@@ -77,7 +77,8 @@ const defaultLinterConfig = {
 	"space-tab-mixed-disabled": "space",
 	"inline-style-disabled": true,
 	"tag-self-close": true,
-	"localize-strings" : true,
+	"localize-strings": true,
+	"encoding-off-warn": true,
 	"tags-check": {
 		"isslot": {
 			"selfclosing": true,
@@ -131,7 +132,7 @@ const defaultLinterConfig = {
 		},
 		"isscript": {
 			"selfclosing": false,
-			denyTag: true
+			denyTag: 'warn'
 		},
 		"iselse": {
 			"selfclosing": true
@@ -169,10 +170,12 @@ const defaultLinterConfig = {
 	}
 };
 
+const encodingValues = ["on", "htmlcontent", "htmlsinglequote", "htmldoublequote", "htmlunquote", "jshtml", "jsattribute", "jsblock", "jssource", "jsonvalue", "uricomponent", "uristrict", "xmlcontent", "xmlsinglequote", "xmldoublequote", "xmlcomment"];
+
 const customRules = [{
 	id: 'tags-check',
 	description: 'Checks html tags.',
-	init: function (parser, reporter, options) {
+	init(parser, reporter, options) {
 		var self = this;
 
 		if (typeof options !== 'boolean') {
@@ -239,7 +242,8 @@ const customRules = [{
 							const [nameOfAttr, attrValues] = attrName.split('=');
 							const valuesOfAttr = attrValues.split(',');
 
-							const found = attrs.find((attr: { name: string; value: string; }) => attr.name === nameOfAttr && valuesOfAttr.includes(attr.value))
+							const found = attrs.find((attr: { name: string; value: string; }) =>
+								attr.name === nameOfAttr && valuesOfAttr.includes((attr.value || '').toLowerCase()))
 
 							if (found) {
 								const spaces = found.raw.length - found.raw.trimLeft().length;
@@ -256,8 +260,7 @@ const customRules = [{
 					});
 				}
 				if (currentTagType.denyTag) {
-
-					reporter.error(`The <${tagName}> tag is deny to use.`, event.line, event.col, self, event.raw);
+					reporter.report(currentTagType.denyTag, `The <${tagName}> tag is ${currentTagType.denyTag === 'error' ? 'must' : 'should'} not be used.`, event.line, event.col, self, event.raw);
 				}
 			}
 		});
@@ -288,6 +291,27 @@ const customRules = [{
 						event.line, col + attr.index, self, attr.raw);
 				}
 				mapAttrName[attrName] = true;
+			}
+		});
+	}
+}, {
+	id: 'encoding-off-warn',
+	description: 'Omit usage of encoding off.',
+	init: function (parser, reporter) {
+		var self = this;
+
+		parser.addListener('tagstart', function (event) {
+			if (event.tagName.toLowerCase() === 'isprint') {
+				const attrs = event.attrs || [];
+				attrs.forEach(attr => {
+					if (attr.name === 'encoding' && attr.value === 'off') {
+						const col = event.col + event.tagName.length + 1;
+						const spaces = attr.raw.length - attr.raw.trimLeft().length;
+
+						reporter.warn(`Try to omit usage of encoding="off". Use encoding="off" only if you understand consequences and this is really required. "${encodingValues.join(', ')}" may fit better your needs.` ,
+							event.line, col + attr.index + spaces, self, attr.raw);
+					}
+				});
 			}
 		});
 	}
@@ -325,7 +349,7 @@ const customRules = [{
 		var self = this;
 
 		parser.addListener('text', event => {
-			const str : string = event.raw.trim();
+			const str: string = event.raw.trim();
 			if (str.length && !str.startsWith('${')) {// non empty text
 				if (event.lastEvent && ['isscript', 'iscomment'].includes(event.lastEvent.tagName)) {
 					return;
@@ -442,7 +466,7 @@ function findConfigForHtmlFile(base: string) {
 */
 function getRange(error: htmlhint.Error, lines: string[]): any {
 
-	let line = lines[error.line - 1];
+	const line = lines[error.line - 1];
 	var isWhitespace = false;
 	var curr = error.col;
 	while (curr < line.length && !isWhitespace) {
@@ -467,13 +491,18 @@ function getRange(error: htmlhint.Error, lines: string[]): any {
 	};
 }
 
+const evidenceMap = {
+	'warning' : DiagnosticSeverity.Warning,
+	'error' : DiagnosticSeverity.Error,
+	'info' : DiagnosticSeverity.Information,
+	'hind' : DiagnosticSeverity.Hint
+}
 /**
  * Given an htmlhint.Error type return a VS Code server Diagnostic object
  */
 function makeDiagnostic(problem: htmlhint.Error, lines: string[]): Diagnostic {
-
 	return {
-		severity: DiagnosticSeverity.Error,
+		severity: evidenceMap[problem.type] || DiagnosticSeverity.Error,
 		message: problem.message,
 		range: getRange(problem, lines),
 		code: problem.rule.id
@@ -481,18 +510,18 @@ function makeDiagnostic(problem: htmlhint.Error, lines: string[]): Diagnostic {
 }
 
 function doValidate(connection: IConnection, document: TextDocument): void {
-	let uri = document.uri;
+	const uri = document.uri;
 	if (htmlHintClient) {
 		try {
-			let fsPath = URI.parse(document.uri).fsPath;
-			let contents = document.getText();
-			let lines = contents.split('\n');
+			const fsPath = URI.parse(document.uri).fsPath;
+			const contents = document.getText();
+			const lines = contents.split('\n');
 
-			let config = Object.assign({}, defaultLinterConfig, getConfiguration(fsPath)); //;
+			const config = Object.assign({}, defaultLinterConfig, getConfiguration(fsPath)); //;
 
-			let errors: htmlhint.Error[] = htmlHintClient.verify(contents, config);
+			const errors: htmlhint.Error[] = htmlHintClient.verify(contents, config);
 
-			let diagnostics: Diagnostic[] = [];
+			const diagnostics: Diagnostic[] = [];
 			if (errors.length > 0) {
 				errors.forEach(each => {
 					diagnostics.push(makeDiagnostic(each, lines));
@@ -500,10 +529,8 @@ function doValidate(connection: IConnection, document: TextDocument): void {
 			}
 			connection.sendDiagnostics({ uri, diagnostics });
 		} catch (err) {
-			let message: string;
 			if (typeof err.message === 'string' || err.message instanceof String) {
-				message = <string>err.message;
-				throw new Error(message);
+				throw new Error(<string>err.message);
 			}
 			throw err;
 		}
