@@ -16,6 +16,8 @@ let stripJsonComments: any = require('strip-json-comments');
 import fs = require('fs');
 
 import * as htmlhint from '../htmlhint';
+import { replaceIsPrintAttr } from "../utils/strings";
+
 var htmlHintClient: any = null;
 let htmlhintrcOptions: any = {};
 
@@ -260,7 +262,7 @@ const customRules = [{
 					});
 				}
 				if (currentTagType.denyTag) {
-					reporter.report(currentTagType.denyTag, `The <${tagName}> tag is ${currentTagType.denyTag === 'error' ? 'must' : 'should'} not be used.`, event.line, event.col, self, event.raw);
+					reporter.report(currentTagType.denyTag, `The <${tagName}> tag ${currentTagType.denyTag === 'error' ? 'must' : 'should'} not be used.`, event.line, event.col, self, event.raw);
 				}
 			}
 		});
@@ -492,10 +494,10 @@ function getRange(error: htmlhint.Error, lines: string[]): any {
 }
 
 const evidenceMap = {
-	'warning' : DiagnosticSeverity.Warning,
+	'warn' : DiagnosticSeverity.Warning,
 	'error' : DiagnosticSeverity.Error,
 	'info' : DiagnosticSeverity.Information,
-	'hind' : DiagnosticSeverity.Hint
+	'hint' : DiagnosticSeverity.Hint
 }
 /**
  * Given an htmlhint.Error type return a VS Code server Diagnostic object
@@ -514,7 +516,7 @@ function doValidate(connection: IConnection, document: TextDocument): void {
 	if (htmlHintClient) {
 		try {
 			const fsPath = URI.parse(document.uri).fsPath;
-			const contents = document.getText();
+			const contents = replaceIsPrintAttr(document.getText());
 			const lines = contents.split('\n');
 
 			const config = Object.assign({}, defaultLinterConfig, getConfiguration(fsPath)); //;
