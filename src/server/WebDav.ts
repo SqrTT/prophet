@@ -5,6 +5,10 @@ import { createReadStream, unlink, ReadStream } from 'fs';
 import { finished } from 'stream';
 import { workspace, CancellationTokenSource, RelativePattern } from 'vscode';
 
+class WebDavError extends Error {
+	statusCode: number
+}
+
 function request$(options) {
 	//fixme: refactor to use https module
 	return Observable.fromPromise(import('request')).flatMap(request => {
@@ -13,7 +17,10 @@ function request$(options) {
 				if (err) {
 					observer.error(err);
 				} else if (res.statusCode >= 400) {
-					observer.error(new Error(res.statusMessage));
+					const err = new WebDavError([res.statusMessage, body, JSON.stringify(res)].join('\n'));
+					err.statusCode = res.statusCode;
+
+					observer.error(err);
 				} else {
 					observer.next(body);
 					observer.complete();
@@ -36,7 +43,7 @@ export interface DavOptions {
 	version: string,
 	root: string,
 	debug?: boolean,
-	cartrigeResolution: 'ask'|'leave'|'remove'
+	cartrigeResolution: 'ask' | 'leave' | 'remove'
 }
 
 function getMatches(string: string, regex: RegExp, index = 1) {
@@ -48,6 +55,7 @@ function getMatches(string: string, regex: RegExp, index = 1) {
 	return matches;
 }
 export default class WebDav {
+	static WebDavError = WebDavError;
 	config: DavOptions;
 	log: (...string) => any;
 	folder: string = 'Cartridges';
@@ -64,13 +72,14 @@ export default class WebDav {
 	dirList(filePath = '.', root = this.config.root): Observable<string> {
 		const uriPath = relative(root, filePath);
 
-		return request$(Object.assign(this.getOptions(), {
-			uri: '/' + uriPath,
-			headers: {
-				Depth: 1
-			},
-			method: 'PROPFIND'
-		})
+		return request$(
+			Object.assign(this.getOptions(), {
+				uri: '/' + uriPath,
+				headers: {
+					Depth: 1
+				},
+				method: 'PROPFIND'
+			})
 		);
 	}
 	getOptions() {
@@ -232,7 +241,7 @@ export default class WebDav {
 			this.log('delete-response', uriPath, body);
 		}).catch(err => {
 			// it's ok to ignore 404 error if the file is not found
-			if (err && err.message && err.message.trim() === 'Not Found') {
+			if (err && err.statusCode === 404) {
 				return Observable.of(err);
 			} else {
 				return Observable.throw(err);

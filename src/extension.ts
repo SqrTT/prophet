@@ -5,6 +5,7 @@ import { workspace, ExtensionContext, commands, window, Uri, WorkspaceConfigurat
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
 import { CartridgesView } from './providers/CartridgesView';
 import { LogsView } from './providers/LogsView';
+import { ControllersView } from './providers/ControllersView';
 
 import { existsSync } from 'fs';
 import { createServer, ServerResponse, IncomingMessage } from 'http';
@@ -215,6 +216,7 @@ export function activate(context: ExtensionContext) {
 
 	// CartridgesView
 	CartridgesView.initialize(context);
+	ControllersView.initialize(context);
 
 	const dwConfig$$ = workspaceFolders$$.map(workspaceFolder$ => {
 		const end$ = new Subject();

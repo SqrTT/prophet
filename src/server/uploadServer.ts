@@ -117,9 +117,9 @@ function uploadWithProgress(
 			outputChannel.appendLine(`Unable validate connection!`);
 
 			if (err instanceof Error) {
-				if (err.message.includes('Not Found')) {
+				if (err instanceof WebDav.WebDavError && err.statusCode === 404) {
 					outputChannel.appendLine(`Please check existence of code version: "${config.version}"`);
-				} else if (err.message === 'Unauthorized') {
+				} else if (err instanceof WebDav.WebDavError && err.statusCode === 401) {
 					outputChannel.appendLine(`Please check your credentials (login, password, etc)`);
 				} else {
 					outputChannel.appendLine(`Validation error: ${err.message}`);
@@ -243,7 +243,7 @@ export function init(dwConfig: DavOptions, outputChannel: OutputChannel, config:
 				.retryWhen(function (errors) {
 					// retry for some errors, end the stream with an error for others
 					return errors.do(function (e) {
-						if (e instanceof Error && e.message === 'Unauthorized') {
+						if (e instanceof WebDav.WebDavError && e.statusCode === 401) {
 							throw e;
 						} else if (retryCounter < 3) {
 							intConf.cleanOnStart = true;

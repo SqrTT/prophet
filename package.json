@@ -80,6 +80,10 @@
         "views": {
             "prophet-explorer": [
                 {
+                    "id": "dwControllersView",
+                    "name": "Controllers"
+                },
+                {
                     "id": "dwLogsView",
                     "name": "Logs"
                 },
@@ -92,6 +96,16 @@
         },
         "menus": {
             "view/title": [
+                {
+                    "command": "extension.prophet.command.controllers.find",
+                    "when": "view == dwControllersView",
+                    "group": "navigation"
+                },
+                {
+                    "command": "extension.prophet.command.controllers.refresh",
+                    "when": "view == dwControllersView",
+                    "group": "navigation"
+                },
                 {
                     "command": "extension.prophet.command.clean.upload",
                     "when": "view == cartridgesView",
@@ -141,6 +155,24 @@
             ]
         },
         "commands": [
+            {
+                "command": "extension.prophet.command.controllers.find",
+                "title": "Quick find controller",
+                "description": "Quick find controller",
+                "icon": {
+                    "light": "resources/light/search.svg",
+                    "dark": "resources/dark/search.svg"
+                }
+            },
+            {
+                "command": "extension.prophet.command.controllers.refresh",
+                "title": "Prophet: Refresh",
+                "description": "Refresh controllers list",
+                "icon": {
+                    "light": "resources/light/refresh.svg",
+                    "dark": "resources/dark/refresh.svg"
+                }
+            },
             {
                 "command": "extension.prophet.command.enable.upload",
                 "title": "Prophet: Enable Upload",
