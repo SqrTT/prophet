@@ -34,7 +34,7 @@ class ControllerItem extends TreeItem {
 }
 
 class ControllerActionItem extends TreeItem {
-	files: { name: string, file: Uri, row: number }[] = [];
+	files: { name: string, file: Uri, row: number, methodName: string }[] = [];
 	constructor(
 		public readonly name: string,
 		public readonly endpointName: string,
@@ -61,7 +61,8 @@ interface ControllerEntry {
 	controllerName: string,
 	line: number,
 	file: Uri,
-	entry: string
+	entry: string,
+	methodName : string
 }
 
 function getCartridgeNameFromPath(str: string) {
@@ -114,7 +115,7 @@ export class ControllersView implements TreeDataProvider<ControllerItem> {
 
 		if (element instanceof ControllerActionItem) {
 			return element.files.map(file => new ControllerActionItemFile(
-				getCartridgeNameFromPath(file.file.path),
+				getCartridgeNameFromPath(file.file.path) + (file.methodName ? ` (${file.methodName})` : ''),
 				TreeItemCollapsibleState.None,
 				{
 					command: 'vscode.open',
@@ -135,20 +136,22 @@ export class ControllersView implements TreeDataProvider<ControllerItem> {
 								return new Observable<ControllerEntry>(observer => {
 									fileRows.forEach((row, index, content) => {
 										if (row.includes('server.')) {
-											const entryRegexp = /server\.(get|post|append|replace)\(([\"\'](\w.+?)['\"])/ig;
+											const entryRegexp = /server\.(get|post|append|prepend|replace)\(([\"\'](\w.+?)['\"])/ig;
 											const match = entryRegexp.exec(row);
 
 											if (match && match[3]) {
 												observer.next({
+													methodName: match[1] || '',
 													controllerName: element.name,
 													line: index,
 													file: file,
 													entry: match[3]
 												});
 											} else {
-												const entryNextLineRegexp = /server\.(get|post|append|replace)\((\s+?)?$/ig;
+												const entryNextLineRegexp = /server\.(get|post|append|prepend|replace)\((\s+?)?$/ig;
+												const entryNextLineRegexpMatch = entryNextLineRegexp.exec(row);
 
-												if (entryNextLineRegexp.test(row)) {
+												if (entryNextLineRegexpMatch) {
 													const nextRow = content[index + 1];
 													const nameOnNextLine = /^(\s+?)?['"](\w+?)['"]/ig;
 
@@ -156,6 +159,7 @@ export class ControllersView implements TreeDataProvider<ControllerItem> {
 
 													if (nextRowMatch && nextRowMatch[2]) {
 														observer.next({
+															methodName: entryNextLineRegexpMatch[1] || '',
 															controllerName: element.name,
 															line: index + 1,
 															file: file,
@@ -171,6 +175,7 @@ export class ControllersView implements TreeDataProvider<ControllerItem> {
 
 											if (match && match[1]) {
 												observer.next({
+													methodName: '',
 													controllerName: element.name,
 													line: index,
 													file: file,
@@ -205,7 +210,8 @@ export class ControllersView implements TreeDataProvider<ControllerItem> {
 						record.files.push({
 							file: endpoint.file,
 							name: endpoint.entry,
-							row: endpoint.line
+							row: endpoint.line,
+							methodName: endpoint.methodName
 						});
 					}
 				});
