@@ -132,19 +132,34 @@ export class CartridgeCreator {
 			}, '');
 	}
 
-	createCartridgeDirectories(name, directory) {
-		const directoriesToCreate = ['controllers',
+	/**
+	 * Creates the cartridge folder structure
+	 * 
+	 * @param name name of the cartridge to create
+	 * @param directory the directory the cartridge is created in
+	 */
+	createCartridgeDirectories(name : string, directory : string) {
+		const directoriesToCreate = [
+			'controllers',
+			'experience',
+			'experience/pages',
+			'experience/components',
 			'forms',
+			'forms/default',
 			'pipelines',
 			'scripts',
 			'static',
+			'static/default',
 			'templates',
+			'templates/default',
+			'templates/resources',
 			'webreferences',
-			'webreferences2'];
+			'webreferences2'
+		];
 
 		mkdir(join(this.workspaceFolder, directory, name, 'cartridge'), undefined, () => {});
 		for (let i = 0; i < directoriesToCreate.length; i++) {
-			mkdir(join(this.workspaceFolder, directory, name, 'cartridge', directoriesToCreate[i]), undefined, () => {});
+			mkdir(join(this.workspaceFolder, directory, name, 'cartridge', ...(directoriesToCreate[i].split('/'))), undefined, () => {});
 		}
 
 	}
