@@ -132,7 +132,6 @@ let lastFileLines: string[] = [];
 connection.onDocumentLinks((params: DocumentLinkParams) => {
 
 	//connection.console.log('onDocumentLinks ' + JSON.stringify(params));
-
 	return new Promise((resolve, reject) => {
 		let document = documents.get(params.textDocument.uri);
 
@@ -208,6 +207,10 @@ connection.onDocumentLinkResolve(documentLink => {
 				if (!fileToOpen.endsWith('.isml')) {
 					fileToOpen = fileToOpen + '.isml';
 				}
+				if (fileToOpen.startsWith('/')) {
+					fileToOpen = fileToOpen.substring(1);
+				}
+
 				Promise.all(workspaceFolders.map(workspaceFolder => {
 					return findFiles(workspaceFolder.uri, '**/templates/**/' + fileToOpen);
 				})).then(result => {

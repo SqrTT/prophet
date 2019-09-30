@@ -12,7 +12,7 @@
         "email": "tolik@sqrtt.pro"
     },
     "engines": {
-        "vscode": "^1.37.0",
+        "vscode": "^1.38.0",
         "node": "^8.9.0"
     },
     "icon": "images/mock-debug-icon.ico",
@@ -36,8 +36,8 @@
         "rxjs": "^5.5.10",
         "strip-json-comments": "^3.0.1",
         "timeago.js": "^3.0.2",
-        "vscode-debugadapter": "^1.35.0",
-        "vscode-debugprotocol": "^1.35.0",
+        "vscode-debugadapter": "^1.37.1",
+        "vscode-debugprotocol": "^1.37.0",
         "vscode-languageclient": "^5.2.1",
         "vscode-languageserver": "^5.2.1",
         "vscode-nls": "^4.1.1",
@@ -49,9 +49,9 @@
         "@types/mocha": "^2.2.48",
         "@types/node": "^10.2.0",
         "mocha": "^5.2.0",
-        "typescript": "^3.5.3",
+        "typescript": "^3.6.3",
         "vscode": "^1.1.36",
-        "vscode-debugadapter-testsupport": "^1.35.0"
+        "vscode-debugadapter-testsupport": "^1.37.1"
     },
     "scripts": {
         "vscode:prepublish": "npm install && npm run compile && npm run test",
@@ -96,6 +96,11 @@
         },
         "menus": {
             "view/title": [
+                {
+                    "command": "extension.prophet.command.clean.upload",
+                    "when": "view == dwControllersView",
+                    "group": "navigation"
+                },
                 {
                     "command": "extension.prophet.command.controllers.find",
                     "when": "view == dwControllersView",

@@ -1,4 +1,4 @@
-import { TreeDataProvider, TreeItem, TreeItemCollapsibleState, Command, commands, window, ExtensionContext, workspace, RelativePattern, Uri } from "vscode";
+import { TreeDataProvider, TreeItem, TreeItemCollapsibleState, Command, commands, window, ExtensionContext, workspace, RelativePattern, Uri, EventEmitter, Event, QuickPickItem } from "vscode";
 import { findFiles } from "../lib/FileHelper";
 import { parse, sep } from 'path';
 import { Observable } from "rxjs";
@@ -62,7 +62,7 @@ interface ControllerEntry {
 	line: number,
 	file: Uri,
 	entry: string,
-	methodName : string
+	methodName: string
 }
 
 function getCartridgeNameFromPath(str: string) {
@@ -79,34 +79,83 @@ function getCartridgeNameFromPath(str: string) {
 
 }
 
+interface QuickPickTargetedItem extends QuickPickItem {
+	target: ControllerEntry
+}
+
 
 export class ControllersView implements TreeDataProvider<ControllerItem> {
+	private _onDidChangeTreeData: EventEmitter<ControllerItem | undefined> = new EventEmitter<ControllerItem | undefined>();
+	readonly onDidChangeTreeData: Event<ControllerItem | undefined> = this._onDidChangeTreeData.event;
 	static initialize(context: ExtensionContext) {
-
-		// // add CartridgesView
-		// const cartridgesView = new ControllerItem(
-		// 	(window.activeTextEditor) ? window.activeTextEditor.document.fileName : undefined
-		// );
-
-		context.subscriptions.push(commands.registerCommand('extension.prophet.command.controllers.find', () => {
-			debugger;
-			// if (cartridgesView) {
-			// 	cartridgesView.refresh(
-			// 		((window.activeTextEditor) ? window.activeTextEditor.document.fileName : undefined));
-			// }
-		}));
-
-		context.subscriptions.push(commands.registerCommand('extension.prophet.command.controllers.refresh', (cartridgeDirectoryItem) => {
-			debugger;
-			// if (cartridgesView) {
-			// 	cartridgesView.createDirectory(cartridgeDirectoryItem);
-			// }
-		}));
 
 		const controllersView = new ControllersView();
 		context.subscriptions.push(
 			window.registerTreeDataProvider('dwControllersView', controllersView)
 		);
+
+		let qpItems : QuickPickTargetedItem[];
+
+		context.subscriptions.push(commands.registerCommand('extension.prophet.command.controllers.find', async () => {
+			if (qpItems) {
+				window.showQuickPick(qpItems).then(selected => {
+					if (selected) {
+						commands.executeCommand(
+							'vscode.open',
+							selected.target.file.with({ fragment: String(selected.target.line + 1) })
+						);
+					}
+				});
+			} else {
+				controllersView.scanProjectForControllers().then(_qpItems=> {
+					qpItems = _qpItems;
+					window.showQuickPick(qpItems).then(selected => {
+						if (selected) {
+							commands.executeCommand(
+								'vscode.open',
+								selected.target.file.with({ fragment: String(selected.target.line + 1) })
+							);
+						}
+					});
+				})
+			}
+		}));
+
+		context.subscriptions.push(commands.registerCommand('extension.prophet.command.controllers.refresh', (cartridgeDirectoryItem) => {
+			controllersView._onDidChangeTreeData.fire();
+			controllersView.scanProjectForControllers().then(_qpItems=> {
+				qpItems = _qpItems;
+			});
+		}));
+
+	}
+	async scanProjectForControllers() {
+		const controllers = await this.findControllers();
+
+		const endpoints = await Promise.all(controllers.map(controller => {
+			return this.findEndpoints(controller.name);
+		}));
+		const qpItems: Map<string, QuickPickTargetedItem> = new Map();;
+
+		endpoints.forEach(endpoint => {
+			endpoints.forEach(controller => {
+				controller.forEach(entries => {
+					entries.forEach(entry => {
+						const cartridgeName = getCartridgeNameFromPath(entry.file.fsPath);
+						const key = cartridgeName + entry.controllerName + entry.entry;
+
+						if (!qpItems.has(key)) {
+							qpItems.set(key, {
+								label: `${entry.controllerName}-${entry.entry}`,
+								description: cartridgeName + ' - ' + entry.methodName,
+								target: entry
+							})
+						}
+					})
+				});
+			});
+		})
+		return Array.from(qpItems.values());
 	}
 	getTreeItem(element: ControllerItem): TreeItem {
 		return element;
@@ -125,73 +174,7 @@ export class ControllersView implements TreeDataProvider<ControllerItem> {
 			));
 		} else if (element instanceof ControllerItem) {
 
-			const filesWorkspaceFolders = (workspace.workspaceFolders || []).filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
-
-			const endPoints = await Promise.all(filesWorkspaceFolders.map(
-				workspaceFolder => findFiles(new RelativePattern(workspaceFolder, `**/cartridge/controllers/${element.name}.js`), +Infinity)
-					.flatMap(file => {
-						return Observable.fromPromise(workspace.fs.readFile(file))
-							.flatMap(fileContent => {
-								const fileRows = fileContent.toString().split('\n');
-								return new Observable<ControllerEntry>(observer => {
-									fileRows.forEach((row, index, content) => {
-										if (row.includes('server.')) {
-											const entryRegexp = /server\.(get|post|append|prepend|replace)\(([\"\'](\w.+?)['\"])/ig;
-											const match = entryRegexp.exec(row);
-
-											if (match && match[3]) {
-												observer.next({
-													methodName: match[1] || '',
-													controllerName: element.name,
-													line: index,
-													file: file,
-													entry: match[3]
-												});
-											} else {
-												const entryNextLineRegexp = /server\.(get|post|append|prepend|replace)\((\s+?)?$/ig;
-												const entryNextLineRegexpMatch = entryNextLineRegexp.exec(row);
-
-												if (entryNextLineRegexpMatch) {
-													const nextRow = content[index + 1];
-													const nameOnNextLine = /^(\s+?)?['"](\w+?)['"]/ig;
-
-													const nextRowMatch = nameOnNextLine.exec(nextRow);
-
-													if (nextRowMatch && nextRowMatch[2]) {
-														observer.next({
-															methodName: entryNextLineRegexpMatch[1] || '',
-															controllerName: element.name,
-															line: index + 1,
-															file: file,
-															entry: nextRowMatch[2]
-														});
-													}
-												}
-											}
-										} else if (row.includes('exports.')) {
-											const oldControllersCase = /exports.(\w+?) =/ig;
-
-											const match = oldControllersCase.exec(row);
-
-											if (match && match[1]) {
-												observer.next({
-													methodName: '',
-													controllerName: element.name,
-													line: index,
-													file: file,
-													entry: match[1]
-												});
-											}
-
-										}
-									});
-									observer.complete();
-								});
-							})
-					})
-					.reduce((acc, item) => { acc.push(item); return acc }, [])
-					.toPromise()
-			));
+			const endPoints = await this.findEndpoints(element.name);
 
 			const endpointsMap = new Map<string, ControllerActionItem>();
 
@@ -219,26 +202,87 @@ export class ControllersView implements TreeDataProvider<ControllerItem> {
 
 			return Array.from(endpointsMap.values()).sort((a, b) => a.endpointName > b.endpointName ? 1 : -1);;
 		} else {
-			const filesWorkspaceFolders = (workspace.workspaceFolders || []).filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
-
-			const controllerFiles = await Promise.all(filesWorkspaceFolders.map(
-				workspaceFolder => findFiles(new RelativePattern(workspaceFolder, '**/cartridge/controllers/*.js'), +Infinity).reduce((acc, item) => { acc.push(item); return acc }, [])
-					.toPromise()
-			));
-
-			return controllerFiles.reduce((acc: ControllerItem[], files) => {
-				files.forEach(file => {
-					const name = parse(file.path).name;
-					const exist = acc.find(ctrl => ctrl.name === name);
-
-					if (!exist) {
-						acc.push(new ControllerItem(name, TreeItemCollapsibleState.Collapsed));
-					}
-				});
-
-				return acc;
-			}, []).sort((a, b) => a.name > b.name ? 1 : -1);
+			return await this.findControllers();
 		}
 
+	}
+
+	private async findControllers() {
+		const filesWorkspaceFolders = (workspace.workspaceFolders || []).filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
+		const controllerFiles = await Promise.all(filesWorkspaceFolders.map(workspaceFolder => findFiles(new RelativePattern(workspaceFolder, '**/cartridge/controllers/*.js'), +Infinity).reduce((acc, item) => { acc.push(item); return acc; }, [])
+			.toPromise()));
+		return controllerFiles.reduce((acc: ControllerItem[], files) => {
+			files.forEach(file => {
+				const name = parse(file.path).name;
+				const exist = acc.find(ctrl => ctrl.name === name);
+				if (!exist) {
+					acc.push(new ControllerItem(name, TreeItemCollapsibleState.Collapsed));
+				}
+			});
+			return acc;
+		}, []).sort((a, b) => a.name > b.name ? 1 : -1);
+	}
+
+	private async findEndpoints(controllerName: string) {
+		const filesWorkspaceFolders = (workspace.workspaceFolders || []).filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
+		const endPoints = await Promise.all(filesWorkspaceFolders.map(workspaceFolder => findFiles(new RelativePattern(workspaceFolder, `**/cartridge/controllers/${controllerName}.js`), +Infinity)
+			.flatMap(file => {
+				return Observable.fromPromise(workspace.fs.readFile(file))
+					.flatMap(fileContent => {
+						const fileRows = fileContent.toString().split('\n');
+						return new Observable<ControllerEntry>(observer => {
+							fileRows.forEach((row, index, content) => {
+								if (row.includes('server.')) {
+									const entryRegexp = /server\.(get|post|append|prepend|replace)\(([\"\'](\w.+?)['\"])/ig;
+									const match = entryRegexp.exec(row);
+									if (match && match[3]) {
+										observer.next({
+											methodName: match[1] || '',
+											controllerName: controllerName,
+											line: index,
+											file: file,
+											entry: match[3]
+										});
+									}
+									else {
+										const entryNextLineRegexp = /server\.(get|post|append|prepend|replace)\((\s+?)?$/ig;
+										const entryNextLineRegexpMatch = entryNextLineRegexp.exec(row);
+										if (entryNextLineRegexpMatch) {
+											const nextRow = content[index + 1];
+											const nameOnNextLine = /^(\s+?)?['"](\w+?)['"]/ig;
+											const nextRowMatch = nameOnNextLine.exec(nextRow);
+											if (nextRowMatch && nextRowMatch[2]) {
+												observer.next({
+													methodName: entryNextLineRegexpMatch[1] || '',
+													controllerName: controllerName,
+													line: index + 1,
+													file: file,
+													entry: nextRowMatch[2]
+												});
+											}
+										}
+									}
+								}
+								else if (row.includes('exports.')) {
+									const oldControllersCase = /exports.(\w+?) =/ig;
+									const match = oldControllersCase.exec(row);
+									if (match && match[1]) {
+										observer.next({
+											methodName: '',
+											controllerName: controllerName,
+											line: index,
+											file: file,
+											entry: match[1]
+										});
+									}
+								}
+							});
+							observer.complete();
+						});
+					});
+			})
+			.reduce((acc, item) => { acc.push(item); return acc; }, [])
+			.toPromise()));
+		return endPoints;
 	}
 }
