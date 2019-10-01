@@ -17,7 +17,11 @@ function request$(options) {
 				if (err) {
 					observer.error(err);
 				} else if (res.statusCode >= 400) {
-					const err = new WebDavError([res.statusMessage, body, JSON.stringify(res)].join('\n'));
+					const err = new WebDavError([
+						res.statusMessage,
+						body,
+						JSON.stringify({ response: res, request: options })].join('\n')
+					);
 					err.statusCode = res.statusCode;
 
 					observer.error(err);

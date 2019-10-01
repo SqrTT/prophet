@@ -201,7 +201,7 @@ function uploadAndWatch(
 		.flatMap(() => {
 			outputChannel.appendLine(`Watching files`);
 			return fileWatcher(config, rootDir)
-				.delay(300)// delay uploading file (allow finish writting for large files)
+				.delay(300)// delay uploading file (allow finish writing for large files)
 				.mergeMap(([action, fileName]) => {
 					const date = new Date().toTimeString().split(' ').shift();
 

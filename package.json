@@ -68,6 +68,12 @@
         "workspaceContains:**/cartridge/*.properties"
     ],
     "contributes": {
+        "keybindings": [
+            {
+                "key": "ctrl+f7",
+                "command": "extension.prophet.command.controllers.find"
+            }
+        ],
         "viewsContainers": {
             "activitybar": [
                 {

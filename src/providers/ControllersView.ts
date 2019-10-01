@@ -94,7 +94,7 @@ export class ControllersView implements TreeDataProvider<ControllerItem> {
 			window.registerTreeDataProvider('dwControllersView', controllersView)
 		);
 
-		let qpItems : QuickPickTargetedItem[];
+		let qpItems : QuickPickTargetedItem[] | undefined;
 
 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.controllers.find', async () => {
 			if (qpItems) {
@@ -147,7 +147,7 @@ export class ControllersView implements TreeDataProvider<ControllerItem> {
 						if (!qpItems.has(key)) {
 							qpItems.set(key, {
 								label: `${entry.controllerName}-${entry.entry}`,
-								description: cartridgeName + ' - ' + entry.methodName,
+								description: cartridgeName + (entry.methodName ? ' - ' + entry.methodName : ''),
 								target: entry
 							})
 						}
