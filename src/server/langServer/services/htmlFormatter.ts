@@ -17,7 +17,6 @@ export function format(document: TextDocument, range: Range, options: HTMLFormat
 	let initialIndentLevel = 0;
 	if (range) {
 		let startOffset = document.offsetAt(range.start);
-
 		// include all leading whitespace iff at the beginning of the line
 		let extendedStart = startOffset;
 		while (extendedStart > 0 && isWhitespace(value, extendedStart - 1)) {
@@ -90,7 +89,7 @@ export function format(document: TextDocument, range: Range, options: HTMLFormat
 
 	const eol = htmlOptions.eol || '\n';
 	function findStartLine(res: string, index: number) {
-		while (res.charAt(index) !== eol || index === 0) {
+		while (res.charAt(index) !== eol && index > 0) {
 			index--;
 		}
 		return index;
@@ -148,7 +147,7 @@ export function format(document: TextDocument, range: Range, options: HTMLFormat
 	result = result.replace(/<iscontinue \/>/ig, '<iscontinue/>')
 	result = result.replace(/<isbreak \/>/ig, '<isbreak/>')
 	result = result.replace(/<isreplace \/>/ig, '<isreplace/>')
-  result = result.replace(/<isactivedatahead \/>/ig, '<isactivedatahead/>')
+	result = result.replace(/<isactivedatahead \/>/ig, '<isactivedatahead/>')
 
 
 
