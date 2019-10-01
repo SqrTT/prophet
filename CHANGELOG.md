@@ -1,3 +1,5 @@
+### 1.2.0
+ * Controllers list view
 
 ### 1.0.18
  * fix expandable variables in watcher
