@@ -9,6 +9,14 @@ import { join, sep, dirname } from 'path';
 const CONCURRENT_CARTRIDGES_UPLOADS: number = 4;
 const CONCURRENT_FILE_UPLOADS: number = 5;
 
+/**
+ * Create a WebDav client and wrap it into an Observable
+ * 
+ * @param config the extension configuration
+ * @param outputChannel the output channel for communication
+ * @param rootDir the root directory in the local file system
+ * @returns An Observable which passes the webdav connection along
+ */
 export function getWebDavClient(config: DavOptions, outputChannel: OutputChannel, rootDir: string): Observable<WebDav> {
 	return Observable.create(observer => {
 		const webdav = new WebDav({
@@ -27,7 +35,14 @@ export function getWebDavClient(config: DavOptions, outputChannel: OutputChannel
 	});
 }
 
-function fileWatcher(config, cartRoot: string): Observable<['change' | 'delete' | 'create', string]> {
+/**
+ * Creates an Observable for all file events inside the cartridge folders
+ * 
+ * @param config the extension configuration
+ * @param cartRoot the cartridge root directory in the local file system
+ * @returns An Observable which passes the file events along (as arrays with 2 elements - the operation & the path)
+ */
+function fileEventWatcher(config, cartRoot: string): Observable<['change' | 'delete' | 'create', string]> {
 	return Observable.create(observer => {
 		const watchers: FileSystemWatcher[] = [];
 		let cartridges: Promise<string[]>;
@@ -102,7 +117,7 @@ const uploadCartridges = (
 
 
 
-function uploadWithProgress(
+function uploadCartridgesWithProgress(
 	webdav: WebDav,
 	outputChannel: OutputChannel,
 	config: ({ cartridge, version, cleanOnStart: boolean, ignoreList: Array<string> }),
@@ -190,17 +205,27 @@ function uploadWithProgress(
 
 }
 
-function uploadAndWatch(
+/**
+ * Uploads all cartridges and then watches the cartridge folder for further incremental
+ * changes.
+ * 
+ * @param webdav the webdav connection
+ * @param outputChannel the output channel for communication
+ * @param config the global configuration
+ * @param ask ???
+ * @param rootDir the local root directory
+ */
+function uploadCartridgesAndWatch(
 	webdav: WebDav,
 	outputChannel: OutputChannel,
 	config: ({ cartridge, version, cleanOnStart: boolean, ignoreList: Array<string> }),
 	ask: (sb: string[], listc: string[]) => Promise<string[]>,
 	rootDir: string
 ) {
-	return uploadWithProgress(webdav, outputChannel, config, rootDir, ask)
+	return uploadCartridgesWithProgress(webdav, outputChannel, config, rootDir, ask)
 		.flatMap(() => {
 			outputChannel.appendLine(`Watching files`);
-			return fileWatcher(config, rootDir)
+			return fileEventWatcher(config, rootDir)
 				.delay(300)// delay uploading file (allow finish writting for large files)
 				.mergeMap(([action, fileName]) => {
 					const date = new Date().toTimeString().split(' ').shift();
@@ -213,7 +238,18 @@ function uploadAndWatch(
 								if (stats.isDirectory()) {
 									if (action === 'create') {
 										outputChannel.appendLine(`[C ${date}] ${cleanPath(rootDir, fileName)}`);
-										return webdav.mkdir(fileName, rootDir);
+										// we consume the Observable for directory operations to prevent other operations
+										// in a not yet created remote directory
+										return Observable.create(observer => {
+											webdav.mkdir(fileName, rootDir).subscribe(
+												(val) => {
+													observer.next(val);
+													observer.complete;
+												},
+												() => Observable.throw(Error(`Could not create directory ${cleanPath(rootDir, fileName)}`)),
+												undefined
+											);	
+										});
 									} else {// skip directory changes
 										return Observable.empty();
 									}
@@ -239,7 +275,7 @@ export function init(dwConfig: DavOptions, outputChannel: OutputChannel, config:
 			let retryCounter = 0;
 			const intConf = Object.assign(config, dwConfig);
 
-			return uploadAndWatch(webdav, outputChannel, intConf, ask, '')
+			return uploadCartridgesAndWatch(webdav, outputChannel, intConf, ask, '')
 				.retryWhen(function (errors) {
 					// retry for some errors, end the stream with an error for others
 					return errors.do(function (e) {
