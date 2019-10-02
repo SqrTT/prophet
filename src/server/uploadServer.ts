@@ -226,7 +226,7 @@ function uploadCartridgesAndWatch(
 		.flatMap(() => {
 			outputChannel.appendLine(`Watching files`);
 			return fileEventWatcher(config, rootDir)
-				.delay(300)// delay uploading file (allow finish writting for large files)
+				.delay(300)// delay uploading file (allow finish writing for large files)
 				.mergeMap(([action, fileName]) => {
 					const date = new Date().toTimeString().split(' ').shift();
 
@@ -244,7 +244,7 @@ function uploadCartridgesAndWatch(
 											webdav.mkdir(fileName, rootDir).subscribe(
 												(val) => {
 													observer.next(val);
-													observer.complete;
+													observer.complete();
 												},
 												() => Observable.throw(Error(`Could not create directory ${cleanPath(rootDir, fileName)}`)),
 												undefined
