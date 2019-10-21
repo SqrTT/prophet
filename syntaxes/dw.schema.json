@@ -51,6 +51,11 @@
         "cartridgeResolution" : {
             "type":"string",
             "default": "ask",
+            "enum": [
+                "ask",
+                "remove",
+                "leave"
+            ],
             "description": "Leaves all the cartridges instead of asking"
         }
     },

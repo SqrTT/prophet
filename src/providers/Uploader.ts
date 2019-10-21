@@ -87,10 +87,10 @@ export default class Uploader {
 			// Grab the configuration from the dw.json file
 			const config = await getDWConfig(this.workspaceFolders);
 
-			if (config.cartrigeResolution === 'remove') {
+			if (config.cartridgeResolution === 'remove') {
 				removeFilesMode = "remove";
 				return fileNamesOnSandbox;
-			} else if (config.cartrigeResolution === 'leave') {
+			} else if (config.cartridgeResolution === 'leave') {
 				removeFilesMode = "leave";
 				return cartridgesNamesToUpload;
 			}
