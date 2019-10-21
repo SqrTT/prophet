@@ -144,18 +144,18 @@ export default class Uploader {
 					.flatMap(cartridges => {
 
 						if (Array.isArray(dwConf.cartridge) && dwConf.cartridge.length) {
-							const filtredCartridges = Array.from(cartridges)
+							const filteredCartridges = Array.from(cartridges)
 								.filter(cartridge => dwConf.cartridge && dwConf.cartridge.some(dwCar => cartridge.endsWith(dwCar))
 								);
 
-							if (filtredCartridges.length !== dwConf.cartridge.length) {
+							if (filteredCartridges.length !== dwConf.cartridge.length) {
 								const missedCartridges = dwConf.cartridge
-									.filter(dwCar => dwConf.cartridge && !filtredCartridges.some(cartridge => cartridge.endsWith(dwCar))
+									.filter(dwCar => dwConf.cartridge && !filteredCartridges.some(cartridge => cartridge.endsWith(dwCar))
 									);
 
 								window.showWarningMessage(`Cartridge${missedCartridges.length > 1 ? 's' : ''} "${missedCartridges.join('", "')}" does not exist on file system (or not determined as cartridge/s) while added in configuration. It will be ignored, please restart the uploader once this has been resolved.`);
 							}
-							dwConf.cartridge = filtredCartridges;
+							dwConf.cartridge = filteredCartridges;
 						} else {
 							dwConf.cartridge = Array.from(cartridges)
 						}
