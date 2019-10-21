@@ -58,7 +58,7 @@ export default class Uploader {
 	isUploadEnabled() {
 		return !!workspace.getConfiguration('extension.prophet').get('upload.enabled');
 	}
-	getIgnoreList() : string[] {
+	getIgnoreList(): string[] {
 		return workspace.getConfiguration('extension.prophet').get('ignore.list', ['node_modules', '\\.git', '\\.zip$']);
 	}
 
@@ -76,7 +76,7 @@ export default class Uploader {
 
 
 		if (extraOnSB.length === 0) {
-			return fileNamesOnSandbox;
+			return [];
 		} else if (removeFilesMode) {
 			if (removeFilesMode === 'remove') {
 				return fileNamesOnSandbox;
@@ -87,7 +87,7 @@ export default class Uploader {
 			// Grab the configuration from the dw.json file
 			const config = await getDWConfig(this.workspaceFolders);
 
-			if(config.cartrigeResolution === 'remove') {
+			if (config.cartrigeResolution === 'remove') {
 				removeFilesMode = "remove";
 				return fileNamesOnSandbox;
 			} else if (config.cartrigeResolution === 'leave') {
@@ -97,21 +97,21 @@ export default class Uploader {
 
 			// Prompt the user for his preferred action
 			const response = await window.showWarningMessage(`Your sandbox has extra cartridge/s. "${extraOnSB.join('", "')}". What would you like to do?`,
-			'Remove All Always', 'Leave All Always', 'Remove All', 'Leave All');
-			
+				'Remove All Always', 'Leave All Always', 'Remove All', 'Leave All');
+
 			if (response) {
-				
+
 				switch (response) {
 					case 'Remove All Always':
-					removeFilesMode = "remove";
-					return fileNamesOnSandbox;
+						removeFilesMode = "remove";
+						return fileNamesOnSandbox;
 					case 'Leave All Always':
-					removeFilesMode = "leave";
-					return cartridgesNamesToUpload;
+						removeFilesMode = "leave";
+						return cartridgesNamesToUpload;
 					case 'Remove All':
-					return fileNamesOnSandbox;
+						return fileNamesOnSandbox;
 					default:
-					return cartridgesNamesToUpload;
+						return cartridgesNamesToUpload;
 				}
 			} else {
 				return cartridgesNamesToUpload;

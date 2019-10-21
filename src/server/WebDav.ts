@@ -357,6 +357,10 @@ export default class WebDav {
 				return this.postStream(cartridgesZipFileName, stream, pathToCartridgesDir)
 			})
 			.flatMap(() => {
+				notify(`[${processingFolder}] Remove remote cartridge before extract`);
+				return this.delete(processingFolder, pathToCartridgesDir);
+			})
+			.flatMap(() => {
 				notify(`[${processingFolder}] Unzipping remote zip`);
 				return this.unzip(cartridgesZipFileName, pathToCartridgesDir)
 			})

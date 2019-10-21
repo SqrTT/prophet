@@ -2,7 +2,7 @@
 	"isactivedatahead": {
         "prefix": "isactivedatahead",
         "body": [
-            "<isactivedatahead />\n${0}"
+            "<isactivedatahead/>\n${0}"
         ],
         "description": "isactivedatahead tag"
     },
@@ -23,7 +23,7 @@
     "isbreak": {
         "prefix": "isbreak",
         "body": [
-            "<isbreak />\n${0}"
+            "<isbreak/>\n${0}"
         ],
         "description": "isbreak tag"
     },
@@ -67,7 +67,7 @@
     "iscontinue": {
         "prefix": "iscontinue",
         "body": [
-            "<iscontinue />\n${0}"
+            "<iscontinue/>\n${0}"
         ],
         "description": "iscontinue tag"
     },
@@ -189,7 +189,7 @@
     "isreplace": {
         "prefix": "isreplace",
         "body": [
-            "<isreplace />\n${0}"
+            "<isreplace/>\n${0}"
         ],
         "description": "isreplace tag"
 	},

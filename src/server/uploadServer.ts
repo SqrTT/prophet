@@ -18,10 +18,10 @@ export function getWebDavClient(config: DavOptions, outputChannel: OutputChannel
 			version: config['code-version'] || config.version,
 			root: rootDir
 		}, config.debug ?
-				(...msgs) => { outputChannel.appendLine(`${msgs.join(' ')}`); } :
-				() => {
-					// DO NOTHING
-				}
+			(...msgs) => { outputChannel.appendLine(`${msgs.join(' ')}`); } :
+			() => {
+				// DO NOTHING
+			}
 		);
 		observer.next(webdav);
 	});
@@ -202,26 +202,45 @@ function uploadAndWatch(
 			outputChannel.appendLine(`Watching files`);
 			return fileWatcher(config, rootDir)
 				.delay(300)// delay uploading file (allow finish writing for large files)
-				.mergeMap(([action, fileName]) => {
-					const date = new Date().toTimeString().split(' ').shift();
-
+				.flatMap(([action, fileName]) => {
 					const rootDir = dirname(config.cartridge.find(cartridge => fileName.startsWith(cartridge)) || '');
 
-					if (action === 'change' || action === "create") {
-						return Observable.fromPromise(stat(fileName))
-							.flatMap(stats => {
-								if (stats.isDirectory()) {
-									if (action === 'create') {
-										outputChannel.appendLine(`[C ${date}] ${cleanPath(rootDir, fileName)}`);
-										return webdav.mkdir(fileName, rootDir);
-									} else {// skip directory changes
-										return Observable.empty();
-									}
-								} else {
-									outputChannel.appendLine(`[U ${date}] ${cleanPath(rootDir, fileName)}`);
-									return webdav.post(fileName, rootDir);
-								}
+					return Observable.fromPromise(stat(fileName).catch(err => {
+						if (err.code === 'ENOENT') {
+							return Promise.resolve();
+						}
+						return Promise.reject(err);
+					})).flatMap(stats => {
+						return Observable.of({ action, fileName, stats, rootDir });
+					});
+
+				})
+				.flatMap(fileData => {
+					if (fileData.stats && fileData.stats.isDirectory() && fileData.action === 'create') {
+						// folder creation is handles in serial manner before gets parallelized
+						const date = new Date().toTimeString().split(' ').shift();
+
+						outputChannel.appendLine(`[C ${date}] ${cleanPath(fileData.rootDir, fileData.fileName)}`);
+
+						return webdav.mkdir(fileData.fileName, fileData.rootDir)
+							.flatMap(() => {
+								return Observable.of(fileData)
 							});
+					} else {
+						return Observable.of(fileData);
+					}
+				}, 1)// make it serial
+				.flatMap(({ action, fileName, stats, rootDir }) => {
+					const date = new Date().toTimeString().split(' ').shift();
+
+					if (action === 'change' || action === "create") {
+						if (stats && stats.isDirectory()) {
+							// skip directory changes handled on prev step
+							return Observable.empty();
+						} else {
+							outputChannel.appendLine(`[U ${date}] ${cleanPath(rootDir, fileName)}`);
+							return webdav.post(fileName, rootDir);
+						}
 					} else if (action === 'delete') {
 						outputChannel.appendLine(`[D ${date}] ${cleanPath(rootDir, fileName)}`);
 						return webdav.delete(fileName, rootDir);
