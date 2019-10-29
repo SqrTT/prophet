@@ -64,16 +64,9 @@ export default class Uploader {
 
 	async askCleanCartridge(fileNamesOnSandbox: string[], cartridgesToUpload: string[]): Promise<string[]> {
 		const cartridgesNamesToUpload = cartridgesToUpload.map(cartridge => basename(cartridge));
-
 		const extraOnSB = diff(cartridgesNamesToUpload, fileNamesOnSandbox).filter(name => {
-			if (name.endsWith('.zip')) {
-				cartridgesNamesToUpload.push(name);
-				return false;
-			} else {
-				return true;
-			}
+			return !name.endsWith('.zip');
 		});
-
 
 		if (extraOnSB.length === 0) {
 			return [];
@@ -81,7 +74,7 @@ export default class Uploader {
 			if (removeFilesMode === 'remove') {
 				return fileNamesOnSandbox;
 			} else {
-				return cartridgesNamesToUpload;
+				return [];
 			}
 		} else {
 			// Grab the configuration from the dw.json file
@@ -92,7 +85,7 @@ export default class Uploader {
 				return fileNamesOnSandbox;
 			} else if (config.cartridgeResolution === 'leave') {
 				removeFilesMode = "leave";
-				return cartridgesNamesToUpload;
+				return [];
 			}
 
 			// Prompt the user for his preferred action
@@ -107,14 +100,14 @@ export default class Uploader {
 						return fileNamesOnSandbox;
 					case 'Leave All Always':
 						removeFilesMode = "leave";
-						return cartridgesNamesToUpload;
+						return [];
 					case 'Remove All':
 						return fileNamesOnSandbox;
 					default:
-						return cartridgesNamesToUpload;
+						return [];
 				}
 			} else {
-				return cartridgesNamesToUpload;
+				return [];
 			}
 		}
 	}
@@ -145,12 +138,13 @@ export default class Uploader {
 
 						if (Array.isArray(dwConf.cartridge) && dwConf.cartridge.length) {
 							const filteredCartridges = Array.from(cartridges)
-								.filter(cartridge => dwConf.cartridge && dwConf.cartridge.some(dwCar => cartridge.endsWith(dwCar))
+								.filter(cartridge => dwConf.cartridge && dwConf.cartridge.some(
+									dwCar => basename(cartridge) === dwCar)
 								);
 
 							if (filteredCartridges.length !== dwConf.cartridge.length) {
 								const missedCartridges = dwConf.cartridge
-									.filter(dwCar => dwConf.cartridge && !filteredCartridges.some(cartridge => cartridge.endsWith(dwCar))
+									.filter(dwCar => dwConf.cartridge && !filteredCartridges.some(cartridge => basename(cartridge) === dwCar)
 									);
 
 								window.showWarningMessage(`Cartridge${missedCartridges.length > 1 ? 's' : ''} "${missedCartridges.join('", "')}" does not exist on file system (or not determined as cartridge/s) while added in configuration. It will be ignored, please restart the uploader once this has been resolved.`);
