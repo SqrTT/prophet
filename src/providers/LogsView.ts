@@ -17,11 +17,11 @@ import {
 } from 'vscode';
 
 import { join, basename } from 'path';
-import { default as WebDav, readConfigFile } from '../server/WebDav';
+import { default as WebDav, readConfigFile, DavOptions } from '../server/WebDav';
 import { DOMParser } from 'xmldom';
 import { Observable, Subject } from 'rxjs';
 import timeago from 'timeago.js';
-import { getCartridgesFolder } from '../lib/FileHelper';
+import { getCartridgesFolder, getDWConfig } from '../lib/FileHelper';
 
 
 const domParser = new DOMParser();
@@ -69,6 +69,18 @@ function observable2promise<T>(observable: Observable<T>): Promise<T> {
 	return new Promise((resolve, reject) => {
 		observable.subscribe(resolve, reject, reject);
 	});
+}
+
+function updateDWJson(dwConfig : DavOptions, webdavClients : Map<string, WebDav>): Map<string, WebDav> {
+	Object.keys(dwConfig).forEach((key) => {
+		let existingClient = webdavClients.get(dwConfig.hostname);
+		// only update necessary values
+		if (existingClient && key === 'password' || existingClient && key === 'hostname') {
+			existingClient.config[key] = dwConfig[key];
+			webdavClients.set(dwConfig.hostname, existingClient);
+		}
+	});
+	return webdavClients
 }
 
 export class LogsView implements TreeDataProvider<LogItem> {
@@ -133,7 +145,9 @@ export class LogsView implements TreeDataProvider<LogItem> {
 	readonly onDidChangeTreeData: Event<LogItem | undefined> = this._onDidChangeTreeData.event;
 	private _logsFileNameFilter: string = '';
 
-	refresh(): void {
+	async refresh(): Promise<void> {
+		const dwConfig : DavOptions = await getDWConfig(workspace.workspaceFolders);
+		this.webdavClients = updateDWJson(dwConfig, this.webdavClients);
 		this._onDidChangeTreeData.fire();
 	}
 	getTreeItem(element: LogItem): TreeItem {
