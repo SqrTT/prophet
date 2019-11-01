@@ -133,7 +133,7 @@ export default class Uploader {
 				this.outputChannel.appendLine(`Using config file '${dwConf.configFilename}'`);
 
 				return Observable.of(...this.workspaceFolders)
-					.flatMap(workspaceFolder => getCartridgesFolder(workspaceFolder, getIgnoreList()))
+					.flatMap(workspaceFolder => getCartridgesFolder(workspaceFolder))
 					.reduce((acc, val) => {
 						acc.add(val);
 						return acc;
