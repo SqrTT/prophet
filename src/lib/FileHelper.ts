@@ -124,7 +124,7 @@ export function findFiles(include: RelativePattern, maxResults?: number, errIfNo
 }
 
 export function getCartridgesFolder(workspaceFolder: WorkspaceFolder): Observable<string> {
-return findFiles(new RelativePattern(workspaceFolder, '**/.project'))
+	return findFiles(new RelativePattern(workspaceFolder, '**/.project'))
 		.flatMap((project) => {
 			return checkIfCartridge$(project.fsPath)
 				.flatMap(isCartridge => isCartridge ? Observable.of(project) : Observable.empty<Uri>())
