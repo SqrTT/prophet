@@ -25,7 +25,7 @@ async function readDir(src: string) {
 	})
 };
 
-export function	getIgnoreList(): string[] {
+export function getIgnoreList(): string[] {
 	return workspace.getConfiguration('extension.prophet').get('ignore.list', ['node_modules', '\\.git', '\\.zip$']);
 }
 
