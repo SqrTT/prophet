@@ -1,7 +1,7 @@
 import { Observable, Subscription, Subject } from 'rxjs';
 import { window, OutputChannel, ExtensionContext, workspace, commands, WorkspaceFolder } from 'vscode';
 import * as uploadServer from "../server/uploadServer";
-import { getCartridgesFolder, getDWConfig } from '../lib/FileHelper';
+import { getCartridgesFolder, getDWConfig, getIgnoreList } from '../lib/FileHelper';
 import { basename } from 'path';
 
 const commandBus = new Subject<'enable.upload' | 'clean.upload' | 'disable.upload'>();
@@ -57,9 +57,6 @@ export default class Uploader {
 	 */
 	isUploadEnabled() {
 		return !!workspace.getConfiguration('extension.prophet').get('upload.enabled');
-	}
-	getIgnoreList(): string[] {
-		return workspace.getConfiguration('extension.prophet').get('ignore.list', ['node_modules', '\\.git', '\\.zip$']);
 	}
 
 	async askCleanCartridge(fileNamesOnSandbox: string[], cartridgesToUpload: string[]): Promise<string[]> {
@@ -136,7 +133,7 @@ export default class Uploader {
 				this.outputChannel.appendLine(`Using config file '${dwConf.configFilename}'`);
 
 				return Observable.of(...this.workspaceFolders)
-					.flatMap(workspaceFolder => getCartridgesFolder(workspaceFolder))
+					.flatMap(workspaceFolder => getCartridgesFolder(workspaceFolder, getIgnoreList()))
 					.reduce((acc, val) => {
 						acc.add(val);
 						return acc;
@@ -163,7 +160,7 @@ export default class Uploader {
 						return uploadServer.init(
 							dwConf,
 							this.outputChannel,
-							{ cleanOnStart: this.cleanOnStart, ignoreList: this.getIgnoreList() },
+							{ cleanOnStart: this.cleanOnStart, ignoreList: getIgnoreList() },
 							this.askCleanCartridge.bind(this)
 						);
 					})

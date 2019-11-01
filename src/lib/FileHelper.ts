@@ -24,6 +24,11 @@ async function readDir(src: string) {
 		});
 	})
 };
+
+export function	getIgnoreList(): string[] {
+	return workspace.getConfiguration('extension.prophet').get('ignore.list', ['node_modules', '\\.git', '\\.zip$']);
+}
+
 /**
  * Fetches all directories within the given path.
  * @param srcpath The path to look in for directories
@@ -92,9 +97,11 @@ export function findFiles(include: RelativePattern, maxResults?: number, errIfNo
 	return new Observable<Uri>(observer => {
 		const tokenSource = new CancellationTokenSource();
 
+		let ignoreList: string[] = getIgnoreList();
+		
 		workspace.findFiles(
 			include,
-			undefined,
+			new RelativePattern(workspace.workspaceFolders![0], '**/' + ignoreList[0]),
 			maxResults,
 			tokenSource.token
 		).then(files => {
@@ -116,8 +123,8 @@ export function findFiles(include: RelativePattern, maxResults?: number, errIfNo
 	});
 }
 
-export function getCartridgesFolder(workspaceFolder: WorkspaceFolder): Observable<string> {
-	return findFiles(new RelativePattern(workspaceFolder, '**/.project'))
+export function getCartridgesFolder(workspaceFolder: WorkspaceFolder, ignoreList?: string[]): Observable<string> {
+return findFiles(new RelativePattern(workspaceFolder, '**/.project'))
 		.flatMap((project) => {
 			return checkIfCartridge$(project.fsPath)
 				.flatMap(isCartridge => isCartridge ? Observable.of(project) : Observable.empty<Uri>())
