@@ -96,12 +96,11 @@ export async function pathExists(location: string): Promise<boolean> {
 export function findFiles(include: RelativePattern, maxResults?: number, errIfNoFound?: boolean) {
 	return new Observable<Uri>(observer => {
 		const tokenSource = new CancellationTokenSource();
-
-		let ignoreList: string[] = getIgnoreList();
-		
+		let ignoreListFolders: string = getIgnoreList().join(',');
+		let ignoreGlob: string = `**/*{${ignoreListFolders}}`;
 		workspace.findFiles(
 			include,
-			new RelativePattern(workspace.workspaceFolders![0], '**/' + ignoreList[0]),
+			new RelativePattern(workspace.workspaceFolders![0], ignoreGlob),
 			maxResults,
 			tokenSource.token
 		).then(files => {
