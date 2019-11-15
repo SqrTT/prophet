@@ -343,7 +343,6 @@ export default class WebDav {
 		const processingFolder = pathToCartridgesDir.split(sep).pop();
 		const cartridgesZipFileName = join(pathToCartridgesDir, processingFolder + '_cartridge.zip');
 
-
 		return this.delete(cartridgesZipFileName, pathToCartridgesDir)
 			.do(() => {
 				notify(`[${processingFolder}] Deleting remote zip (if any)`);

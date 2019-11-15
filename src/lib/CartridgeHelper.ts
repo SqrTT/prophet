@@ -2,7 +2,7 @@
 import { workspace, RelativePattern } from 'vscode';
 import { exists, readFile, existsSync, mkdirSync, writeFile, mkdir, createReadStream } from 'fs';
 import { join, sep } from 'path';
-import { pathExists } from '../lib/FileHelper';
+import { pathExists, getExcludePattern } from '../lib/FileHelper';
 import { Observable } from 'rxjs';
 
 /**
@@ -73,7 +73,7 @@ export const getPathsCartridges = (workspaceFolder, packageFile): Promise<string
 									exists(join(workspaceFolder, path), packagePathExists => {
 										if (packagePathExists) {
 											workspace
-												.findFiles(new RelativePattern(workspaceFolder, '.project'))
+												.findFiles(new RelativePattern(workspaceFolder, '.project'), getExcludePattern(workspaceFolder))
 												.then(filesUri => {
 													resolvePathProjects(filesUri.map(fileUri => fileUri.fsPath))
 												}, rejectPathProjects);

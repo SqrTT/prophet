@@ -30,6 +30,15 @@ export function getIgnoreList(): string[] {
 }
 
 /**
+ * Set a relative exclude path
+ * @param workspaceFolder
+ */
+export function getExcludePattern(workspaceFolder : WorkspaceFolder) : RelativePattern {
+	let ignoreListFolders: string = getIgnoreList().join(',');
+	return new RelativePattern(workspaceFolder, `**/*{${ignoreListFolders}}`)
+}
+
+/**
  * Fetches all directories within the given path.
  * @param srcpath The path to look in for directories
  */
@@ -93,14 +102,12 @@ export async function pathExists(location: string): Promise<boolean> {
 	});
 }
 
-export function findFiles(include: RelativePattern, maxResults?: number, errIfNoFound?: boolean) {
+export function findFiles(include: RelativePattern, exclude: RelativePattern, maxResults?: number, errIfNoFound?: boolean) {
 	return new Observable<Uri>(observer => {
 		const tokenSource = new CancellationTokenSource();
-		let ignoreListFolders: string = getIgnoreList().join(',');
-		let ignoreGlob: string = `**/*{${ignoreListFolders}}`;
 		workspace.findFiles(
 			include,
-			new RelativePattern(workspace.workspaceFolders![0], ignoreGlob),
+			exclude,
 			maxResults,
 			tokenSource.token
 		).then(files => {
@@ -123,7 +130,7 @@ export function findFiles(include: RelativePattern, maxResults?: number, errIfNo
 }
 
 export function getCartridgesFolder(workspaceFolder: WorkspaceFolder): Observable<string> {
-	return findFiles(new RelativePattern(workspaceFolder, '**/.project'))
+	return findFiles(new RelativePattern(workspaceFolder, '**/.project'), getExcludePattern(workspaceFolder))
 		.flatMap((project) => {
 			return checkIfCartridge$(project.fsPath)
 				.flatMap(isCartridge => isCartridge ? Observable.of(project) : Observable.empty<Uri>())
@@ -135,7 +142,7 @@ export function getDWConfig(workspaceFolders?: WorkspaceFolder[]): Promise<DavOp
 	if (workspaceFolders) {
 		const filesWorkspaceFolders = workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
 		const dwConfigFiles = Promise.all(filesWorkspaceFolders.map(
-			workspaceFolder => findFiles(new RelativePattern(workspaceFolder, '**/dw.json'), 1).toPromise()
+			workspaceFolder => findFiles(new RelativePattern(workspaceFolder, '**/dw.json'), getExcludePattern(workspaceFolder), 1).toPromise()
 		));
 		return dwConfigFiles.then(configFiles => {
 			if (configFiles) {

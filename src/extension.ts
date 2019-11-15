@@ -12,7 +12,7 @@ import { createServer, ServerResponse, IncomingMessage } from 'http';
 import Uploader from "./providers/Uploader";
 import { ProphetConfigurationProvider } from './providers/ConfigurationProvider';
 import { Subject, Observable } from 'rxjs';
-import { findFiles, getDWConfig, getCartridgesFolder } from './lib/FileHelper';
+import { findFiles, getDWConfig, getCartridgesFolder, getExcludePattern } from './lib/FileHelper';
 import { SandboxFS } from './providers/SandboxFileSystemProvider';
 
 
@@ -223,7 +223,7 @@ export function activate(context: ExtensionContext) {
 		return workspaceFolder$
 			.do(() => { }, undefined, () => { end$.next(); end$.complete() })
 			.flatMap(workspaceFolder => {
-				return findFiles(new RelativePattern(workspaceFolder, '**/dw.json'), 1)
+				return findFiles(new RelativePattern(workspaceFolder, '**/dw.json'), getExcludePattern(workspaceFolder), 1)
 			}).takeUntil(end$);
 	});
 

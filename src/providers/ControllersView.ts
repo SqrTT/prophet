@@ -1,5 +1,5 @@
 import { TreeDataProvider, TreeItem, TreeItemCollapsibleState, Command, commands, window, ExtensionContext, workspace, RelativePattern, Uri, EventEmitter, Event, QuickPickItem } from "vscode";
-import { findFiles } from "../lib/FileHelper";
+import { findFiles, getExcludePattern } from "../lib/FileHelper";
 import { parse, sep } from 'path';
 import { Observable } from "rxjs";
 
@@ -209,7 +209,7 @@ export class ControllersView implements TreeDataProvider<ControllerItem> {
 
 	private async findControllers() {
 		const filesWorkspaceFolders = (workspace.workspaceFolders || []).filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
-		const controllerFiles = await Promise.all(filesWorkspaceFolders.map(workspaceFolder => findFiles(new RelativePattern(workspaceFolder, '**/cartridge/controllers/*.js'), +Infinity).reduce((acc, item) => { acc.push(item); return acc; }, [])
+		const controllerFiles = await Promise.all(filesWorkspaceFolders.map(workspaceFolder => findFiles(new RelativePattern(workspaceFolder, '**/cartridge/controllers/*.js'), getExcludePattern(workspaceFolder), +Infinity).reduce((acc, item) => { acc.push(item); return acc; }, [])
 			.toPromise()));
 		return controllerFiles.reduce((acc: ControllerItem[], files) => {
 			files.forEach(file => {
@@ -225,7 +225,7 @@ export class ControllersView implements TreeDataProvider<ControllerItem> {
 
 	private async findEndpoints(controllerName: string) {
 		const filesWorkspaceFolders = (workspace.workspaceFolders || []).filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
-		const endPoints = await Promise.all(filesWorkspaceFolders.map(workspaceFolder => findFiles(new RelativePattern(workspaceFolder, `**/cartridge/controllers/${controllerName}.js`), +Infinity)
+		const endPoints = await Promise.all(filesWorkspaceFolders.map(workspaceFolder => findFiles(new RelativePattern(workspaceFolder, `**/cartridge/controllers/${controllerName}.js`), getExcludePattern(workspaceFolder), +Infinity)
 			.flatMap(file => {
 				return Observable.fromPromise(workspace.fs.readFile(file))
 					.flatMap(fileContent => {
