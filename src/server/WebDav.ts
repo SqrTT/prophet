@@ -13,7 +13,19 @@ function request$(options) {
 	//fixme: refactor to use https module
 	return Observable.fromPromise(import('request')).flatMap(request => {
 		return new Observable<string>(observer => {
-			const req = request(options, (err, res, body) => {
+			var req;
+
+			const body = options.body;
+			if (body && body instanceof ReadStream) {
+				body.once('error', (err) => {
+					observer.error(err);
+					if (req) {
+						req.destroy();
+					}
+				});
+			}
+
+			req = request(options, (err, res, body) => {
 				if (err) {
 					observer.error(err);
 				} else if (res.statusCode >= 400) {
@@ -32,7 +44,9 @@ function request$(options) {
 			});
 
 			return () => {
-				req.destroy();
+				if (req) {
+					req.destroy();
+				}
 			};
 		});
 	})
@@ -98,7 +112,7 @@ export default class WebDav {
 		};
 	}
 	makeRequest(options): Observable<string> {
-		this.log('request', options, this.getOptions());
+		this.log('request', JSON.stringify(options), JSON.stringify(this.getOptions()));
 		return request$(Object.assign(this.getOptions(), options));
 	}
 	postBody(uriPath: string, bodyOfFile: string): Observable<string> {

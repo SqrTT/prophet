@@ -201,7 +201,7 @@ function uploadAndWatch(
 		.flatMap(() => {
 			outputChannel.appendLine(`Watching files`);
 			return fileWatcher(config, rootDir)
-				.delay(300)// delay uploading file (allow finish writing for large files)
+				.delay(400)// delay uploading file (allow finish writing for large files)
 				.flatMap(([action, fileName]) => {
 					const rootDir = dirname(config.cartridge.find(cartridge => fileName.startsWith(cartridge)) || '');
 
@@ -216,9 +216,9 @@ function uploadAndWatch(
 
 				})
 				.flatMap(fileData => {
+					const date = new Date().toTimeString().split(' ').shift();
 					if (fileData.stats && fileData.stats.isDirectory() && fileData.action === 'create') {
 						// folder creation is handles in serial manner before gets parallelized
-						const date = new Date().toTimeString().split(' ').shift();
 
 						outputChannel.appendLine(`[C ${date}] ${cleanPath(fileData.rootDir, fileData.fileName)}`);
 
@@ -226,8 +226,11 @@ function uploadAndWatch(
 							.flatMap(() => {
 								return Observable.of(fileData)
 							});
-					} else {
+					} else if (fileData.stats) {
 						return Observable.of(fileData);
+					} else {
+						outputChannel.appendLine(`[! ${date}] ${cleanPath(fileData.rootDir, fileData.fileName)} (removed before uploaded)`);
+						return Observable.empty();
 					}
 				}, 1)// make it serial
 				.flatMap(({ action, fileName, stats, rootDir }) => {
