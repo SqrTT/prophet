@@ -59,7 +59,7 @@ export default class Uploader {
 		return !!workspace.getConfiguration('extension.prophet').get('upload.enabled');
 	}
 	getIgnoreList(): string[] {
-		return workspace.getConfiguration('extension.prophet').get('ignore.list', ['node_modules', '\\.git', '\\.zip$']);
+		return workspace.getConfiguration('extension.prophet').get('ignore.list', ['node_modules', '\\.git', '\\.zip$', '\\*.git$']);
 	}
 
 	async askCleanCartridge(fileNamesOnSandbox: string[], cartridgesToUpload: string[]): Promise<string[]> {
