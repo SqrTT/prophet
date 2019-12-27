@@ -111,6 +111,33 @@ export default class Uploader {
 			}
 		}
 	}
+
+	/**
+	 * Remove cartridges before upload which are twice in the workspace, to avoid race conditions due to concurrent uploads
+	 */
+	removeDuplicateCartridges(cartridgesToUpload: string[]): string[] {
+		let uniqueCartridges = Array<String>();
+		let duplicateCartridges = Array<String>();
+		cartridgesToUpload = cartridgesToUpload.filter((cartridge) => {
+			let cartridgeName = basename(cartridge);
+			if (!uniqueCartridges.includes(cartridgeName)) {
+				uniqueCartridges.push(cartridgeName);
+				return true;
+			}
+			duplicateCartridges.push(cartridge);
+			return false;
+		});
+
+		if (duplicateCartridges.length === 0) {
+			return cartridgesToUpload;
+		}
+		
+		window.showWarningMessage(
+			`Following cartridge/s are duplicates and won't be uploaded. "${duplicateCartridges.join('", "')}".`,
+			'Ok');
+		return cartridgesToUpload;
+	}
+
 	/**
 	 * Loads the uploader configuration and start the server
 	 */
@@ -153,6 +180,8 @@ export default class Uploader {
 						} else {
 							dwConf.cartridge = Array.from(cartridges)
 						}
+						
+						dwConf.cartridge = this.removeDuplicateCartridges(dwConf.cartridge);
 
 						return uploadServer.init(
 							dwConf,
