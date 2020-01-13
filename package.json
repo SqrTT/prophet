@@ -49,7 +49,7 @@
         "@types/mocha": "^2.2.48",
         "@types/node": "^10.2.0",
         "mocha": "^5.2.0",
-        "typescript": "^3.7.3",
+        "typescript": "^3.7.4",
         "vscode": "^1.1.36",
         "vscode-debugadapter-testsupport": "^1.40.0"
     },
@@ -411,7 +411,7 @@
                     "default": [
                         "isml"
                     ],
-                    "description": "list of file extention for server activation",
+                    "description": "list of file extension for server activation",
                     "scope": "window"
                 },
                 "extension.prophet.cartridges.path": {
@@ -438,7 +438,7 @@
                 },
                 "extension.prophet.sandbox.filesystem.enabled": {
                     "type": "boolean",
-                    "default": true,
+                    "default": false,
                     "description": "Enable Sandbox File System workspace",
                     "scope": "application"
                 }
