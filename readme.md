@@ -42,7 +42,7 @@ When your launch config is set up, you can debug your project! Pick a launch con
 The extension operates in one mode - it launch an adapter that connects to sandbox. Just like when using the other debugger, you configure with a `.vscode/launch.json` file in the root directory of your project. You can create this file manually, or Code will create one for you if you try to run your project, and it doesn't exist yet.
 
 ### Launch
-Example `launch.json` configs with `"request": "launch"`. You must not specify hostname and other credentials. Since they will be loaded from corresponding `dw.json` file.
+Example `launch.json` configs with `"request": "launch"`. You must not specify hostname and other credentials. Since they will be loaded from corresponding `dw.json` or `dw.js` file.
 
 ```json
 {
@@ -64,7 +64,7 @@ Example `launch.json` configs with `"request": "launch"`. You must not specify h
 
 ## Using the uploader
 
-Configuration for uploader should be in the `cartridges` folder in a file named `dw.json` (similar is used by `dwupload` and is compatible witn the uploader).
+Configuration for uploader should be in the `cartridges` folder in a file named `dw.json` or `dw.js` (similar is used by `dwupload` and is compatible witn the uploader).
 
 ```
 ├── bc_library
@@ -84,7 +84,7 @@ Example of file:
     "code-version": "version2"
 }
 ```
-The second step: enabling the uploader in workspace preferences. Open preferences, switch to workspace preferences and set value to `true` for `"extension.prophet.upload.enabled"`. Detailed log information is written in output channel `Prophet Uploader`. (Note: once you change `dw.json` you should run 'Clean Project/Upload all' from command menu to apply it).
+The second step: enabling the uploader in workspace preferences. Open preferences, switch to workspace preferences and set value to `true` for `"extension.prophet.upload.enabled"`. Detailed log information is written in output channel `Prophet Uploader`. (Note: once you change `dw.json` or `dw.js` you should run 'Clean Project/Upload all' from command menu to apply it).
 
 You can temporarily disable watching or force upload cartridges (i.e. clean project) via commands.
 

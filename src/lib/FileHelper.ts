@@ -129,13 +129,14 @@ export function getDWConfig(workspaceFolders?: WorkspaceFolder[]): Promise<DavOp
 	if (workspaceFolders) {
 		const filesWorkspaceFolders = workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
 		const dwConfigFiles = Promise.all(filesWorkspaceFolders.map(
-			workspaceFolder => findFiles(new RelativePattern(workspaceFolder, '**/dw.json'), 1).toPromise()
+			workspaceFolder => findFiles(new RelativePattern(workspaceFolder, '**/dw.{json,js}'), 1).toPromise()
 		));
+
 		return dwConfigFiles.then(configFiles => {
 			if (configFiles) {
 				configFiles = configFiles.filter(Boolean);
 				if (!configFiles.length) {
-					return Promise.reject('Unable to find sandbox configuration (dw.json)');
+					return Promise.reject('Unable to find sandbox configuration (dw.{json,js})');
 				} else if (configFiles.length === 1) {
 					return configFiles[0].fsPath;
 				} else {
@@ -143,7 +144,7 @@ export function getDWConfig(workspaceFolders?: WorkspaceFolder[]): Promise<DavOp
 				}
 
 			} else {
-				return Promise.reject('Unable to find sandbox configuration (dw.json)');
+				return Promise.reject('Unable to find sandbox configuration (dw.{json,js})');
 			}
 		}).then(getConfig);
 	} else {
