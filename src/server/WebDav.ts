@@ -388,34 +388,44 @@ export default class WebDav {
 
 export function readConfigFile(configFilename: string) {
 	return new Observable<DavOptions>(observer => {
-		const stream = createReadStream(configFilename);
-		let chunks: Buffer[] = [];
-
-		// Listen for data
-		stream.on('data', chunk => {
-			chunks.push(chunk);
-		});
-
-		stream.on('error', err => {
-			observer.error(err);
-		}); // Handle the error
-
-		// File is done being read
-		stream.on('close', () => {
+		if (configFilename.match(/\.js$/)) {
 			try {
-				const conf = JSON.parse(Buffer.concat(chunks).toString());
-				conf.configFilename = configFilename;
-				observer.next(conf);
+				delete require.cache[require.resolve(configFilename)]
+				observer.next(require(configFilename));
 				observer.complete();
-				chunks = <any>null;
-			} catch (err) {
+			} catch(err) {
 				observer.error(err);
 			}
-		});
+		} else {
+			const stream = createReadStream(configFilename);
+			let chunks: Buffer[] = [];
 
-		return () => {
-			chunks = <any>null;
-			stream.close();
-		};
+			// Listen for data
+			stream.on('data', chunk => {
+				chunks.push(chunk);
+			});
+
+			stream.on('error', err => {
+				observer.error(err);
+			}); // Handle the error
+
+			// File is done being read
+			stream.on('close', () => {
+				try {
+					const conf = JSON.parse(Buffer.concat(chunks).toString());
+					conf.configFilename = configFilename;
+					observer.next(conf);
+					observer.complete();
+					chunks = <any>null;
+				} catch (err) {
+					observer.error(err);
+				}
+			});
+
+			return () => {
+				chunks = <any>null;
+				stream.close();
+			};
+		}
 	});
 }
