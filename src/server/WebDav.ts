@@ -389,8 +389,13 @@ export default class WebDav {
 export function readConfigFile(configFilename: string) {
 	return new Observable<DavOptions>(observer => {
 		if (configFilename.match(/\.js$/)) {
-			observer.next(require(configFilename));
-			observer.complete();
+			try {
+				delete require.cache[require.resolve(configFilename)]
+				observer.next(require(configFilename));
+				observer.complete();
+			} catch(err) {
+				observer.error(err);
+			}
 		} else {
 			const stream = createReadStream(configFilename);
 			let chunks: Buffer[] = [];
