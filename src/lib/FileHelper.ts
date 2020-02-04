@@ -155,11 +155,11 @@ export function getDWConfig(workspaceFolders?: WorkspaceFolder[]): Promise<DavOp
 /**
  * Get config for a file path, complete the config via user input when required
  *
- * @param filepath
+ * @param filePath
  */
-export function getConfig(filepath: string) {
-	if (filepath) {
-		return readConfigFile(filepath).toPromise().then(config => {
+export function getConfig(filePath: string) {
+	if (filePath) {
+		return readConfigFile(filePath).toPromise().then(config => {
 			if (config.password) {
 				return config;
 			} else if (savedPassword) {
