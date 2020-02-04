@@ -38,7 +38,7 @@
         "timeago.js": "^3.0.2",
         "vscode-debugadapter": "^1.37.1",
         "vscode-debugprotocol": "^1.37.0",
-        "vscode-languageclient": "^6.1.",
+        "vscode-languageclient": "^6.1.0",
         "vscode-languageserver": "^6.1.0",
         "vscode-nls": "^4.1.1",
         "vscode-uri": "^2.1.1",
