@@ -4,8 +4,10 @@ import {
 	createConnection, IConnection,
 	TextDocuments, InitializeResult, DocumentLinkParams, DocumentLink, Range, Position,
 	Hover,
-	WorkspaceFolder
+	WorkspaceFolder,
+	TextDocumentSyncKind
 } from 'vscode-languageserver';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 import { getLanguageService } from './langServer/htmlLanguageService';
 
 import { URI } from 'vscode-uri';
@@ -22,7 +24,7 @@ let selectedFilesEmitter = new EventEmitter();
 
 // Create a simple text document manager. The text document manager
 // supports full document sync only
-let documents: TextDocuments = new TextDocuments();
+let documents = new TextDocuments(TextDocument);
 // Make the text document manager listen on the connection
 // for open, change and close text document events
 documents.listen(connection);
@@ -103,7 +105,7 @@ connection.onInitialize((params): InitializeResult => {
 	return {
 		capabilities: {
 			// Tell the client that the server works in FULL text document sync mode
-			textDocumentSync: documents.syncKind,
+			textDocumentSync: TextDocumentSyncKind.Full,
 			//hoverProvider: true
 			documentLinkProvider: {
 				resolveProvider: true

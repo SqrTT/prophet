@@ -1,12 +1,14 @@
 
 import {
-	TextDocument, IConnection,
+	IConnection,
 	Diagnostic,
 	DiagnosticSeverity,
 	TextDocuments,
 	ErrorMessageTracker,
 	DidChangeConfigurationParams
 } from "vscode-languageserver";
+import { TextDocument } from 'vscode-languageserver-textdocument';
+
 
 import { URI } from 'vscode-uri';
 
@@ -552,7 +554,7 @@ function validateAllTextDocuments(connection: IConnection, documents: TextDocume
 	});
 	tracker.sendErrors(connection);
 }
-export function disableLinting(connection: IConnection, documents: TextDocuments) {
+export function disableLinting(connection: IConnection, documents: TextDocuments<TextDocument>) {
 	htmlHintClient = null;
 	let tracker = new ErrorMessageTracker();
 	documents.all().forEach(document => {
@@ -566,9 +568,9 @@ export function disableLinting(connection: IConnection, documents: TextDocuments
 	connection.onDidChangeWatchedFiles(() => { })
 }
 
-export function enableLinting(connection: IConnection, documents: TextDocuments) {
+export function enableLinting(connection: IConnection, documents: TextDocuments<TextDocument>) {
 	htmlHintClient = require('htmlhint/dist/htmlhint').default;
-	console.log(htmlHintClient);
+
 	customRules.forEach(rule => htmlHintClient.addRule(rule));
 
 	// The watched .htmlhintrc has changed. Clear out the last loaded config, and revalidate all documents.
@@ -580,7 +582,7 @@ export function enableLinting(connection: IConnection, documents: TextDocuments)
 	})
 }
 
-export function onDidChangeConfiguration(connection: IConnection, documents: TextDocuments, params: DidChangeConfigurationParams) {
+export function onDidChangeConfiguration(connection: IConnection, documents: TextDocuments<TextDocument>, params: DidChangeConfigurationParams) {
 
 	settings = params.settings;
 	if (
