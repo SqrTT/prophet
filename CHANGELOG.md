@@ -1,4 +1,4 @@
-### 1.2.6
+### 1.2.7
  * allow to use credentials in `dw.js` file (thanks to [Martin Kalábek](https://github.com/Eneris))
  * Sync dw.json on LogsView update (thanks to [challmannsf](https://github.com/challmannsf))
  * fix incorrect behavior in case duplicate cartridges (thanks to [challmannsf](https://github.com/challmannsf))
