@@ -13,6 +13,7 @@ import { getLanguageService } from './langServer/htmlLanguageService';
 import { URI } from 'vscode-uri';
 
 import { readFile } from 'fs';
+import { sep } from 'path';
 import { EventEmitter } from 'events';
 
 import { enableLinting, validateTextDocument, onDidChangeConfiguration, disableLinting } from './langServer/services/ismlLinting';
@@ -30,7 +31,8 @@ let documents = new TextDocuments(TextDocument);
 documents.listen(connection);
 
 let workspaceFolders: WorkspaceFolder[] = [];
-const customTagsMap = new Map<string, string>();
+const customTagsIndex = new Map<string, string>();
+const templatesIndex: string[] = [];
 
 interface ISearch {
 	resolve: Function,
@@ -64,14 +66,14 @@ let languageService = getLanguageService();
 let userFormatParams;
 
 connection.onInitialized(() => {
-	parseFilesForCustomTags(workspaceFolders);
+	actualizeIndexes(workspaceFolders);
 	connection.workspace.onDidChangeWorkspaceFolders((event) => {
 		connection.workspace.getWorkspaceFolders().then(_workspaceFolders => {
 			workspaceFolders = _workspaceFolders || [];
 
 			workspaceFolders = workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.includes('file:'))
 
-			parseFilesForCustomTags(workspaceFolders);
+			actualizeIndexes(workspaceFolders);
 		});
 		connection.console.log('Workspace folder change event received');
 	});
@@ -144,7 +146,7 @@ connection.onDocumentLinks((params: DocumentLinkParams) => {
 
 		const fileLines = document.getText().split('\n');
 		const documentLinks: DocumentLink[] = [];
-		const customTagsList = Array.from(customTagsMap.keys());
+		const customTagsList = Array.from(customTagsIndex.keys());
 
 		lastFileLines = fileLines;
 
@@ -187,7 +189,7 @@ connection.onDocumentLinkResolve(documentLink => {
 
 	return new Promise((resolve, reject) => {
 		const fileLines = lastFileLines;
-		const customTagsList = Array.from(customTagsMap.keys());
+		const customTagsList = Array.from(customTagsIndex.keys());
 
 		fileLines.some((fileLine, index) => {
 			const customTag = customTagsList.find(customTag => fileLine.includes('<is' + customTag));
@@ -197,7 +199,7 @@ connection.onDocumentLinkResolve(documentLink => {
 				let fileToOpen: string;
 
 				if (customTag) {
-					fileToOpen = customTagsMap.get(customTag) || '';
+					fileToOpen = customTagsIndex.get(customTag) || '';
 				} else {
 					const startPos = fileLine.indexOf('template="') + 10;
 					const endPos = fileLine.indexOf('"', startPos);
@@ -308,7 +310,9 @@ connection.onCompletion(params => {
 	return languageService.doComplete(
 		document,
 		params.position,
-		languageService.parseHTMLDocument(document)
+		languageService.parseHTMLDocument(document),
+		undefined,
+		{ templateIndex: templatesIndex }
 	);
 });
 
@@ -341,9 +345,9 @@ process.once('uncaughtException', err => {
 })
 
 
-function parseFilesForCustomTags(workspaceFolders: WorkspaceFolder[] | null) {
+function actualizeIndexes(workspaceFolders: WorkspaceFolder[] | null) {
 	if (workspaceFolders) {
-		customTagsMap.clear();
+		customTagsIndex.clear();
 		connection.console.log('Finding files with custom tags... ');
 		workspaceFolders.forEach(workspaceFolder => {
 			findFiles(workspaceFolder.uri, '**/*modules*.isml').then(files => {
@@ -362,7 +366,7 @@ function parseFilesForCustomTags(workspaceFolders: WorkspaceFolder[] | null) {
 									const template = (/template\=[\'\"](.+?)[\'\"]/ig).exec($1);
 
 									if (name && template) {
-										customTagsMap.set(name[1], template[1]);
+										customTagsIndex.set(name[1], template[1]);
 									}
 									return '';
 								})
@@ -370,6 +374,23 @@ function parseFilesForCustomTags(workspaceFolders: WorkspaceFolder[] | null) {
 							}
 						})
 					}));
+				}
+			})
+		});
+		connection.console.log('Finding templates... ');
+		templatesIndex.splice(0, templatesIndex.length);
+		workspaceFolders.forEach(workspaceFolder => {
+			findFiles(workspaceFolder.uri, '**/cartridge/templates/default/**/*.isml').then(files => {
+				//connection.console.log('Found files --' + JSON.stringify(files));
+				if (files) {
+					files.forEach(file => {
+						const posixFileName = file.split(sep).join('/').split('/cartridge/templates/default/').pop()?.replace('.isml', '');
+
+						if (posixFileName && !templatesIndex.includes(posixFileName)) {
+							//connection.console.log('template --' + posixFileName);
+							templatesIndex.push(posixFileName);
+						}
+					});
 				}
 			})
 		});

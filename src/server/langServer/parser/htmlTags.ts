@@ -70,12 +70,13 @@ export const EMPTY_ELEMENTS: string[] = [
 	.sort();
 
 
-export function isEmptyElement(e: string) : boolean {
+export function isEmptyElement(e: string): boolean {
 	return !!e && arrays.binarySearch(
 		EMPTY_ELEMENTS, e.toLowerCase(), (s1: string, s2: string) => s1.localeCompare(s2)) >= 0;
 }
 
 export interface IHTMLTagProvider {
+	setConfigs(config: { templateIndex?: string[] });
 	getId(): string;
 	isApplicable(languageId: string);
 	collectTags(collector: (tag: string, label: string) => void): void;
@@ -440,6 +441,7 @@ export function getHTML5TagProvider(): IHTMLTagProvider {
 	};
 
 	return {
+		setConfigs() { },
 		getId: () => 'html5',
 		isApplicable: () => true,
 		collectTags: (collector: (tag: string, label: string) => void) => collectTagsDefault(collector, HTML_TAGS),
@@ -464,7 +466,7 @@ export const SFCC_TAGS: ITagSet = {
 	),
 	isloop: new HTMLTagSpecification(
 		'Creating loops for flow control. \nWith <isloop> you can loop through the elements of a specified iterator. As an example, you can list data like categories, products, shipping and payment methods. <isloop> statements can be nested in one another.',
-		['items', 'iterator', 'alias' , 'var', 'status', 'begin', 'end', 'step']
+		['items', 'iterator', 'alias', 'var', 'status', 'begin', 'end', 'step']
 	),
 	isprint: new HTMLTagSpecification(
 		'The <isprint> tag outputs the result of expressions and template variables. Even though it is possible to output expression results without <isprint>, you should always use it because it contributes to optimizing your template code.',
@@ -485,7 +487,7 @@ export const SFCC_TAGS: ITagSet = {
 	),
 	isinclude: new HTMLTagSpecification(
 		'Includes the contents of one template inside another or the contents of another URL. The template being included can be as complex as an entire page template, or as simple as a single line of HTML code.',
-		['template', 'url', 'sf-toolkit:o']
+		['template:tpl', 'url', 'sf-toolkit:o']
 	),
 	iscontent: new HTMLTagSpecification(
 		'<iscontent/> modifies the HTTP header (sets the content type) of the generated output stream sent to the browser or e-mail client. The HTTP header is identified by its MIME type.',
@@ -524,9 +526,7 @@ export const SFCC_TAGS: ITagSet = {
 
 export function getSFCCProvider(): IHTMLTagProvider {
 
-	var globalAttributes = [
-
-	];
+	var globalAttributes = [];
 
 	var valueSets: IValueSets = {
 		b: ['true', 'false'],
@@ -541,10 +541,16 @@ export function getSFCCProvider(): IHTMLTagProvider {
 		ston: ['on'],
 		sttype: ['relative', 'daily'],
 		varyby: ['price_promotion'],
-		sltcontext: ["global", "category", "folder"]
+		sltcontext: ["global", "category", "folder"],
+		tpl: []
 	};
 
 	return {
+		setConfigs(configs) {
+			if (configs && configs.templateIndex) {
+				valueSets.tpl = configs.templateIndex;
+			}
+		},
 		getId: () => 'sfcc',
 		isApplicable: () => true,
 		collectTags: (collector: (tag: string, label: string) => void) => collectTagsDefault(collector, SFCC_TAGS),
@@ -553,47 +559,6 @@ export function getSFCCProvider(): IHTMLTagProvider {
 
 		},
 		collectValues: (tag: string, attribute: string, collector: (value: string) => void) => collectValuesDefault(tag, attribute, collector, SFCC_TAGS, globalAttributes, valueSets)
-	};
-}
-
-export function getAngularTagProvider(): IHTMLTagProvider {
-	var customTags: { [tag: string]: string[] } = {
-		input: ['ng-model', 'ng-required', 'ng-minlength', 'ng-maxlength', 'ng-pattern', 'ng-trim'],
-		select: ['ng-model'],
-		textarea: ['ng-model', 'ng-required', 'ng-minlength', 'ng-maxlength', 'ng-pattern', 'ng-trim']
-	};
-
-	var globalAttributes = ['ng-app', 'ng-bind', 'ng-bind-html', 'ng-bind-template', 'ng-blur', 'ng-change', 'ng-checked', 'ng-class', 'ng-class-even', 'ng-class-odd',
-		'ng-click', 'ng-cloak', 'ng-controller', 'ng-copy', 'ng-csp', 'ng-cut', 'ng-dblclick', 'ng-disabled', 'ng-focus', 'ng-form', 'ng-hide', 'ng-href', 'ng-if',
-		'ng-include', 'ng-init', 'ng-jq', 'ng-keydown', 'ng-keypress', 'ng-keyup', 'ng-list', 'ng-model-options', 'ng-mousedown', 'ng-mouseenter', 'ng-mouseleave',
-		'ng-mousemove', 'ng-mouseover', 'ng-mouseup', 'ng-non-bindable', 'ng-open', 'ng-options', 'ng-paste', 'ng-pluralize', 'ng-readonly', 'ng-repeat', 'ng-selected',
-		'ng-show', 'ng-src', 'ng-srcset', 'ng-style', 'ng-submit', 'ng-switch', 'ng-transclude', 'ng-value'
-	];
-
-	return {
-		getId: () => 'angular1',
-		isApplicable: (languageId) => languageId === 'isml',
-		collectTags: (collector: (tag: string, label: string) => void) => {
-			// no extra tags
-		},
-		collectAttributes: (tag: string, collector: (attribute: string, type: string) => void) => {
-			if (tag) {
-				var attributes = customTags[tag];
-				if (attributes) {
-					attributes.forEach((a) => {
-						collector(a, '');
-						collector('data-' + a, '');
-					});
-				}
-			}
-			globalAttributes.forEach((a) => {
-				collector(a, '');
-				collector('data-' + a, '');
-			});
-		},
-		collectValues: (tag: string, attribute: string, collector: (value: string) => void) => {
-			// no values
-		}
 	};
 }
 

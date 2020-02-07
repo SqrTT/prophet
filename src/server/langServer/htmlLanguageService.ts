@@ -111,7 +111,7 @@ export interface LanguageService {
 	createScanner(input: string): Scanner;
 	parseHTMLDocument(document: TextDocument): HTMLDocument;
 	findDocumentHighlights(document: TextDocument, position: Position, htmlDocument: HTMLDocument): DocumentHighlight[];
-	doComplete(document: TextDocument, position: Position, htmlDocument: HTMLDocument, options?: CompletionConfiguration): CompletionList;
+	doComplete(document: TextDocument, position: Position, htmlDocument: HTMLDocument, options?: CompletionConfiguration, configs?: { templateIndex}): CompletionList;
 	doHover(document: TextDocument, position: Position, htmlDocument: HTMLDocument): Hover | undefined;
 	format(document: TextDocument, range: Range, options: HTMLFormatConfiguration, connection?: IConnection): TextEdit[];
 	findDocumentLinks(document: TextDocument, documentContext: DocumentContext): DocumentLink[];

@@ -10,13 +10,19 @@ import { TokenType, createScanner, ScannerState } from '../parser/htmlScanner';
 import { allTagProviders } from './tagProviders';
 import { CompletionConfiguration } from '../htmlLanguageService';
 
-export function doComplete(document: TextDocument, position: Position, htmlDocument: HTMLDocument, settings?: CompletionConfiguration): CompletionList {
+export function doComplete(document: TextDocument, position: Position, htmlDocument: HTMLDocument, settings?: CompletionConfiguration, configs?: { templateIndex: string[]}): CompletionList {
 
 	let result: CompletionList = {
 		isIncomplete: false,
 		items: []
 	};
 	let tagProviders = allTagProviders.filter(p => p.isApplicable(document.languageId) && (!settings || settings[p.getId()] !== false));
+
+	if (configs && configs.templateIndex) {
+		tagProviders.forEach(provider => {
+			provider.setConfigs({templateIndex: configs.templateIndex});
+		})
+	}
 
 	let offset = document.offsetAt(position);
 	let node = htmlDocument.findNodeBefore(offset);
@@ -69,7 +75,7 @@ export function doComplete(document: TextDocument, position: Position, htmlDocum
 	function collectCloseTagSuggestions(afterOpenBracket: number, inOpenTag: boolean, tagNameEnd: number = offset): CompletionList {
 		let range = getReplaceRange(afterOpenBracket, tagNameEnd);
 		let closeTag = isFollowedBy(text, tagNameEnd, ScannerState.WithinEndTag, TokenType.EndTagClose) ? '' : '>';
-		let curr : typeof node | undefined = node;
+		let curr: typeof node | undefined = node;
 		if (inOpenTag) {
 			curr = curr.parent; // don't suggest the own tag, it's not yet open
 		}
@@ -128,7 +134,7 @@ export function doComplete(document: TextDocument, position: Position, htmlDocum
 		let range = getReplaceRange(nameStart, replaceEnd);
 		let value = isFollowedBy(text, nameEnd, ScannerState.AfterAttributeName, TokenType.DelimiterAssign) ? '' : '="$1"';
 		let tag = currentTag.toLowerCase();
-		tagProviders.forEach(provider => {
+		tagProviders.filter(provider => provider.getId() === (tag.startsWith('is') ? 'sfcc' : 'html5')).forEach(provider => {
 			provider.collectAttributes(tag, (attribute, type) => {
 				let codeSnippet = attribute;
 				if (type !== 'v' && value.length) {
@@ -163,7 +169,7 @@ export function doComplete(document: TextDocument, position: Position, htmlDocum
 		}
 		let tag = currentTag.toLowerCase();
 		let attribute = currentAttributeName.toLowerCase();
-		tagProviders.forEach(provider => {
+		tagProviders.filter(provider => provider.getId() === (tag.startsWith('is') ? 'sfcc' : 'html5')).forEach(provider => {
 			provider.collectValues(tag, attribute, value => {
 				let insertText = addQuotes ? '"' + value + '"' : value;
 				result.items.push({
