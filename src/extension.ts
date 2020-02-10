@@ -24,7 +24,7 @@ import { SandboxFS } from './providers/SandboxFileSystemProvider';
  */
 function createIsmlLanguageServer(context: ExtensionContext, configuration: WorkspaceConfiguration = workspace.getConfiguration('extension.prophet', null)) {
 	// The server is implemented in node
-	const serverModule = context.asAbsolutePath(join('out', 'server', 'ismlServer.js'));
+	const serverModule = context.asAbsolutePath(join('dist', 'ismlServer.js'));
 	// The debug options for the server
 	const debugOptions = { execArgv: ['--nolazy', '--inspect=6004'] };
 

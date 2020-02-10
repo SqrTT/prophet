@@ -1,3 +1,11 @@
 **/*.ts
+**/*.map
+package-json.lock
 **/tsconfig.json
 *.vsix
+src
+out
+webpack.config.js
+node_modules
+.vscode
+.github

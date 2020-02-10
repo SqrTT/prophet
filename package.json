@@ -1,7 +1,7 @@
 {
     "name": "prophet",
     "displayName": "Prophet Debugger",
-    "version": "1.2.11",
+    "version": "1.2.12",
     "keywords": [
         "multi-root ready"
     ],
@@ -12,7 +12,7 @@
         "email": "tolik@sqrtt.pro"
     },
     "engines": {
-        "vscode": "^1.41.1",
+        "vscode": "^1.42.0",
         "node": "^12.4.0"
     },
     "icon": "images/mock-debug-icon.ico",
@@ -50,19 +50,23 @@
         "@types/mocha": "^2.2.48",
         "@types/node": "^10.2.0",
         "mocha": "^5.2.0",
+        "ts-loader": "^6.2.1",
         "typescript": "^3.7.5",
         "vscode": "^1.1.36",
-        "vscode-debugadapter-testsupport": "^1.40.0"
+        "vscode-debugadapter-testsupport": "^1.40.0",
+        "webpack": "^4.41.5",
+        "webpack-cli": "^3.3.10"
     },
     "scripts": {
-        "vscode:prepublish": "npm install && npm run compile && npm run test",
-        "prepare": "node ./node_modules/typescript/bin/tsc -p ./src",
-        "compile": "node ./node_modules/typescript/bin/tsc --pretty -p ./src",
-        "watch": "node ./node_modules/typescript/bin/tsc --pretty -w -p ./src",
+        "vscode:prepublish": "npm install && npm run prepare && npm run test-compile && npm run test",
+        "prepare": "webpack --mode production",
+        "compile": "webpack --mode development",
+        "watch": "webpack --mode development --watch",
         "test": "node ./node_modules/mocha/bin/mocha -u tdd ./out/tests/",
+        "test-compile": "tsc -p ./src/",
         "postinstall": "node ./node_modules/vscode/bin/install"
     },
-    "main": "./out/extension",
+    "main": "./dist/extension",
     "activationEvents": [
         "onCommand:extension.prophet.provideInitialConfigurations",
         "onCommand:extension.prophet.command.create.cartridge",
@@ -359,7 +363,7 @@
             {
                 "type": "prophet",
                 "label": "Attach to Sandbox",
-                "program": "./out/mockDebug.js",
+                "program": "./dist/mockDebug.js",
                 "runtime": "node",
                 "configurationSnippets": [
                     {

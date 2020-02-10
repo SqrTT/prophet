@@ -124,7 +124,7 @@ Code assistance can be improved even more by adding `d.ts` definition for the pr
         }
     },
     "typeAcquisition": {
-        "enable": true
+        "enable": false
     },
     "include": [
         "../types/*.d.ts",
@@ -184,7 +184,7 @@ There are many ways to contribute to Prophet.
 
 #### Pull requests
 
-If you have made or wish to make some features/fixes, please, make a fork of this repo, do your changes, and send your pull request to this repo into `develop` branch. After review it will be merged to `develop`, and during some time it will be available in `master` and extention itself. Before making pull request, please, make that it doesn't break anything. (currently there no tests, so test that covers current functionality are welcomed)
+If you have made or wish to make some features/fixes, please, make a fork of this repo, do your changes, and send your pull request to this repo into `develop` branch. After review it will be merged to `develop`, and during some time it will be available in `master` and extension itself. Before making pull request, please, make that it doesn't break anything. (currently there no tests, so test that covers current functionality are welcomed)
 
 
 
