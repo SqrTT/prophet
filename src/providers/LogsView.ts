@@ -19,8 +19,9 @@ import {
 import { join, basename } from 'path';
 import { default as WebDav, DavOptions } from '../server/WebDav';
 import { DOMParser } from 'xmldom';
-import { Observable, Subject } from 'rxjs';
-import timeago from 'timeago.js';
+import { Observable, Subject, empty, from } from 'rxjs';
+import { tap, map, flatMap, takeUntil, merge, reduce } from 'rxjs/operators';
+import * as timeago from 'timeago.js';
 import { getCartridgesFolder, getConfig, getDWConfig } from '../lib/FileHelper';
 
 
@@ -112,14 +113,14 @@ export class LogsView implements TreeDataProvider<LogItem> {
 
 		//subscriptions.forEach(subscription => subscription.dispose());
 
-		return dwConfig$$.map(dwConfig$ => {
+		return dwConfig$$.pipe(map(dwConfig$ => {
 			const end$ = new Subject();
 			return dwConfig$
-				.do(() => { }, undefined, () => { end$.next(); end$.complete() })
-				.flatMap((dwConfig) => {
+				.pipe(tap(() => { }, undefined, () => { end$.next(); end$.complete() }))
+				.pipe(flatMap((dwConfig) => {
 					return getConfig(dwConfig.fsPath);
-				})
-				.flatMap((davOptins) => {
+				}))
+				.pipe(flatMap((davOptins) => {
 					return new Observable((observer) => {
 						if (!logsView.webdavClients.has(davOptins.hostname)) {
 							const webdav = new WebDav(davOptins);
@@ -136,9 +137,9 @@ export class LogsView implements TreeDataProvider<LogItem> {
 							}
 						}
 					});
-				})
-				.takeUntil(end$);
-		});
+				}))
+				.pipe(takeUntil(end$));
+		}));
 	}
 	constructor() { }
 	private _onDidChangeTreeData: EventEmitter<LogItem | undefined> = new EventEmitter<LogItem | undefined>();
@@ -180,7 +181,7 @@ export class LogsView implements TreeDataProvider<LogItem> {
 					// replace timestamp
 					filedata = filedata.replace(/\[(.+? GMT)\] /ig, ($0, $1) => {
 						const date = new Date($1);
-						return `\n\n\n[${timeago().format(date)}/${date}]\n`;
+						return `\n\n\n[${timeago.format(date)}/${date}]\n`;
 					});
 
 					if (workspace.workspaceFolders) {
@@ -189,12 +190,13 @@ export class LogsView implements TreeDataProvider<LogItem> {
 							return getCartridgesFolder(workspaceFolder);
 						});
 
-						return Observable.merge(...workspaceFolders$)
-							.reduce((acc, val) => {
+						return empty()
+							.pipe(merge(...workspaceFolders$))
+							.pipe(reduce((acc, val) => {
 								acc.add(val);
 								return acc;
-							}, new Set<string>())
-							.flatMap(cartridges => {
+							}, new Set<string>()))
+							.pipe(flatMap(cartridges => {
 
 								// replace paths
 								//
@@ -216,7 +218,7 @@ export class LogsView implements TreeDataProvider<LogItem> {
 								// add new line before message
 								filedata = filedata.replace(/  /ig, '\n');
 
-								return Observable.fromPromise(workspace.openTextDocument({ 'language': 'dwlog', 'content': filedata })
+								return from(workspace.openTextDocument({ 'language': 'dwlog', 'content': filedata })
 									.then(document => {
 										return window.showTextDocument(document, { viewColumn: ViewColumn.One, preserveFocus: false, preview: true });
 									}).then(textEditor => {
@@ -230,8 +232,7 @@ export class LogsView implements TreeDataProvider<LogItem> {
 											)
 										);
 									}));
-							})
-
+							}))
 							.toPromise();
 					} else {
 						return Promise.reject('No workspaceFolders available');
@@ -253,7 +254,7 @@ export class LogsView implements TreeDataProvider<LogItem> {
 				const webdavClient = this.webdavClients.get(element.hostname);
 
 				if (webdavClient) {
-					return await observable2promise(webdavClient.dirList('.', '.').map(data => {
+					return await observable2promise(webdavClient.dirList('.', '.').pipe(map(data => {
 						let statuses = parseResponse(data);
 
 						if (this._logsFileNameFilter) {
@@ -263,17 +264,16 @@ export class LogsView implements TreeDataProvider<LogItem> {
 						}
 
 						const sortedStauses = statuses.sort((a, b) => b.lastmodifed.getTime() - a.lastmodifed.getTime());
-						var time = timeago();
 						return sortedStauses.map(status => {
 
 							return new LogItem(
-								`${status.filename} - ${time.format(status.lastmodifed)}`,
+								`${status.filename} - ${timeago.format(status.lastmodifed)}`,
 								'file',
 								status.filePath,
 								TreeItemCollapsibleState.None,
 								element.hostname);
 						});
-					}));
+					})));
 				} else {
 					throw Error('Unable get webdav client');
 				}

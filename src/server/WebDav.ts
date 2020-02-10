@@ -1,55 +1,56 @@
 
 import { relative, sep, resolve, join } from 'path';
-import { Observable } from 'rxjs';
+import { Observable, of, from, forkJoin } from 'rxjs';
+import { tap, map, flatMap, catchError, reduce, filter } from 'rxjs/operators';
 import { createReadStream, unlink, ReadStream } from 'fs';
 import { finished } from 'stream';
 import { workspace, CancellationTokenSource, RelativePattern } from 'vscode';
+//fixme: refactor to use https module
+import request from 'request';
+import yazl from 'yazl';
 
 class WebDavError extends Error {
 	statusCode: number
 }
 
 function request$(options) {
-	//fixme: refactor to use https module
-	return Observable.fromPromise(import('request')).flatMap(request => {
-		return new Observable<string>(observer => {
-			var req;
+	return new Observable<string>(observer => {
+		var req;
 
-			const body = options.body;
-			if (body && body instanceof ReadStream) {
-				body.once('error', (err) => {
-					observer.error(err);
-					if (req) {
-						req.destroy();
-					}
-				});
-			}
-
-			req = request(options, (err, res, body) => {
-				if (err) {
-					observer.error(err);
-				} else if (res.statusCode >= 400) {
-					const err = new WebDavError([
-						res.statusMessage,
-						body,
-						JSON.stringify({ response: res, request: options })].join('\n')
-					);
-					err.statusCode = res.statusCode;
-
-					observer.error(err);
-				} else {
-					observer.next(body);
-					observer.complete();
-				}
-			});
-
-			return () => {
+		const body = options.body;
+		if (body && body instanceof ReadStream) {
+			body.once('error', (err) => {
+				observer.error(err);
 				if (req) {
 					req.destroy();
 				}
-			};
+			});
+		}
+
+		req = request(options, (err, res, body) => {
+			if (err) {
+				observer.error(err);
+			} else if (res.statusCode >= 400) {
+				const err = new WebDavError([
+					res.statusMessage,
+					body,
+					JSON.stringify({ response: res, request: options })].join('\n')
+				);
+				err.statusCode = res.statusCode;
+
+				observer.error(err);
+			} else {
+				observer.next(body);
+				observer.complete();
+			}
 		});
-	})
+
+		return () => {
+			if (req) {
+				req.destroy();
+			}
+		};
+	});
 }
 
 export interface DavOptions {
@@ -122,9 +123,9 @@ export default class WebDav {
 			uri: '/' + uriPath,
 			method: 'PUT',
 			form: bodyOfFile
-		})).do(body => {
+		})).pipe(tap(body => {
 			this.log('postBody-response', uriPath, body);
-		});
+		}));
 	}
 	post(filePath: string, root: string = this.config.root): Observable<string> {
 		const uriPath = relative(root, filePath);
@@ -135,9 +136,9 @@ export default class WebDav {
 			uri: '/' + uriPath,
 			method: 'PUT',
 			body: createReadStream(filePath)
-		})).do(body => {
+		})).pipe(tap(body => {
 			this.log('post-response', uriPath, body);
-		});
+		}));
 	}
 	postStream(filePath: string, stream: ReadStream, root: string = this.config.root): Observable<string> {
 		const uriPath = relative(root, filePath);
@@ -148,9 +149,9 @@ export default class WebDav {
 			uri: '/' + uriPath,
 			method: 'PUT',
 			body: stream
-		})).do(body => {
+		})).pipe(tap(body => {
 			this.log('post-response-stream', uriPath, body);
-		});
+		}));
 	}
 	mkdir(filePath: string, root: string = this.config.root): Observable<string> {
 		const uriPath = relative(root, filePath);
@@ -159,9 +160,9 @@ export default class WebDav {
 		return request$(Object.assign(this.getOptions(), {
 			uri: '/' + uriPath,
 			method: 'MKCOL'
-		})).do(body => {
+		})).pipe(tap(body => {
 			this.log('mkcol-response', uriPath, body);
-		});
+		}));
 	}
 	unzip(filePath: string, root = this.config.root): Observable<string> {
 		const uriPath = relative(root, filePath);
@@ -173,9 +174,9 @@ export default class WebDav {
 			form: {
 				method: 'UNZIP'
 			}
-		}).do(data => {
+		}).pipe(tap(data => {
 			this.log('unzip-response', data);
-		});
+		}));
 	}
 	get(filePath: string, root = this.config.root): Observable<string> {
 		const uriPath = relative(root, filePath);
@@ -184,17 +185,17 @@ export default class WebDav {
 		return this.makeRequest({
 			uri: '/' + uriPath,
 			method: 'GET'
-		}).do(data => {
+		}).pipe(tap(data => {
 			this.log('get-response', data);
-		});
+		}));
 	}
 	getActiveCodeVersion(): Observable<string> {
 		return this.makeRequest({
 			uri: '/../.version',
 			method: 'GET'
-		}).do(data => {
+		}).pipe(tap(data => {
 			this.log('get-response', data);
-		}).map(fileContent => {
+		})).pipe(map(fileContent => {
 			// parse .version file to find active version
 			// sample
 			/*
@@ -225,28 +226,28 @@ export default class WebDav {
 				}
 			}
 			return activeVersion;
-		});
+		}));
 	}
 	postAndUnzip(filePath: string) {
-		return this.post(filePath).flatMap(() => this.unzip(filePath));
+		return this.post(filePath).pipe(flatMap(() => this.unzip(filePath)));
 	}
 	cleanUpCodeVersion(notify: (...string) => void, ask: (sb: string[], listc: string[]) => Promise<string[]>, list: string[]) {
 
-		return this.dirList('/', '/').flatMap((res: string) => {
+		return this.dirList('/', '/').pipe(flatMap((res: string) => {
 			const matches = getMatches(res, /<displayname>(.+?)<\/displayname>/g);
 			const filteredPath = matches.filter(match => match && match !== this.config.version);
 
-			return Observable.fromPromise(ask(filteredPath, list))
-				.flatMap((cartridgesToRemove) => {
+			return from(ask(filteredPath, list)).pipe(
+				flatMap((cartridgesToRemove) => {
 					if (cartridgesToRemove.length) {
-						const delete$ = cartridgesToRemove.map(path => this.delete('/' + path, '/').do(() => { notify(`Deleted ${path}`) }));
+						const delete$ = cartridgesToRemove.map(path => this.delete('/' + path, '/').pipe(tap(() => { notify(`Deleted ${path}`) })));
 
-						return Observable.forkJoin(...delete$);
+						return forkJoin(...delete$);
 					} else {
-						return Observable.of(['']);
+						return of(['']);
 					}
-				})
-		});
+				}))
+		}));
 	}
 	delete(filePath: string, optionalRoot: string = this.config.root): Observable<string> {
 		const uriPath = relative(optionalRoot, filePath);
@@ -255,16 +256,16 @@ export default class WebDav {
 		return request$(Object.assign(this.getOptions(), {
 			uri: '/' + uriPath,
 			method: 'DELETE'
-		})).do(body => {
+		})).pipe(tap(body => {
 			this.log('delete-response', uriPath, body);
-		}).catch(err => {
+		})).pipe(catchError(err => {
 			// it's ok to ignore 404 error if the file is not found
 			if (err && err.statusCode === 404) {
-				return Observable.of(err);
+				return of(err);
 			} else {
 				return Observable.throw(err);
 			}
-		});
+		}));
 	}
 	getFileList(pathToCartridgesDir: string, { ignoreList = [] as Array<string> }): Observable<string[]> {
 		const parentProcessingFolder = resolve(pathToCartridgesDir, '..');
@@ -312,41 +313,39 @@ export default class WebDav {
 		});
 	}
 	zipFiles(pathToCartridgesDir, { ignoreList = [] as Array<string> }) {
-		return Observable.fromPromise(import('yazl'))
-			.flatMap(yazl => {
-				return this.getFileList(pathToCartridgesDir, { ignoreList })
-					.reduce((zipFile, files) => {
-						if (files.length === 1) {
-							zipFile.addEmptyDirectory(files[0]);
-						} else if (files.length === 2) {
-							zipFile.addFile(files[0], files[1]);
+		return this.getFileList(pathToCartridgesDir, { ignoreList })
+			.pipe(reduce((zipFile, files) => {
+				if (files.length === 1) {
+					zipFile.addEmptyDirectory(files[0]);
+				} else if (files.length === 2) {
+					zipFile.addFile(files[0], files[1]);
+				} else {
+					throw new Error('Unexpected argument');
+				}
+				return zipFile;
+			}, new yazl.ZipFile()))
+			.pipe(flatMap(
+				zipFile => new Observable<ReadStream>(observer => {
+					zipFile.once('error', err => observer.error(err));
+
+					observer.next(zipFile.outputStream);
+
+					finished(zipFile.outputStream, (err) => {
+						if (err) {
+							observer.error(err);
 						} else {
-							throw new Error('Unexpected argument');
+							observer.complete();
 						}
-						return zipFile;
-					}, new yazl.ZipFile())
-					.flatMap(zipFile => {
-						return new Observable<ReadStream>(observer => {
-							zipFile.once('error', err => observer.error(err));
-
-							observer.next(zipFile.outputStream);
-
-							finished(zipFile.outputStream, (err) => {
-								if (err) {
-									observer.error(err);
-								} else {
-									observer.complete();
-								}
-							});
-
-							zipFile.end();
-
-							return () => {
-								zipFile.outputStream.destroy();
-							}
-						});
 					});
-			});
+
+					zipFile.end();
+
+					return () => {
+						zipFile.outputStream.destroy();
+					}
+				})
+			));
+
 	}
 	uploadCartridge(
 		pathToCartridgesDir,
@@ -359,30 +358,30 @@ export default class WebDav {
 
 
 		return this.delete(cartridgesZipFileName, pathToCartridgesDir)
-			.do(() => {
+			.pipe(tap(() => {
 				notify(`[${processingFolder}] Deleting remote zip (if any)`);
-			})
-			.flatMap(() => {
+			}))
+			.pipe(flatMap(() => {
 				notify(`[${processingFolder}] Zipping`);
 				return this.zipFiles(pathToCartridgesDir, { ignoreList })
-			})
-			.flatMap((stream) => {
+			}))
+			.pipe(flatMap((stream) => {
 				notify(`[${processingFolder}] Sending zip to remote`);
 				return this.postStream(cartridgesZipFileName, stream, pathToCartridgesDir)
-			})
-			.flatMap(() => {
+			}))
+			.pipe(flatMap(() => {
 				notify(`[${processingFolder}] Remove remote cartridge before extract`);
 				return this.delete(join(pathToCartridgesDir, processingFolder), pathToCartridgesDir);
-			})
-			.flatMap(() => {
+			}))
+			.pipe(flatMap(() => {
 				notify(`[${processingFolder}] Unzipping remote zip`);
 				return this.unzip(cartridgesZipFileName, pathToCartridgesDir)
-			})
-			.flatMap(() => {
+			}))
+			.pipe(flatMap(() => {
 				notify(`[${processingFolder}] Deleting remote zip...`);
 				return this.delete(cartridgesZipFileName, pathToCartridgesDir)
-			})
-			.filter(() => false);
+			}))
+			.pipe(filter(() => false));
 	}
 }
 
@@ -393,7 +392,7 @@ export function readConfigFile(configFilename: string) {
 				delete require.cache[require.resolve(configFilename)]
 				observer.next(require(configFilename));
 				observer.complete();
-			} catch(err) {
+			} catch (err) {
 				observer.error(err);
 			}
 		} else {

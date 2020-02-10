@@ -11,7 +11,8 @@ import { existsSync } from 'fs';
 import { createServer, ServerResponse, IncomingMessage } from 'http';
 import Uploader from "./providers/Uploader";
 import { ProphetConfigurationProvider } from './providers/ConfigurationProvider';
-import { Subject, Observable } from 'rxjs';
+import { Subject, Observable, of, empty } from 'rxjs';
+import { map, flatMap, tap, takeUntil, filter, reduce, merge, mergeAll } from 'rxjs/operators';
 import { findFiles, getDWConfig, getCartridgesFolder } from './lib/FileHelper';
 import { SandboxFS } from './providers/SandboxFileSystemProvider';
 
@@ -209,7 +210,7 @@ export function activate(context: ExtensionContext) {
 	}
 
 	/// open files from browser
-	subscribe2disposable(initializeToolkitActions().takeUntil(workspaceFolders$$.filter(() => false)));
+	subscribe2disposable(initializeToolkitActions().pipe(takeUntil(workspaceFolders$$.pipe(filter(() => false)))));
 
 	/// uploader
 	Uploader.initialize(context, workspaceFolders$$);
@@ -218,16 +219,17 @@ export function activate(context: ExtensionContext) {
 	CartridgesView.initialize(context);
 	ControllersView.initialize(context);
 
-	const dwConfig$$ = workspaceFolders$$.map(workspaceFolder$ => {
+	const dwConfig$$ = workspaceFolders$$.pipe(map(workspaceFolder$ => {
 		const end$ = new Subject();
 		return workspaceFolder$
-			.do(() => { }, undefined, () => { end$.next(); end$.complete() })
-			.flatMap(workspaceFolder => {
+			.pipe(tap(() => { }, undefined, () => { end$.next(); end$.complete() }))
+			.pipe(flatMap(workspaceFolder => {
 				return findFiles(new RelativePattern(workspaceFolder, '**/dw.{json,js}'), 1)
-			}).takeUntil(end$);
-	});
+			}))
+			.pipe(takeUntil(end$));
+	}));
 
-	subscribe2disposable(LogsView.initialize(commands, context, dwConfig$$).mergeAll());
+	subscribe2disposable(LogsView.initialize(commands, context, dwConfig$$).pipe(mergeAll()));
 
 	context.subscriptions.push(createIsmlLanguageServer(context).start());
 
@@ -243,7 +245,7 @@ export function activate(context: ExtensionContext) {
 	initFS(context);
 }
 
-function initFS(context : ExtensionContext) {
+function initFS(context: ExtensionContext) {
 
 	if (!workspace.workspaceFolders) {
 		return;
@@ -260,7 +262,7 @@ function initFS(context : ExtensionContext) {
 				const extConf = workspace.getConfiguration('extension.prophet');
 				if (extConf.get('sandbox.filesystem.enabled')) {
 					workspace.updateWorkspaceFolders(0, 0, {
-						uri: Uri.parse(SandboxFS.SCHEME +  '://current-sandbox'),
+						uri: Uri.parse(SandboxFS.SCHEME + '://current-sandbox'),
 						name: "Sandbox - FileSystem",
 					});
 				}
@@ -278,7 +280,8 @@ function initDebugger() {
 						const fileWorkspaceFolders = workspace.workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
 
 						return Promise.all(fileWorkspaceFolders.map(
-							workspaceFolder => getCartridgesFolder(workspaceFolder).reduce((acc, r) => {acc.push(r); return acc }, []).toPromise()
+							workspaceFolder => getCartridgesFolder(workspaceFolder)
+								.pipe(reduce<string, string[]>((acc, r) => acc.concat(r), [] as string[])).toPromise()
 						)).then(projects => {
 
 							var flatten = ([] as string[]).concat(...projects);
@@ -324,18 +327,17 @@ function initializeToolkitActions() {
 		return () => {
 			server.close();
 		}
-	}).flatMap(({ req, res }) => {
+	}).pipe(flatMap(({ req, res }) => {
 		if (workspace.workspaceFolders && workspace.workspaceFolders.length) {
 			const fileWorkspaceFolders = workspace.workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
 			const cartridgesFolders = fileWorkspaceFolders
 				.map(workspaceFolder => getCartridgesFolder(workspaceFolder));
 
-			return Observable.merge(...cartridgesFolders)
-				.reduce((acc, val) => {
-					acc.add(val);
-					return acc;
-				}, new Set<string>())
-				.flatMap(cartridges => {
+			return empty().pipe(merge(...cartridgesFolders)).pipe(reduce((acc, val) => {
+				acc.add(val);
+				return acc;
+			}, new Set<string>()))
+				.pipe(flatMap(cartridges => {
 					res.writeHead(200, { 'Content-Type': 'text/plain' });
 					res.end('ok');
 					if (req.url && req.url.includes('/target')) {
@@ -364,12 +366,12 @@ function initializeToolkitActions() {
 						}
 					}
 
-					return Observable.of(1);
-				});
+					return of(1);
+				}));
 		} else {
-			return Observable.empty();
+			return empty();
 		}
-	});
+	}));
 }
 
 function convertDebuggerPathToClient(this: void, debuggerPath: string, cartridges: string[]): string {

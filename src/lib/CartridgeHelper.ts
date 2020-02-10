@@ -4,6 +4,8 @@ import { exists, readFile, existsSync, mkdirSync, writeFile, mkdir, createReadSt
 import { join, sep } from 'path';
 import { pathExists } from '../lib/FileHelper';
 import { Observable } from 'rxjs';
+import { first, reduce } from 'rxjs/operators';
+import * as readline from 'readline';
 
 /**
  * Checks whether or not an Eclipse project file is a Salesforce project.
@@ -13,32 +15,36 @@ export const checkIfCartridge = (projectFile: string): Promise<boolean> => {
 	return checkIfCartridge$(projectFile).toPromise();
 };
 
-function readFileByLine(filePath: string) : Observable<string>{
-	return Observable.fromPromise(import('readline')).flatMap(readline => {
-		return new Observable((obs) => {
-			const lineReader = readline.createInterface({
-				input: createReadStream(filePath)
-			});
-
-			lineReader.on('line', (line) => { obs.next(line) });
-
-			lineReader.once('close', () => { obs.complete() });
-
-			lineReader.once('error', (err) => { obs.error(err) });
-
-			return () => {
-				lineReader.removeAllListeners();
-				lineReader.close();
-			}
+function readFileByLine(filePath: string): Observable<string> {
+	return new Observable(obs => {
+		const lineReader = readline.createInterface({
+			input: createReadStream(filePath)
 		});
-	})
 
+		lineReader.on('line', line => obs.next(line));
+
+		lineReader.once('close', () => {
+			lineReader.removeAllListeners();
+			lineReader.close();
+			obs.complete()
+		});
+
+		lineReader.once('error', err => obs.error(err));
+
+		return () => {
+			lineReader.removeAllListeners();
+			lineReader.close();
+		}
+	});
 }
 
 //data.
-export const checkIfCartridge$ = (projectFile: string) : Observable<boolean> => {
+export const checkIfCartridge$ = (projectFile: string) => {
 	return readFileByLine(projectFile)
-		.first(line => line.includes('com.demandware.studio.core.beehiveNature'), () => true, false);
+		.pipe(
+			first(line => line.includes('com.demandware.studio.core.beehiveNature'))
+		)
+		.pipe(reduce((acc, val) => true, false));
 };
 
 /**
@@ -134,11 +140,11 @@ export class CartridgeCreator {
 
 	/**
 	 * Creates the cartridge folder structure
-	 * 
+	 *
 	 * @param name name of the cartridge to create
 	 * @param directory the directory the cartridge is created in
 	 */
-	createCartridgeDirectories(name : string, directory : string) {
+	createCartridgeDirectories(name: string, directory: string) {
 		const directoriesToCreate = [
 			'controllers',
 			'experience',
@@ -157,9 +163,9 @@ export class CartridgeCreator {
 			'webreferences2'
 		];
 
-		mkdir(join(this.workspaceFolder, directory, name, 'cartridge'), undefined, () => {});
+		mkdir(join(this.workspaceFolder, directory, name, 'cartridge'), undefined, () => { });
 		for (let i = 0; i < directoriesToCreate.length; i++) {
-			mkdir(join(this.workspaceFolder, directory, name, 'cartridge', ...(directoriesToCreate[i].split('/'))), undefined, () => {});
+			mkdir(join(this.workspaceFolder, directory, name, 'cartridge', ...(directoriesToCreate[i].split('/'))), undefined, () => { });
 		}
 
 	}
@@ -184,10 +190,10 @@ export class CartridgeCreator {
     </natures>
 </projectDescription>
 `           , function (err) {
-				if (err) {
-					return err;
-				}
-			});
+			if (err) {
+				return err;
+			}
+		});
 
 		writeFile(join(this.workspaceFolder, directory, name, '.tern-project'),
 			`{
@@ -202,10 +208,10 @@ export class CartridgeCreator {
     }
 }'
 `      , function (err) {
-				if (err) {
-					return err;
-				}
-			});
+			if (err) {
+				return err;
+			}
+		});
 	}
 
 	createPropertiesFile(name, directory) {

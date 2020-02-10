@@ -2,7 +2,8 @@
 import { readdir, access as nativeAccess, lstat as nativeLStat, Stats } from 'fs';
 import { join, dirname } from 'path';
 import { Uri, CancellationTokenSource, workspace, RelativePattern, WorkspaceFolder, window } from 'vscode';
-import { Observable } from 'rxjs';
+import { Observable, of, empty } from 'rxjs';
+import { flatMap, map } from 'rxjs/operators';
 import WebDav, { readConfigFile, DavOptions } from '../server/WebDav';
 import { checkIfCartridge$ } from './CartridgeHelper';
 
@@ -116,13 +117,13 @@ export function findFiles(include: RelativePattern, maxResults?: number, errIfNo
 	});
 }
 
-export function getCartridgesFolder(workspaceFolder: WorkspaceFolder): Observable<string> {
+export function getCartridgesFolder(workspaceFolder: WorkspaceFolder) {
 	return findFiles(new RelativePattern(workspaceFolder, '**/.project'))
-		.flatMap((project) => {
-			return checkIfCartridge$(project.fsPath)
-				.flatMap(isCartridge => isCartridge ? Observable.of(project) : Observable.empty<Uri>())
-		})
-		.map(project => dirname(project.fsPath));
+		.pipe(flatMap((project) => {
+			return checkIfCartridge$(project.fsPath).pipe(
+				flatMap(isCartridge => isCartridge ? of(project) : empty()))
+		}))
+		.pipe(map<Uri, string>(project => dirname(project.fsPath)));
 };
 
 export function getDWConfig(workspaceFolders?: WorkspaceFolder[]): Promise<DavOptions> {

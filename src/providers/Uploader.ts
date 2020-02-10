@@ -1,8 +1,9 @@
-import { Observable, Subscription, Subject } from 'rxjs';
+import { Observable, Subscription, Subject, of, from } from 'rxjs';
 import { window, OutputChannel, ExtensionContext, workspace, commands, WorkspaceFolder } from 'vscode';
 import * as uploadServer from "../server/uploadServer";
 import { getCartridgesFolder, getDWConfig } from '../lib/FileHelper';
 import { basename } from 'path';
+import { flatMap, reduce } from 'rxjs/operators';
 
 const commandBus = new Subject<'enable.upload' | 'clean.upload' | 'disable.upload'>();
 
@@ -131,7 +132,7 @@ export default class Uploader {
 		if (duplicateCartridges.length === 0) {
 			return cartridgesToUpload;
 		}
-		
+
 		window.showWarningMessage(
 			`Following cartridge/s are duplicates and won't be uploaded. "${duplicateCartridges.join('", "')}".`,
 			'Ok');
@@ -151,18 +152,17 @@ export default class Uploader {
 		}
 
 
-		this.uploaderSubscription = Observable.fromPromise(getDWConfig(workspace.workspaceFolders))
-			.flatMap(dwConf => {
+		this.uploaderSubscription = from(getDWConfig(workspace.workspaceFolders))
+			.pipe(flatMap(dwConf => {
 				this.outputChannel.appendLine(`Using config file '${dwConf.configFilename}'`);
 
-				return Observable.of(...this.workspaceFolders)
-					.flatMap(workspaceFolder => getCartridgesFolder(workspaceFolder))
-					.reduce((acc, val) => {
+				return of(...this.workspaceFolders)
+					.pipe(flatMap(workspaceFolder => getCartridgesFolder(workspaceFolder)))
+					.pipe(reduce((acc, val) => {
 						acc.add(val);
 						return acc;
-					}, new Set<string>())
-					.flatMap(cartridges => {
-
+					}, new Set<string>()))
+					.pipe(flatMap(cartridges => {
 						if (Array.isArray(dwConf.cartridge) && dwConf.cartridge.length) {
 							const filteredCartridges = Array.from(cartridges)
 								.filter(cartridge => dwConf.cartridge && dwConf.cartridge.some(
@@ -180,7 +180,7 @@ export default class Uploader {
 						} else {
 							dwConf.cartridge = Array.from(cartridges)
 						}
-						
+
 						dwConf.cartridge = this.removeDuplicateCartridges(dwConf.cartridge);
 
 						return uploadServer.init(
@@ -189,8 +189,8 @@ export default class Uploader {
 							{ cleanOnStart: this.cleanOnStart, ignoreList: this.getIgnoreList() },
 							this.askCleanCartridge.bind(this)
 						);
-					})
-			})
+					}))
+			}))
 			.subscribe(
 				() => {
 					// DO NOTHING
