@@ -229,7 +229,9 @@ function uploadAndWatch(
 					} else if (fileData.stats) {
 						return Observable.of(fileData);
 					} else {
-						outputChannel.appendLine(`[! ${date}] ${cleanPath(fileData.rootDir, fileData.fileName)} (removed before uploaded)`);
+						if (!fileData.fileName.endsWith('.git')) { // don't bother user by git files
+							outputChannel.appendLine(`[! ${date}] ${cleanPath(fileData.rootDir, fileData.fileName)} (removed before uploaded)`);
+						}
 						return Observable.empty();
 					}
 				}, 1)// make it serial
