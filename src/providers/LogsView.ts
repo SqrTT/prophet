@@ -16,6 +16,8 @@ import {
 	ExtensionContext
 } from 'vscode';
 
+import { getExtensionPath } from './extensionPath'
+
 import { join, basename } from 'path';
 import { default as WebDav, DavOptions } from '../server/WebDav';
 import { DOMParser } from 'xmldom';
@@ -72,23 +74,21 @@ function observable2promise<T>(observable: Observable<T>): Promise<T> {
 	});
 }
 
-function syncClientWithDwJson(dwConfig : DavOptions, webdavClients : Map<string, WebDav>): Map<string, WebDav> {
+function syncClientWithDwJson(dwConfig: DavOptions, webdavClients: Map<string, WebDav>): Map<string, WebDav> {
 	Object.keys(dwConfig).forEach((key) => {
 		let existingClient = webdavClients.get(dwConfig.hostname);
 		// only update necessary values
-		if (existingClient && key === 'password' || existingClient && key === 'hostname') {
+		if (existingClient && key === 'password' || existingClient && key === 'hostname') {
 			existingClient.config[key] = dwConfig[key];
 			webdavClients.set(dwConfig.hostname, existingClient);
 		}
 	});
 	return webdavClients
 }
-
 export class LogsView implements TreeDataProvider<LogItem> {
 	private webdavClients: Map<string, WebDav> = new Map();
 
 	static initialize(commands, context: ExtensionContext, dwConfig$$: Observable<Observable<Uri>>) {
-
 		const subscriptions: Disposable[] = [];
 		const logsView = new LogsView();
 
@@ -147,7 +147,7 @@ export class LogsView implements TreeDataProvider<LogItem> {
 	private _logsFileNameFilter: string = '';
 
 	async refresh(): Promise<void> {
-		const dwConfig : DavOptions = await getDWConfig(workspace.workspaceFolders);
+		const dwConfig: DavOptions = await getDWConfig(workspace.workspaceFolders);
 		this.webdavClients = syncClientWithDwJson(dwConfig, this.webdavClients);
 		this._onDidChangeTreeData.fire();
 	}
@@ -263,8 +263,8 @@ export class LogsView implements TreeDataProvider<LogItem> {
 							);
 						}
 
-						const sortedStauses = statuses.sort((a, b) => b.lastmodifed.getTime() - a.lastmodifed.getTime());
-						return sortedStauses.map(status => {
+						const sortedStatuses = statuses.sort((a, b) => b.lastmodifed.getTime() - a.lastmodifed.getTime());
+						return sortedStatuses.map(status => {
 
 							return new LogItem(
 								`${status.filename} - ${timeago.format(status.lastmodifed)}`,
@@ -346,7 +346,7 @@ class LogItem extends TreeItem {
 			'debug'
 		].find(t => name.includes(t)) || 'log';
 
-		this.iconPath = join(__filename, '..', '..', '..', 'images', 'resources', iconType + '.svg');
+		this.iconPath = join(getExtensionPath(), 'images', 'resources', iconType + '.svg');
 		this.contextValue = 'dwLogFile';
 	}
 }

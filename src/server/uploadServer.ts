@@ -1,10 +1,10 @@
-import { Observable, Subscription, empty, of, from } from 'rxjs';
+import { Observable, Subscription, empty, of, from , merge} from 'rxjs';
 
 import { OutputChannel, workspace, window, ProgressLocation, FileSystemWatcher, Uri, Progress, RelativePattern } from 'vscode';
 import { default as WebDav, DavOptions } from './WebDav';
 import { getDirectories, stat } from '../lib/FileHelper';
 import { join, sep, dirname } from 'path';
-import { flatMap, delay, merge, concat, tap, retryWhen } from 'rxjs/operators';
+import { flatMap, delay, concat, tap, retryWhen } from 'rxjs/operators';
 
 
 const CONCURRENT_CARTRIDGES_UPLOADS: number = 4;
@@ -99,9 +99,7 @@ const uploadCartridges = (
 	notify('Cleanup code version...');
 	return webdav.cleanUpCodeVersion(notify, ask, config.cartridge)
 		.pipe(
-			flatMap(
-				() => merge(...toUpload, CONCURRENT_CARTRIDGES_UPLOADS)
-			)
+			flatMap(() => merge(...toUpload, CONCURRENT_CARTRIDGES_UPLOADS))
 		).pipe(concat(of('')));
 };
 

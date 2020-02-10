@@ -6,8 +6,8 @@ import { createReadStream, unlink, ReadStream } from 'fs';
 import { finished } from 'stream';
 import { workspace, CancellationTokenSource, RelativePattern } from 'vscode';
 //fixme: refactor to use https module
-import request from 'request';
-import yazl from 'yazl';
+import * as request from 'request';
+import * as yazl from 'yazl';
 
 class WebDavError extends Error {
 	statusCode: number
@@ -232,7 +232,6 @@ export default class WebDav {
 		return this.post(filePath).pipe(flatMap(() => this.unzip(filePath)));
 	}
 	cleanUpCodeVersion(notify: (...string) => void, ask: (sb: string[], listc: string[]) => Promise<string[]>, list: string[]) {
-
 		return this.dirList('/', '/').pipe(flatMap((res: string) => {
 			const matches = getMatches(res, /<displayname>(.+?)<\/displayname>/g);
 			const filteredPath = matches.filter(match => match && match !== this.config.version);
@@ -244,7 +243,7 @@ export default class WebDav {
 
 						return forkJoin(...delete$);
 					} else {
-						return of(['']);
+						return from(Promise.resolve(['']));
 					}
 				}))
 		}));

@@ -1,7 +1,7 @@
 'use strict';
 import { TreeItemCollapsibleState, TreeItem, Command } from 'vscode';
 import { join, extname } from 'path';
-
+import { getExtensionPath } from '../providers/extensionPath'
 
 /**
  * A TreeItem to show cartridge elements in the explorer view.
@@ -35,7 +35,7 @@ export class FileTreeItem extends GenericTreeItem {
 	) {
 		super(name, location, collapsibleState, command);
 		this.fileExtension = extname(this.name).replace('.', '');
-		this.iconPath = join(__filename, '..', '..', '..', 'images', 'resources', this.fileExtension + '.svg');
+		this.iconPath = join(getExtensionPath(), 'images', 'resources', this.fileExtension + '.svg');
 	}
 }
 GenericTreeItem.NoFiles = new FileTreeItem('No files', '', TreeItemCollapsibleState.None);
@@ -48,7 +48,7 @@ export class CartridgeTreeItem extends GenericTreeItem {
 		public readonly command?: Command
 	) {
 		super(name, location, collapsibleState, command);
-		this.iconPath = join(__filename, '..', '..', '..', 'images', 'resources', 'cartridge.svg');
+		this.iconPath = join(getExtensionPath(), 'images', 'resources', 'cartridge.svg');
 	}
 }
 GenericTreeItem.NoCartridges = new CartridgeTreeItem('No Cartridges', '', TreeItemCollapsibleState.None);
@@ -61,7 +61,7 @@ export class WorkspaceTreeItem extends GenericTreeItem {
 		public readonly command?: Command
 	) {
 		super(name, location, collapsibleState, command);
-		this.iconPath = join(__filename, '..', '..', '..', 'images', 'resources', 'txt.svg');// fixme: find better icon
+		this.iconPath = join(getExtensionPath(), 'images', 'resources', 'txt.svg');// fixme: find better icon
 	}
 }
 

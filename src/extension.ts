@@ -1,6 +1,7 @@
 
 'use strict';
 import { join, sep } from 'path';
+import { setExtensionPath } from './providers/extensionPath'
 import { workspace, ExtensionContext, commands, window, Uri, WorkspaceConfiguration, debug, WorkspaceFolder, RelativePattern } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
 import { CartridgesView } from './providers/CartridgesView';
@@ -166,7 +167,7 @@ function getWorkspaceFolders$$(context: ExtensionContext): Observable<Observable
 }
 
 export function activate(context: ExtensionContext) {
-
+	setExtensionPath(context.extensionPath);
 
 	context.subscriptions.push(
 		commands.registerCommand('extension.prophet.command.open.documentation', () => {
