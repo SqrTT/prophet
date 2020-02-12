@@ -150,7 +150,7 @@ connection.onCompletion(async (params) => {
 						label: api,
 						kind: CompletionItemKind.Value,
 						textEdit: TextEdit.replace(
-							getReplaceRange(nodeRequire.node.start + 1, nodeRequire.node.end - 1),
+							getReplaceRange(nodeRequire.start + 1, nodeRequire.end - 1),
 							api
 						),
 						insertTextFormat: InsertTextFormat.PlainText
