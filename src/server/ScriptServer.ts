@@ -8,8 +8,8 @@ import {
 	CompletionList,
 	CompletionItemKind,
 	InsertTextFormat,
-	// TextEdit,
-	// Range
+	TextEdit,
+	Range
 } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import classesList from './langServer/reqClassList';
@@ -131,29 +131,28 @@ connection.onCompletion(async (params) => {
 			nodeRequire.parent.type === 'CallExpression' &&
 			nodeRequire.parent.callee.name === 'require'
 		) {
-			// function getReplaceRange(replaceStart: number, replaceEnd: number = offset): Range {
-			// 	if (replaceStart > offset) {
-			// 		replaceStart = offset;
-			// 	}
-			// 	if (!document) {
-			// 		throw new Error('no document');
-			// 	}
-			// 	return {
-			// 		start: document.positionAt(replaceStart),
-			// 		end: document.positionAt(replaceEnd)
-			// 	};
-			// }
+			function getReplaceRange(replaceStart: number, replaceEnd: number = offset): Range {
+				if (replaceStart > offset) {
+					replaceStart = offset;
+				}
+				if (!document) {
+					throw new Error('no document');
+				}
+				return {
+					start: document.positionAt(replaceStart),
+					end: document.positionAt(replaceEnd)
+				};
+			}
 			const result: CompletionList = {
 				isIncomplete: false,
 				items: classesList.map(api => {
 					return {
 						label: api,
 						kind: CompletionItemKind.Value,
-						insertText: api,
-						// textEdit: TextEdit.replace(
-						// 	getReplaceRange(nodeRequire.node.start + 1, nodeRequire.node.end -1),
-						// 	api
-						// ),
+						textEdit: TextEdit.replace(
+							getReplaceRange(nodeRequire.node.start + 1, nodeRequire.node.end - 1),
+							api
+						),
 						insertTextFormat: InsertTextFormat.PlainText
 					}
 				})
