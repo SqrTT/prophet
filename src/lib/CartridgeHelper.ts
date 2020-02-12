@@ -4,7 +4,7 @@ import { exists, readFile, existsSync, mkdirSync, writeFile, mkdir, createReadSt
 import { join, sep } from 'path';
 import { pathExists } from '../lib/FileHelper';
 import { Observable } from 'rxjs';
-import { first, reduce } from 'rxjs/operators';
+import { filter, reduce, take } from 'rxjs/operators';
 import * as readline from 'readline';
 
 /**
@@ -41,9 +41,8 @@ function readFileByLine(filePath: string): Observable<string> {
 //data.
 export const checkIfCartridge$ = (projectFile: string) => {
 	return readFileByLine(projectFile)
-		.pipe(
-			first(line => line.includes('com.demandware.studio.core.beehiveNature'))
-		)
+		.pipe(filter(line => line.includes('com.demandware.studio.core.beehiveNature')))
+		.pipe(take(1))
 		.pipe(reduce((acc, val) => true, false));
 };
 
