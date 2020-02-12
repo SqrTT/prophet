@@ -9,6 +9,7 @@ const config = {
 	target: 'node', // vscode extensions run in a Node.js-context 📖 -> https://webpack.js.org/configuration/node/
 
 	entry: {
+		scriptServer: './src/server/ScriptServer',
 		extension: './src/extension.ts',
 		mockDebug: './src/mockDebug.ts',
 		ismlServer: './src/server/ismlServer'
@@ -38,6 +39,9 @@ const config = {
 						loader: 'ts-loader'
 					}
 				]
+			}, {
+				test: /\.mjs$/,
+				type: 'javascript/auto'
 			}
 		]
 	}

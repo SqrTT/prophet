@@ -30,6 +30,8 @@
         "url": "https://github.com/SqrTT/prophet/issues"
     },
     "dependencies": {
+        "acorn-loose": "^7.0.0",
+        "acorn-walk": "^7.1.0",
         "htmlhint": "^0.11.0",
         "js-beautify": "^1.10.3",
         "request": "^2.88.0",
@@ -47,6 +49,8 @@
         "yazl": "^2.5.1"
     },
     "devDependencies": {
+        "@types/acorn": "^4.0.5",
+        "@types/estree": "0.0.42",
         "@types/mocha": "^7.0.1",
         "@types/node": "^12.0.0",
         "mocha": "^7.0.1",

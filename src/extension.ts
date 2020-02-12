@@ -114,6 +114,87 @@ function createIsmlLanguageServer(context: ExtensionContext, configuration: Work
 	return ismlLanguageClient;
 }
 
+
+/**
+ * Create the Script language server with the proper parameters
+ *
+ * @param context the extension context
+ * @param configuration the extension configuration
+ */
+function createScriptLanguageServer(context: ExtensionContext, configuration: WorkspaceConfiguration = workspace.getConfiguration('extension.prophet', null)) {
+	// The server is implemented in node
+	const serverModule = context.asAbsolutePath(join('dist', 'scriptServer.js'));
+	// The debug options for the server
+	const debugOptions = { execArgv: ['--nolazy', '--inspect=6040'] };
+
+	// If the extension is launched in debug mode then the debug server options are used
+	// Otherwise the run options are used
+	const serverOptions: ServerOptions = {
+		run: { module: serverModule, transport: TransportKind.ipc },
+		debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions }
+	};
+
+	// Options to control the language client
+	const clientOptions: LanguageClientOptions = {
+		// Register the server for plain text documents
+		documentSelector: [{
+			scheme: 'file',
+			pattern: '**/cartridge/{scripts,controllers,models}/**/*.js'
+		}],
+		synchronize: {
+			// Synchronize the setting section 'languageServerExample' to the server
+			//configurationSection: 'extension.prophet',
+			// Notify the server about file changes to '.clientrc files contain in the workspace
+			// fileEvents: workspace.createFileSystemWatcher('**/*.isml'),
+			//fileEvents: workspace.createFileSystemWatcher('**/.htmlhintrc')
+		}
+	};
+
+	// Create the language client and start the client.
+	const ismlLanguageClient = new LanguageClient('dwScriptLanguageServer', 'Script Language Server', serverOptions, clientOptions);
+
+
+	//context.subscriptions.push(new SettingMonitor(ismlLanguageClient, 'extension.prophet.htmlhint.enabled').start());
+
+	ismlLanguageClient.onReady().then(() => {
+		ismlLanguageClient.onNotification('isml:selectfiles', (test) => {
+			const prophetConfiguration = workspace.getConfiguration('extension.prophet');
+			const cartPath = String(prophetConfiguration.get('cartridges.path'));
+
+			if (cartPath.trim().length) {
+				const cartridges = cartPath.split(':');
+
+				const cartridge = cartridges.find(cartridgeItem =>
+					(test.data || []).some(filename => filename.includes(cartridgeItem)));
+
+				if (cartridge) {
+					ismlLanguageClient.sendNotification('isml:selectedfile', test.data.find(
+						filename => filename.includes(cartridge)
+					));
+					return;
+				}
+
+			}
+			window.showQuickPick(test.data).then(selected => {
+				ismlLanguageClient.sendNotification('isml:selectedfile', selected);
+			}, err => {
+				ismlLanguageClient.sendNotification('isml:selectedfile', undefined);
+			});
+		});
+		ismlLanguageClient.onNotification('find:files', ({ searchID, workspacePath, pattern }) => {
+			workspace.findFiles(
+				new RelativePattern(Uri.parse(workspacePath).fsPath, pattern)
+			).then(result => {
+				ismlLanguageClient.sendNotification('find:filesFound', { searchID, result: (result || []).map(uri => uri.fsPath) });
+			})
+		});
+	}).catch(err => {
+		window.showErrorMessage(JSON.stringify(err));
+	});
+
+	return ismlLanguageClient;
+}
+
 function getWorkspaceFolders$$(context: ExtensionContext): Observable<Observable<WorkspaceFolder>> {
 	return new Observable(observer => {
 
@@ -233,6 +314,9 @@ export function activate(context: ExtensionContext) {
 	subscribe2disposable(LogsView.initialize(commands, context, dwConfig$$).pipe(mergeAll()));
 
 	context.subscriptions.push(createIsmlLanguageServer(context).start());
+
+
+	context.subscriptions.push(createScriptLanguageServer(context).start());
 
 	const excludedMasks = workspace.getConfiguration('files', null).get<{}>('exclude') || {};
 
