@@ -1,4 +1,4 @@
-export default [
+export default Object.freeze([
     "dw/alert/Alert",
     "dw/alert/Alerts",
     "dw/campaign/ABTest",
@@ -345,4 +345,4 @@ export default [
     "dw/ws/Port",
     "dw/ws/WebReference2",
     "dw/ws/WSUtil"
-]
+]);

@@ -9,7 +9,8 @@ import {
 	CompletionItemKind,
 	InsertTextFormat,
 	TextEdit,
-	Range
+	Range,
+	CancellationToken
 } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import classesList from './langServer/reqClassList';
@@ -19,7 +20,7 @@ import * as acornWalk from 'acorn-walk';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport
 let connection: IConnection = createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
-
+const console = connection.console;
 
 // Create a simple text document manager. The text document manager
 // supports full document sync only
@@ -29,6 +30,8 @@ let documents = new TextDocuments(TextDocument);
 documents.listen(connection);
 
 let workspaceFolders: WorkspaceFolder[] = [];
+
+const asteriskFiles = new Set<string>();
 
 
 connection.onInitialized(() => {
@@ -107,58 +110,134 @@ function insertParents(ast) {
 		});
 	})(ast, undefined);
 }
+interface ICompetitions {
+	label: string;
+	kind: CompletionItemKind;
+	value: string;
+	range: [number, number];
+	insertTextFormat: 1;
+}
+
+const completionsList: ((activeNode: any, offset: number) => ICompetitions[])[] = [
+	function (activeNode) {
+		if (
+			activeNode &&
+			activeNode.type === 'Literal' &&
+			activeNode.parent &&
+			activeNode.parent.type === 'CallExpression' &&
+			activeNode.parent.callee.name === 'require'
+		) {
+
+			return classesList.concat(Array.from(asteriskFiles)).map(api => {
+				return {
+					label: api,
+					kind: CompletionItemKind.Value,
+					value: api,
+					range: [activeNode.start + 1, activeNode.end - 1],
+					insertTextFormat: InsertTextFormat.PlainText
+				}
+			})
+		};
+		return [];
+	},
+	function (activeNode, offset) {
+		if (
+			activeNode &&
+			activeNode.type === 'CallExpression' &&
+			activeNode.callee.name === 'require' &&
+			!activeNode.arguments.length
+		) {
+			return classesList.concat(Array.from(asteriskFiles)).map(api => {
+				return {
+					label: `'${api}'`,
+					kind: CompletionItemKind.Value,
+					value: `'${api}'`,
+					range: [offset, offset],
+					insertTextFormat: InsertTextFormat.PlainText
+				}
+			})
+		};
+		return [];
+	}
+]
+
+async function completion(content: string, offset: number, cancelToken: CancellationToken, reqTime: number) {
+	const ast = await acornLoose.parse(content, { ecmaVersion: 5 });
+	if (cancelToken.isCancellationRequested) {
+		console.log('Canceled completion request');
+	}
+
+	if (ast && offset !== undefined) {
+		const findNodeAround: Function = acornWalk.findNodeAround;
+		const activeNode: any = findNodeAround(ast, offset, () => true)?.node;
+		insertParents(ast);
+
+		const completions = completionsList.reduce((acc, completionFn) => {
+			const res = completionFn(activeNode, offset)
+			if (res) {
+				return acc.concat(res);
+			} else {
+				return acc;
+			}
+		}, [] as ICompetitions[]);
+
+		if (completions.length) {
+			console.log(`${completions.length} completion: ${Date.now() - reqTime}ms `);
+			return completions;
+		}
+	}
+	console.log(`no completion: ${Date.now() - reqTime}ms `);
+	return [];
+}
+
+function getReplaceRange(document: TextDocument, replaceStart: number, replaceEnd: number): Range {
+	return {
+		start: document.positionAt(replaceStart),
+		end: document.positionAt(replaceEnd)
+	};
+}
+
+connection.onNotification('cartridges.files', ({ list }) => {
 
 
-connection.onCompletion(async (params) => {
+	list?.forEach(cartridge => {
+		cartridge?.files?.forEach(file => {
+			asteriskFiles.add('*' + file.replace('.js', ''));
+		});
+	});
+	console.info('got cartridges files list');
+});
+
+connection.onCompletion(async (params, cancelToken) => {
+	const reqTime = Date.now();
+
 	const document = documents.get(params.textDocument.uri);
 	if (!document) {
 		connection.console.error('125: Unable find document')
 		return;
 	}
-	const ast = await acornLoose.parse(document.getText(), { ecmaVersion: 5 });
 	const offset = document.offsetAt(params.position);
 
-	if (ast && offset !== undefined) {
-		const findNodeAround: Function = acornWalk.findNodeAround;
-		const nodeRequire: any = findNodeAround(ast, offset, () => true)?.node;
+	if (document.languageId === 'javascript') {
+		const completions = await completion(document.getText(), offset, cancelToken, reqTime);
 
-		insertParents(ast);
+		if (!cancelToken.isCancellationRequested && completions?.length) {
 
-		if (
-			nodeRequire &&
-			nodeRequire.type === 'Literal' &&
-			nodeRequire.parent &&
-			nodeRequire.parent.type === 'CallExpression' &&
-			nodeRequire.parent.callee.name === 'require'
-		) {
-			function getReplaceRange(replaceStart: number, replaceEnd: number = offset): Range {
-				if (replaceStart > offset) {
-					replaceStart = offset;
-				}
-				if (!document) {
-					throw new Error('no document');
-				}
-				return {
-					start: document.positionAt(replaceStart),
-					end: document.positionAt(replaceEnd)
-				};
-			}
-			const result: CompletionList = {
+			const list: CompletionList = {
 				isIncomplete: false,
-				items: classesList.map(api => {
+				items: completions.map(completion => {
 					return {
-						label: api,
-						kind: CompletionItemKind.Value,
+						label: completion.label,
+						kind: completion.kind,
 						textEdit: TextEdit.replace(
-							getReplaceRange(nodeRequire.start + 1, nodeRequire.end - 1),
-							api
+							getReplaceRange(document, completion.range[0], completion.range[1]),
+							completion.value
 						),
-						insertTextFormat: InsertTextFormat.PlainText
-					}
+						insertTextFormat: completion.insertTextFormat
+					};
 				})
 			};
-			connection.console.info('completion for require');
-			return result;
+			return list;
 		}
 	}
 });
@@ -170,13 +249,11 @@ documents.onDidChangeContent((event) => {
 });
 
 
-
 // Listen on the connection
 connection.listen();
 
 process.once('uncaughtException', err => {
-	console.log(err);
-	connection.console.error(String(err) + '\n' + err.stack);
+	console.error(String(err) + '\n' + err.stack);
 	connection.dispose();
 	process.exit(-1);
 })

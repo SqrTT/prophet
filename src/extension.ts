@@ -1,6 +1,6 @@
 
 'use strict';
-import { join, sep } from 'path';
+import { join, sep, basename } from 'path';
 import { setExtensionPath } from './providers/extensionPath'
 import { workspace, ExtensionContext, commands, window, Uri, WorkspaceConfiguration, debug, WorkspaceFolder, RelativePattern } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
@@ -14,10 +14,59 @@ import Uploader from "./providers/Uploader";
 import { ProphetConfigurationProvider } from './providers/ConfigurationProvider';
 import { Subject, Observable, of, empty } from 'rxjs';
 import { map, flatMap, tap, takeUntil, filter, reduce, merge, mergeAll } from 'rxjs/operators';
-import { findFiles, getDWConfig, getCartridgesFolder } from './lib/FileHelper';
+import { findFiles, getDWConfig, getCartridgesFolder, readFile } from './lib/FileHelper';
 import { SandboxFS } from './providers/SandboxFileSystemProvider';
 
+let isOrderedCartridgesWarnShown = false;
+async function getOrderedCartridges(workspaceFolders: WorkspaceFolder[]) {
+	let cartridgesPath = workspace.getConfiguration('extension.prophet').get('cartridges.path') as string;
 
+	if (!cartridgesPath || !cartridgesPath.trim()) {
+		const dwConfig = await getDWConfig(workspaceFolders);
+
+		if (dwConfig.cartridgesPath) {
+			cartridgesPath = dwConfig.cartridgesPath;
+		} else if (dwConfig.cartridge && dwConfig.cartridge.length) {
+			cartridgesPath = dwConfig.cartridge.join(':');
+		} else {
+			const sitesXmlFile = await Promise.all(workspaceFolders.map(
+				workspaceFolder => findFiles(new RelativePattern(workspaceFolder, '**/site.xml'), 1).toPromise()
+			));
+			const sitesXmlFileFiltered = sitesXmlFile.filter(Boolean);
+
+			if (sitesXmlFileFiltered.length) {
+				const siteBuffer = await readFile(sitesXmlFileFiltered[0].fsPath);
+				const site = siteBuffer.toString();
+
+				const match = (/<custom-cartridges>(.*?)<\/custom-cartridges>/ig).exec(site);
+				if (match && match[1]) {
+					cartridgesPath = match[1];
+				}
+			}
+		}
+	}
+
+	if (cartridgesPath) {
+		const cartridges = cartridgesPath.split(':');
+
+		const cartridgesFolders = await Promise.all(workspaceFolders.map(
+			workspaceFolder => getCartridgesFolder(workspaceFolder)
+				.pipe(reduce<string, string[]>((acc, r) => acc.concat(r), [] as string[])).toPromise()
+		));
+
+		const cartridgesFoldersFlat = ([] as string[]).concat(...cartridgesFolders);
+
+		return cartridges.map(cartridgeName => {
+			return {
+				name: cartridgeName,
+				path: cartridgesFoldersFlat.find(cartridgesFolder => basename(cartridgesFolder) === cartridgeName)
+			};
+		});
+	} else if (!isOrderedCartridgesWarnShown) {
+		isOrderedCartridgesWarnShown = true;
+		window.showInformationMessage('Cartridges path is not detected automatically, related features will be disabled. Consider specifying in your dw.json as \'cartridgesPath\' property, please.');
+	}
+}
 /**
  * Create the ISML language server with the proper parameters
  *
@@ -76,29 +125,32 @@ function createIsmlLanguageServer(context: ExtensionContext, configuration: Work
 	//context.subscriptions.push(new SettingMonitor(ismlLanguageClient, 'extension.prophet.htmlhint.enabled').start());
 
 	ismlLanguageClient.onReady().then(() => {
-		ismlLanguageClient.onNotification('isml:selectfiles', (test) => {
-			const prophetConfiguration = workspace.getConfiguration('extension.prophet');
-			const cartPath = String(prophetConfiguration.get('cartridges.path'));
+		ismlLanguageClient.onNotification('isml:selectfiles', async (test) => {
+			if (workspace.workspaceFolders) {
+				const orderedCartridges = await getOrderedCartridges(workspace.workspaceFolders);
+				const cartPath = orderedCartridges?.map(cartridge => cartridge.name).join(':');
 
-			if (cartPath.trim().length) {
-				const cartridges = cartPath.split(':');
+				if (cartPath?.length) {
+					const cartridges = cartPath.split(':');
 
-				const cartridge = cartridges.find(cartridgeItem =>
-					(test.data || []).some(filename => filename.includes(cartridgeItem)));
+					const cartridge = cartridges.find(cartridgeItem =>
+						(test.data || []).some(filename => filename.includes(cartridgeItem)));
 
-				if (cartridge) {
-					ismlLanguageClient.sendNotification('isml:selectedfile', test.data.find(
-						filename => filename.includes(cartridge)
-					));
-					return;
+					if (cartridge) {
+						ismlLanguageClient.sendNotification('isml:selectedfile', test.data.find(
+							filename => filename.includes(cartridge)
+						));
+						return;
+					}
+
 				}
-
+				window.showQuickPick(test.data).then(selected => {
+					ismlLanguageClient.sendNotification('isml:selectedfile', selected);
+				}, err => {
+					ismlLanguageClient.sendNotification('isml:selectedfile', undefined);
+				});
 			}
-			window.showQuickPick(test.data).then(selected => {
-				ismlLanguageClient.sendNotification('isml:selectedfile', selected);
-			}, err => {
-				ismlLanguageClient.sendNotification('isml:selectedfile', undefined);
-			});
+
 		});
 		ismlLanguageClient.onNotification('find:files', ({ searchID, workspacePath, pattern }) => {
 			workspace.findFiles(
@@ -151,48 +203,42 @@ function createScriptLanguageServer(context: ExtensionContext, configuration: Wo
 	};
 
 	// Create the language client and start the client.
-	const ismlLanguageClient = new LanguageClient('dwScriptLanguageServer', 'Script Language Server', serverOptions, clientOptions);
-
-
+	const scriptLanguageClient = new LanguageClient('dwScriptLanguageServer', 'Script Language Server', serverOptions, clientOptions);
 	//context.subscriptions.push(new SettingMonitor(ismlLanguageClient, 'extension.prophet.htmlhint.enabled').start());
 
-	ismlLanguageClient.onReady().then(() => {
-		ismlLanguageClient.onNotification('isml:selectfiles', (test) => {
-			const prophetConfiguration = workspace.getConfiguration('extension.prophet');
-			const cartPath = String(prophetConfiguration.get('cartridges.path'));
+	scriptLanguageClient.onReady().then(async () => {
 
-			if (cartPath.trim().length) {
-				const cartridges = cartPath.split(':');
+		if (workspace.workspaceFolders) {
+			const orderedCartridges = await getOrderedCartridges(workspace.workspaceFolders);
 
-				const cartridge = cartridges.find(cartridgeItem =>
-					(test.data || []).some(filename => filename.includes(cartridgeItem)));
+			if (orderedCartridges && orderedCartridges.length) {
+				const orderedCartridgesWithFiles = await Promise.all(orderedCartridges.map(async cartridge => {
+					if (cartridge.path) {
+						const files = await findFiles(new RelativePattern(cartridge.path, '**/{scripts,controllers,models}/**/*.js'))
+							.pipe(reduce((acc, val) => {
+								return acc.concat(val);
+							}, [] as Uri[])).toPromise();
 
-				if (cartridge) {
-					ismlLanguageClient.sendNotification('isml:selectedfile', test.data.find(
-						filename => filename.includes(cartridge)
-					));
-					return;
+						return {
+							name: cartridge.name,
+							path: cartridge.path,
+							files: files.map(file => file.fsPath.replace(cartridge.path || '', '').split(sep).join('/'))
+						};
+					}
+				}));
+
+				const orderedCartridgesWithFilesFiltered = orderedCartridgesWithFiles.filter(Boolean);
+
+				if (orderedCartridgesWithFilesFiltered.length) {
+					scriptLanguageClient.sendNotification('cartridges.files', { list: orderedCartridgesWithFilesFiltered });
 				}
-
 			}
-			window.showQuickPick(test.data).then(selected => {
-				ismlLanguageClient.sendNotification('isml:selectedfile', selected);
-			}, err => {
-				ismlLanguageClient.sendNotification('isml:selectedfile', undefined);
-			});
-		});
-		ismlLanguageClient.onNotification('find:files', ({ searchID, workspacePath, pattern }) => {
-			workspace.findFiles(
-				new RelativePattern(Uri.parse(workspacePath).fsPath, pattern)
-			).then(result => {
-				ismlLanguageClient.sendNotification('find:filesFound', { searchID, result: (result || []).map(uri => uri.fsPath) });
-			})
-		});
+		}
 	}).catch(err => {
 		window.showErrorMessage(JSON.stringify(err));
 	});
 
-	return ismlLanguageClient;
+	return scriptLanguageClient;
 }
 
 function getWorkspaceFolders$$(context: ExtensionContext): Observable<Observable<WorkspaceFolder>> {

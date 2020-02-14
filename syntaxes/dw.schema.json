@@ -3,53 +3,59 @@
     "type": "object",
     "description": "Sandbox configuration file. Note 'dw.json' should be placed in root of cartridges",
     "properties": {
-        "hostname" : {
-            "type" :"string",
+        "hostname": {
+            "type": "string",
             "default": "*.demandware.net",
-            "format" : "hostname",
-            "description": "Domian name of sandbox"
+            "format": "hostname",
+            "description": "Domain name of sandbox"
         },
         "username": {
-            "type" :"string",
+            "type": "string",
             "default": "admin",
             "description": "Username/Login"
         },
         "password": {
-            "type":"string",
+            "type": "string",
             "default": "Passw0rd!",
             "description": "User's password (will be asked if empty)"
         },
         "code-version": {
-            "type":"string",
+            "type": "string",
             "default": "version1",
             "description": "Version of code. Note: code version should exist before can be uploaded"
         },
-        "version" : {
-            "type":"string",
+        "version": {
+            "type": "string",
             "default": "version1",
             "description": "Version of code. Note: code version should exist before can be uploaded"
         },
         "cartridge": {
-            "type" :"array",
+            "type": "array",
             "description": "List of cartridges. If empty than all subdirectory of current directory is treated as cartridges and will be uploaded",
-            "items": { "type": "string" },
+            "items": {
+                "type": "string"
+            },
             "uniqueItems": true
         },
-        "p12" : {
-            "type":"string",
+        "cartridgesPath": {
+            "type": "string",
+            "description": "List of cartridges, which is in the site cartridges path separated by ':', example: \"app_site:plugin_newsletter:plugin_sitemap:plugin_wishlists:app_storefront_base\""
+        },
+        "p12": {
+            "type": "string",
             "description": "Absolute path certificate file [Currently not supported]"
         },
-        "passphrase" : {
-            "type":"string",
+        "passphrase": {
+            "type": "string",
             "description": "Passphrase for certificate file [Currently not supported]"
         },
-        "verbose" : {
-            "type":"boolean",
+        "verbose": {
+            "type": "boolean",
             "default": false,
             "description": "Enable more verbose logging"
         },
-        "cartridgeResolution" : {
-            "type":"string",
+        "cartridgeResolution": {
+            "type": "string",
             "default": "ask",
             "enum": [
                 "ask",
@@ -60,21 +66,27 @@
         }
     },
     "dependencies": {
-        "p12" : ["passphrase"]
+        "p12": [
+            "passphrase"
+        ]
     },
-    "oneOf" : [{
-            "required" :[
+    "oneOf": [
+        {
+            "required": [
                 "hostname",
                 "username",
-                "version"
+                "version",
+                "cartridgesPath"
             ]
-        },{
-            "required" :[
+        },
+        {
+            "required": [
                 "hostname",
                 "username",
-                "code-version"
+                "code-version",
+                "cartridgesPath"
             ]
         }
     ],
-    "additionalProperties" :false
+    "additionalProperties": false
 }

@@ -1,5 +1,5 @@
 'use strict';
-import { readdir, access as nativeAccess, lstat as nativeLStat, Stats } from 'fs';
+import { readdir, access as nativeAccess, lstat as nativeLStat, Stats, readFile as readFileNative } from 'fs';
 import { join, dirname } from 'path';
 import { Uri, CancellationTokenSource, workspace, RelativePattern, WorkspaceFolder, window } from 'vscode';
 import { Observable, of, empty } from 'rxjs';
@@ -58,6 +58,18 @@ export async function access(srcpath: string) {
 				reject(err);
 			} else {
 				resolve();
+			}
+		});
+	});
+}
+
+export async function readFile(srcpath: string) {
+	return new Promise<Buffer>((resolve, reject) => {
+		readFileNative(srcpath, (err, data) => {
+			if (err) {
+				reject(err);
+			} else {
+				resolve(data);
 			}
 		});
 	});

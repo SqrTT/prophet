@@ -62,7 +62,8 @@ export interface DavOptions {
 	version: string,
 	root: string,
 	debug?: boolean,
-	cartridgeResolution: 'ask' | 'leave' | 'remove'
+	cartridgeResolution?: 'ask' | 'leave' | 'remove',
+	cartridgesPath?: string
 }
 
 function getMatches(string: string, regex: RegExp, index = 1) {
