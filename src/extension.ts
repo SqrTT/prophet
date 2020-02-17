@@ -221,8 +221,11 @@ function createScriptLanguageServer(context: ExtensionContext, configuration: Wo
 
 						return {
 							name: cartridge.name,
-							path: cartridge.path,
-							files: files.map(file => file.fsPath.replace(cartridge.path || '', '').split(sep).join('/'))
+							fsPath: cartridge.path,
+							files: files.map(file => ({
+								path: file.fsPath.replace(cartridge.path || '', '').split(sep).join('/'),
+								fsPath: file.fsPath
+							}))
 						};
 					}
 				}));
