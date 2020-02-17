@@ -199,7 +199,6 @@ function getReplaceRange(document: TextDocument, replaceStart: number, replaceEn
 
 connection.onNotification('cartridges.files', ({ list }) => {
 
-
 	list?.forEach(cartridge => {
 		cartridge?.files?.forEach(file => {
 			asteriskFiles.add('*' + file.replace('.js', ''));

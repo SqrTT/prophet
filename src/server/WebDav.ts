@@ -4,7 +4,7 @@ import { Observable, of, from, forkJoin } from 'rxjs';
 import { tap, map, flatMap, catchError, reduce, filter } from 'rxjs/operators';
 import { createReadStream, unlink, ReadStream } from 'fs';
 import { finished } from 'stream';
-import { workspace, CancellationTokenSource, RelativePattern } from 'vscode';
+import { workspace, CancellationTokenSource, RelativePattern, window } from 'vscode';
 //fixme: refactor to use https module
 import * as request from 'request';
 import * as yazl from 'yazl';
@@ -386,45 +386,71 @@ export default class WebDav {
 }
 
 export function readConfigFile(configFilename: string) {
-	return new Observable<DavOptions>(observer => {
-		if (configFilename.match(/\.js$/)) {
+	return (new Observable<{ fileContent: string, configFilename: string }>(observer => {
+		const stream = createReadStream(configFilename);
+		let chunks: Buffer[] = [];
+
+		// Listen for data
+		stream.on('data', chunk => {
+			chunks.push(chunk);
+		});
+
+		stream.on('error', err => {
+			observer.error(err);
+		}); // Handle the error
+
+		// File is done being read
+		stream.on('close', () => {
 			try {
-				delete require.cache[require.resolve(configFilename)]
-				observer.next(require(configFilename));
+				observer.next({
+					fileContent: Buffer.concat(chunks).toString(),
+					configFilename: configFilename
+				});
 				observer.complete();
+				chunks = <any>null;
 			} catch (err) {
 				observer.error(err);
 			}
-		} else {
-			const stream = createReadStream(configFilename);
-			let chunks: Buffer[] = [];
+		});
 
-			// Listen for data
-			stream.on('data', chunk => {
-				chunks.push(chunk);
-			});
+		return () => {
+			chunks = <any>null;
+			stream.close();
+		};
+	})).pipe(flatMap(({ fileContent, configFilename }) => {
+		return new Observable<DavOptions>(observer => {
+			if (configFilename.match(/\.js$/)) {
+				const moduleIn = {
+					exports: {}
+				}
 
-			stream.on('error', err => {
-				observer.error(err);
-			}); // Handle the error
-
-			// File is done being read
-			stream.on('close', () => {
 				try {
-					const conf = JSON.parse(Buffer.concat(chunks).toString());
-					conf.configFilename = configFilename;
-					observer.next(conf);
-					observer.complete();
-					chunks = <any>null;
+					const fn = new Function('module', 'exports', 'window', 'workspace', fileContent);
+
+					fn(moduleIn, moduleIn.exports, window, workspace);
+
+					if (moduleIn.exports) {
+						Promise.resolve(moduleIn.exports).then((config : DavOptions) => {
+							observer.next({ ...config, configFilename: configFilename });
+							observer.complete();
+						}).catch(error => {
+							observer.error('dw.js error:' + error);
+						})
+					} else {
+						observer.error('dw.js don\'t exports correct configs');
+					}
 				} catch (err) {
 					observer.error(err);
 				}
-			});
-
-			return () => {
-				chunks = <any>null;
-				stream.close();
-			};
-		}
-	});
+			} else {
+				try {
+					const conf = JSON.parse(fileContent);
+					observer.next({ ...conf, configFilename });
+					observer.complete();
+				} catch (err) {
+					observer.error(err);
+				}
+			}
+		})
+	}));
 }
