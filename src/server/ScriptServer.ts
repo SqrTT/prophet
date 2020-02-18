@@ -262,6 +262,7 @@ connection.onNotification('cartridges.files', ({ list }) => {
 		cartridges.add(cartridge);
 	});
 	console.info('got cartridges files list');
+	console.info('cartridges files list: ' + JSON.stringify(list, undefined, '  '));
 });
 
 connection.onCompletion(async (params, cancelToken) => {

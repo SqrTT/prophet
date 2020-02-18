@@ -59,7 +59,7 @@ async function getOrderedCartridges(workspaceFolders: WorkspaceFolder[]) {
 		return cartridges.map(cartridgeName => {
 			return {
 				name: cartridgeName,
-				path: cartridgesFoldersFlat.find(cartridgesFolder => basename(cartridgesFolder) === cartridgeName)
+				fsPath: cartridgesFoldersFlat.find(cartridgesFolder => basename(cartridgesFolder) === cartridgeName)
 			};
 		});
 	} else if (!isOrderedCartridgesWarnShown) {
@@ -213,18 +213,18 @@ function createScriptLanguageServer(context: ExtensionContext, configuration: Wo
 
 			if (orderedCartridges && orderedCartridges.length) {
 				const orderedCartridgesWithFiles = await Promise.all(orderedCartridges.map(async cartridge => {
-					if (cartridge.path) {
-						const files = await findFiles(new RelativePattern(cartridge.path, '**/{scripts,controllers,models}/**/*.js'))
+					if (cartridge.fsPath) {
+						const files = await findFiles(new RelativePattern(cartridge.fsPath, '**/{scripts,controllers,models}/**/*.js'))
 							.pipe(reduce((acc, val) => {
 								return acc.concat(val);
 							}, [] as Uri[])).toPromise();
 
 						return {
 							name: cartridge.name,
-							fsPath: cartridge.path,
+							fsPath: Uri.parse(cartridge.fsPath).toString(),
 							files: files.map(file => ({
-								path: file.fsPath.replace(cartridge.path || '', '').split(sep).join('/'),
-								fsPath: file.fsPath
+								path: file.fsPath.replace(cartridge.fsPath || '', '').split(sep).join('/'),
+								fsPath: Uri.parse(file.fsPath).toString()
 							}))
 						};
 					}
