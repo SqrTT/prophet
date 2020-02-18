@@ -316,12 +316,10 @@ async function definition(content: string, offset: number, cancelToken: Cancella
 		insertParents(ast);
 
 		if (
-			activeNode &&
-			activeNode.type === 'Literal' &&
-			activeNode.parent &&
-			activeNode.parent.type === 'CallExpression' &&
-			activeNode.parent.callee.name === 'require' &&
-			activeNode.value
+			activeNode?.type === 'Literal' &&
+			activeNode?.parent?.type === 'CallExpression' &&
+			activeNode?.parent?.callee?.name === 'require' &&
+			activeNode?.value
 		) {
 			if (activeNode.value.startsWith('*')) {
 				var found = '';
@@ -362,12 +360,9 @@ async function definition(content: string, offset: number, cancelToken: Cancella
 				return;
 			}
 		} else if (
-			activeNode
-			&& activeNode.type === 'MemberExpression'
-			&& activeNode.object
-			&& activeNode.object.name === 'module'
-			&& activeNode.property
-			&& activeNode.property.name === 'superModule'
+			activeNode?.type === 'MemberExpression'
+			&& activeNode?.object?.name === 'module'
+			&& activeNode?.property?.name === 'superModule'
 		) {
 			var found = '';
 
@@ -404,7 +399,7 @@ async function definition(content: string, offset: number, cancelToken: Cancella
 
 connection.onDefinition(async (params, cancelToken) => {
 	const reqTime = Date.now();
-	console.info('req definition');
+	console.info('req definition:' + params.textDocument.uri);
 
 	const document = documents.get(params.textDocument.uri);
 	if (!document) {
