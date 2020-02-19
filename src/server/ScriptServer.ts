@@ -42,6 +42,7 @@ interface ICartridge {
 }
 
 const cartridges = new Set<ICartridge>();
+const templates = new Set<ICartridge>()
 
 function getAsteriskRequireFiles() {
 	var asteriskFiles = new Set<string>();
@@ -79,6 +80,19 @@ function getTildaRequireFiles(cartridgeName: string) {
 	});
 
 	return Array.from(cartridgesFiles);
+}
+
+function getTemplatesList() {
+	const list = new Map<string, string>();
+
+	templates.forEach(cartridge => {
+		cartridge.files.forEach(file => {
+			if (!list.has(file.path)) {
+				list.set(file.path, file.fsPath);
+			}
+		});
+	});
+	return list;
 }
 
 connection.onInitialized(() => {
@@ -217,6 +231,47 @@ const completionsList: ((activeNode: any, offset: number, cartridgeName: string)
 				})
 		};
 		return [];
+	},
+	function (activeNode, offset, cartridgeName) {
+		if (
+			activeNode?.type === 'Literal' &&
+			activeNode?.parent?.type === 'CallExpression' &&
+			activeNode?.parent?.callee?.type === 'MemberExpression' &&
+			activeNode?.parent?.callee?.object?.name === 'res' &&
+			activeNode?.parent?.callee?.property?.name === 'render'
+		) {
+
+			return Array.from(getTemplatesList().keys()).map(template => {
+				return {
+					label: template,
+					kind: CompletionItemKind.Value,
+					value: template,
+					range: [activeNode.start + 1, activeNode.end - 1],
+					insertTextFormat: InsertTextFormat.PlainText
+				}
+			})
+		};
+		return [];
+	},
+	function (activeNode, offset, cartridgeName) {
+		if (
+			activeNode?.type === 'CallExpression' &&
+			activeNode?.callee?.type === 'MemberExpression' &&
+			activeNode?.callee?.object.name === 'res' &&
+			activeNode?.callee?.property?.name === 'render' &&
+			!activeNode.arguments.length
+		) {
+			return Array.from(getTemplatesList().keys()).map(template => {
+				return {
+					label: `'${template}'`,
+					kind: CompletionItemKind.Value,
+					value: `'${template}'`,
+					range: [offset, offset],
+					insertTextFormat: InsertTextFormat.PlainText
+				}
+			})
+		};
+		return [];
 	}
 ]
 
@@ -262,7 +317,16 @@ connection.onNotification('cartridges.files', ({ list }) => {
 		cartridges.add(cartridge);
 	});
 	console.info('got cartridges files list');
-	console.info('cartridges files list: ' + JSON.stringify(list, undefined, '  '));
+	// console.info('cartridges files list: ' + JSON.stringify(list, undefined, '  '));
+});
+
+connection.onNotification('cartridges.templates', ({ list }) => {
+
+	list?.forEach(cartridge => {
+		templates.add(cartridge);
+	});
+	console.info('got cartridges templates list');
+	// console.info('cartridges files list: ' + JSON.stringify(list, undefined, '  '));
 });
 
 connection.onCompletion(async (params, cancelToken) => {
@@ -386,6 +450,25 @@ async function definition(content: string, offset: number, cancelToken: Cancella
 			});
 			if (found) {
 				return Location.create(found, {
+					start: { character: 0, line: 0 },
+					end: { character: 0, line: 0 }
+				});
+			}
+		} else if (
+			activeNode.type === 'Literal' &&
+			activeNode?.parent?.type === 'CallExpression' &&
+			activeNode?.parent?.callee?.type === 'MemberExpression' &&
+			activeNode?.parent?.callee?.object?.name === 'res' &&
+			activeNode?.parent?.callee?.property?.name === 'render' &&
+			activeNode?.value
+		) {
+			const value = activeNode.value.replace('.isml', '').replace(/^\//, '');
+
+			const found = Array.from(getTemplatesList()).find(([template]) => {
+				return value === template;
+			});
+			if (found) {
+				return Location.create(found[1], {
 					start: { character: 0, line: 0 },
 					end: { character: 0, line: 0 }
 				});

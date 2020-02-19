@@ -235,6 +235,32 @@ function createScriptLanguageServer(context: ExtensionContext, configuration: Wo
 				if (orderedCartridgesWithFilesFiltered.length) {
 					scriptLanguageClient.sendNotification('cartridges.files', { list: orderedCartridgesWithFilesFiltered });
 				}
+
+				const orderedCartridgesWithTemplates = await Promise.all(orderedCartridges.map(async cartridge => {
+					if (cartridge.fsPath) {
+						const files = await findFiles(new RelativePattern(cartridge.fsPath, 'cartridge/templates/default/**/*.isml'))
+							.pipe(reduce((acc, val) => {
+								return acc.concat(val);
+							}, [] as Uri[])).toPromise();
+
+						if (files.length) {
+							return {
+								name: cartridge.name,
+								fsPath: Uri.file(cartridge.fsPath).toString(),
+								files: files.map(file => ({
+									path: file.fsPath.split(sep).join('/').split('/cartridge/templates/default/').pop()?.replace('.isml', ''),
+									fsPath: Uri.file(file.fsPath).toString()
+								}))
+							};
+						}
+					}
+				}));
+
+				const orderedCartridgesWithTemplatesFiltered = orderedCartridgesWithTemplates.filter(Boolean);
+
+				if (orderedCartridgesWithTemplatesFiltered.length) {
+					scriptLanguageClient.sendNotification('cartridges.templates', { list: orderedCartridgesWithTemplatesFiltered });
+				}
 			}
 		}
 	}).catch(err => {
