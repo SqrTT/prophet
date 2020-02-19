@@ -7,7 +7,7 @@ import {
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 
-import { basename, join } from 'path';
+import { basename } from 'path';
 import Connection, { IVariable, IThread } from './Connection';
 import * as process from 'process';
 
@@ -50,14 +50,12 @@ class ProphetDebugSession extends LoggingDebugSession {
 
 	private currentThreads = new Map<number, IThread>();
 
-
-
 	/**
 	 * Creates a new debug adapter that is used for one debug session.
 	 * We configure the default implementation of a debug adapter here.
 	 */
 	public constructor() {
-		super(join(__dirname, '..', "prophet-debugger.log"));
+		super();
 
 		this.setDebuggerLinesStartAt1(true);
 		this.setDebuggerColumnsStartAt1(false);
