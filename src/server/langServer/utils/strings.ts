@@ -94,6 +94,5 @@ export function replaceIsPrintAttr (str: string, placeholder = '_') {
 			currentPos = -1; // reset pos since content may shift
 		}
 	};
-
 	return str;
 }

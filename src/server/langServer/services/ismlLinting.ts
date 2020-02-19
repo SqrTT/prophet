@@ -354,7 +354,7 @@ const customRules = [{
 
 		parser.addListener('text', event => {
 			const str: string = event.raw.trim();
-			if (str.length && !str.startsWith('${')) {// non empty text
+			if (str.length && (!str.startsWith('${') && !str.startsWith('___'))) {// non empty text
 				if (event.lastEvent && ['isscript', 'iscomment'].includes(event.lastEvent.tagName)) {
 					return;
 				}
@@ -513,12 +513,23 @@ function makeDiagnostic(problem: htmlhint.Error, lines: string[]): Diagnostic {
 	};
 }
 
+function replaceSystemPlaceholders(str: string) {
+	let currentPos = -1;
+	while ((currentPos = str.indexOf('${', currentPos + 1)) !== -1) {
+			const closingTag = str.indexOf('}', currentPos);
+			const content = str.substr(currentPos, closingTag - currentPos + 1);
+			str = str.substr(0, currentPos) + content.replace(/[^\n^\r]/ig, '_') + str.substr(closingTag + 1);
+			currentPos = -1; // reset pos since content may shift
+	};
+	return str;
+}
+
 function doValidate(connection: IConnection, document: TextDocument): void {
 	const uri = document.uri;
 	if (htmlHintClient) {
 		try {
 			const fsPath = URI.parse(document.uri).fsPath;
-			const contents = replaceIsPrintAttr(document.getText());
+			const contents = replaceSystemPlaceholders(replaceIsPrintAttr(document.getText()));
 			const lines = contents.split('\n');
 
 			const config = Object.assign({}, defaultLinterConfig, getConfiguration(fsPath)); //;
