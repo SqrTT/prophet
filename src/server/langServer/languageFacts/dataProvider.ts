@@ -56,6 +56,8 @@ export class HTMLDataProvider implements IHTMLDataProvider {
 	}
 
 	provideAttributes(tag: string) {
+		if (this.id === 'html5' && tag.startsWith('is')) return [];
+
 		const attributes: IAttributeData[] = [];
 		const processAttribute = (a: IAttributeData) => {
 			attributes.push(a);
@@ -85,7 +87,7 @@ export class HTMLDataProvider implements IHTMLDataProvider {
 							values.push(v);
 						});
 					}
-	
+
 					if (a.valueSet) {
 						if (this._valueSetMap[a.valueSet]) {
 							this._valueSetMap[a.valueSet].forEach(v => {
@@ -96,7 +98,7 @@ export class HTMLDataProvider implements IHTMLDataProvider {
 				}
 			});
 		};
-		
+
 		if (!this._tagMap[tag]) {
 			return [];
 		}
@@ -117,14 +119,14 @@ export function generateDocumentation(item: ITagData | IAttributeData | IValueDa
 		kind: doesSupportMarkdown ? 'markdown' : 'plaintext',
 		value: ''
 	};
-	
+
 	if (item.description) {
 		const normalizedDescription = normalizeMarkupContent(item.description);
 		if (normalizedDescription) {
 			result.value += normalizedDescription.value;
 		}
 	}
-	
+
 	if (item.references && item.references.length > 0) {
 		result.value += `\n\n`;
 		if (doesSupportMarkdown) {
@@ -137,7 +139,7 @@ export function generateDocumentation(item: ITagData | IAttributeData | IValueDa
 			}).join('\n');
 		}
 	}
-	
+
 	if (result.value === '') {
 		return undefined;
 	}

@@ -18,6 +18,9 @@ import { sep } from 'path';
 import { EventEmitter } from 'events';
 
 import { enableLinting, validateTextDocument, onDidChangeConfiguration, disableLinting } from './langServer/services/ismlLinting';
+import { builtinDataProviders } from './langServer/languageFacts/builtinDataProviders';
+import { HTMLDataProvider } from './langServer/languageFacts/dataProvider';
+import { ismlData } from './langServer/languageFacts/data/sfccCustomData';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport
 let connection: IConnection = createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
@@ -61,10 +64,14 @@ connection.onNotification('find:filesFound', ({ searchID, result }) => {
 	}
 });
 
+
+builtinDataProviders.push(new HTMLDataProvider('isml', ismlData));
 // After the server has started the client sends an initialize request. The server receives
 // in the passed params the rootPath of the workspace plus the client capabilities.
-let languageService = getLanguageService();
+const languageService = getLanguageService();
 let userFormatParams;
+
+
 
 connection.onInitialized(() => {
 	actualizeIndexes(workspaceFolders);
@@ -109,12 +116,11 @@ connection.onInitialize((params): InitializeResult => {
 		capabilities: {
 			// Tell the client that the server works in FULL text document sync mode
 			textDocumentSync: TextDocumentSyncKind.Full,
-			//hoverProvider: true
 			documentLinkProvider: {
 				resolveProvider: true
 			},
 			documentRangeFormattingProvider: true,
-			documentFormattingProvider:true,
+			documentFormattingProvider: true,
 			documentHighlightProvider: true,
 			hoverProvider: true,
 			foldingRangeProvider: true,
@@ -140,7 +146,6 @@ connection.onInitialize((params): InitializeResult => {
 
 let lastFileLines: string[] = [];
 connection.onDocumentLinks((params: DocumentLinkParams) => {
-
 	//connection.console.log('onDocumentLinks ' + JSON.stringify(params));
 	return new Promise((resolve, reject) => {
 		let document = documents.get(params.textDocument.uri);
@@ -275,7 +280,7 @@ connection.onDocumentRangeFormatting(formatParams => {
 		return;
 	}
 
-	return languageService.format(document, formatParams.range, Object.assign({}, userFormatParams, formatParams.options));
+	return languageService.format(document, formatParams.range, { ...userFormatParams, ...formatParams.options });
 });
 
 connection.onDocumentHighlight(docParam => {
@@ -344,7 +349,7 @@ connection.onCompletion(params => {
 		params.position,
 		languageService.parseHTMLDocument(document),
 		undefined
-	//	{ templateIndex: templatesIndex }
+		//	{ templateIndex: templatesIndex }
 	);
 });
 
