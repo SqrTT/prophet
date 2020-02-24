@@ -23,10 +23,10 @@ export interface IBeautifyHTMLOptions {
     indent_char?: string; // character to indent with,
 
     /**
-     * the initial indent level
-     * default 0
+     * add indenting whitespace to empty lines
+     * default false
      */
-    indent_level?: number;
+    indent_empty_lines?: boolean; // add indenting whitespace to empty lines
 
     /**
      * maximum amount of characters per line (0 = disable)
@@ -93,21 +93,26 @@ export interface IBeautifyHTMLOptions {
      * wrap each attribute except first ('force')
      * wrap each attribute except first and align ('force-aligned')
      * wrap each attribute ('force-expand-multiline')
+     * multiple attributes are allowed per line, attributes that wrap will align vertically ('aligned-multiple')
      * wrap only when line length is reached ('auto')
+     *
      * default auto
      */
-    wrap_attributes: 'auto' | 'force' | 'force-expand-multiline' | 'force-aligned';
+    wrap_attributes?: 'auto' | 'force' | 'force-expand-multiline' | 'force-aligned' | 'aligned-multiple' | 'preserve' | 'preserve-aligned';
+
+    /**
+     * Alignment size when using 'force-aligned' | 'aligned-multiple'
+     */
+    wrap_attributes_indent_size?: number;
 
     /*
      * end of line character to use
      */
-	eol?: string;
-
-	inline: Array<string>
+    eol?: string;
 }
 
 export interface IBeautifyHTML {
-	(value:string, options:IBeautifyHTMLOptions): string;
+    (value: string, options: IBeautifyHTMLOptions): string;
 }
 
-export declare var html_beautify:IBeautifyHTML;
+export declare var html_beautify: IBeautifyHTML;

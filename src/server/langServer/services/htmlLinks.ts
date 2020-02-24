@@ -2,25 +2,37 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-'use strict';
 
-import { TokenType, createScanner } from '../parser/htmlScanner';
-import { TextDocument, Range } from 'vscode-languageserver-types';
-// import * as paths from '../utils/paths';
-// import * as strings from '../utils/strings';
-import { URI } from 'vscode-uri';
+import { createScanner } from '../parser/htmlScanner';
+import { Range, DocumentLink } from 'vscode-languageserver-types';
+import { TextDocument } from 'vscode-languageserver-textdocument';
+import * as strings from '../utils/strings';
+import { URI as Uri } from 'vscode-uri';
 
-import { DocumentLink, DocumentContext } from '../htmlLanguageService';
+import { TokenType, DocumentContext } from '../htmlLanguageTypes';
 
-function stripQuotes(url: string): string {
-	return url
-		.replace(/^'([^']*)'$/, (substr, match1) => match1)
-		.replace(/^"([^"]*)"$/, (substr, match1) => match1);
+function normalizeRef(url: string): string {
+	const first = url[0];
+	const last = url[url.length - 1];
+	if (first === last && (first === '\'' || first === '\"')) {
+		url = url.substr(1, url.length - 2);
+	}
+	return url;
 }
 
-function getWorkspaceUrl(modelAbsoluteUri: URI, tokenContent: string, documentContext: DocumentContext, base?: string): string | undefined {
-	if (/^\s*javascript\:/i.test(tokenContent) || /^\s*\#/i.test(tokenContent) || /[\n\r]/.test(tokenContent)) {
-		return void 0;
+function validateRef(url: string, languageId: string): boolean {
+	if (!url.length) {
+		return false;
+	}
+	if (languageId === 'handlebars' && /{{.*}}/.test(url)) {
+		return false;
+	}
+	return /\b(w[\w\d+.-]*:\/\/)?[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|\/?))/.test(url);
+}
+
+function getWorkspaceUrl(documentUri: string, tokenContent: string, documentContext: DocumentContext, base: string | undefined): string | undefined {
+	if (/^\s*javascript\:/i.test(tokenContent) || /[\n\r]/.test(tokenContent)) {
+		return undefined;
 	}
 	tokenContent = tokenContent.replace(/^\s*/g, '');
 
@@ -28,34 +40,32 @@ function getWorkspaceUrl(modelAbsoluteUri: URI, tokenContent: string, documentCo
 		// Absolute link that needs no treatment
 		return tokenContent;
 	}
-
+	if (/^\#/i.test(tokenContent)) {
+		return documentUri + tokenContent;
+	}
 	if (/^\/\//i.test(tokenContent)) {
 		// Absolute link (that does not name the protocol)
-		let pickedScheme = 'http';
-		if (modelAbsoluteUri.scheme === 'https') {
-			pickedScheme = 'https';
-		}
+		const pickedScheme = strings.startsWith(documentUri, 'https://') ? 'https' : 'http';
 		return pickedScheme + ':' + tokenContent.replace(/^\s*/g, '');
 	}
 	if (documentContext) {
-		return documentContext.resolveReference(tokenContent, base);
+		return documentContext.resolveReference(tokenContent, base || documentUri);
 	}
 	return tokenContent;
 }
 
-function createLink(document: TextDocument, documentContext: DocumentContext, attributeValue: string, startOffset: number, endOffset: number, base?: string): DocumentLink | undefined {
-	let documentUri = URI.parse(document.uri);
-	let tokenContent = stripQuotes(attributeValue);
-	if (tokenContent.length === 0) {
-		return void 0;
+function createLink(document: TextDocument, documentContext: DocumentContext, attributeValue: string, startOffset: number, endOffset: number, base: string | undefined): DocumentLink | undefined {
+	const tokenContent = normalizeRef(attributeValue);
+	if (!validateRef(tokenContent, document.languageId)) {
+		return undefined;
 	}
 	if (tokenContent.length < attributeValue.length) {
 		startOffset++;
 		endOffset--;
 	}
-	let workspaceUrl = getWorkspaceUrl(documentUri, tokenContent, documentContext, base);
+	const workspaceUrl = getWorkspaceUrl(document.uri, tokenContent, documentContext, base);
 	if (!workspaceUrl || !isValidURI(workspaceUrl)) {
-		return void 0;
+		return undefined;
 	}
 	return {
 		range: Range.create(document.positionAt(startOffset), document.positionAt(endOffset)),
@@ -65,7 +75,7 @@ function createLink(document: TextDocument, documentContext: DocumentContext, at
 
 function isValidURI(uri: string) {
 	try {
-		URI.parse(uri);
+		Uri.parse(uri);
 		return true;
 	} catch (e) {
 		return false;
@@ -73,41 +83,62 @@ function isValidURI(uri: string) {
 }
 
 export function findDocumentLinks(document: TextDocument, documentContext: DocumentContext): DocumentLink[] {
-	let newLinks: DocumentLink[] = [];
+	const newLinks: DocumentLink[] = [];
 
-	let scanner = createScanner(document.getText(), 0);
+	const scanner = createScanner(document.getText(), 0);
 	let token = scanner.scan();
-	let afterHrefOrSrc = false;
+	let lastAttributeName: string | undefined = undefined;
 	let afterBase = false;
 	let base: string | undefined = void 0;
+	const idLocations: { [id: string]: number | undefined } = {};
+
 	while (token !== TokenType.EOS) {
 		switch (token) {
 			case TokenType.StartTag:
 				if (!base) {
-					let tagName = scanner.getTokenText().toLowerCase();
+					const tagName = scanner.getTokenText().toLowerCase();
 					afterBase = tagName === 'base';
 				}
 				break;
 			case TokenType.AttributeName:
-				let attributeName = scanner.getTokenText().toLowerCase();
-				afterHrefOrSrc = attributeName === 'src' || attributeName === 'href';
+				lastAttributeName = scanner.getTokenText().toLowerCase();
 				break;
 			case TokenType.AttributeValue:
-				if (afterHrefOrSrc) {
-					let attributeValue = scanner.getTokenText();
-					let link = createLink(document, documentContext, attributeValue, scanner.getTokenOffset(), scanner.getTokenEnd(), base);
-					if (link) {
-						newLinks.push(link);
+				if (lastAttributeName === 'src' || lastAttributeName === 'href') {
+					const attributeValue = scanner.getTokenText();
+					if (!afterBase) { // don't highlight the base link itself
+						const link = createLink(document, documentContext, attributeValue, scanner.getTokenOffset(), scanner.getTokenEnd(), base);
+						if (link) {
+							newLinks.push(link);
+						}
 					}
 					if (afterBase && typeof base === 'undefined') {
-						base = stripQuotes(attributeValue);
+						base = normalizeRef(attributeValue);
+						if (base && documentContext) {
+							base = documentContext.resolveReference(base, document.uri);
+						}
 					}
 					afterBase = false;
-					afterHrefOrSrc = false;
+					lastAttributeName = undefined;
+				} else if (lastAttributeName === 'id') {
+					const id = normalizeRef(scanner.getTokenText());
+					idLocations[id] = scanner.getTokenOffset();
 				}
 				break;
 		}
 		token = scanner.scan();
+	}
+	// change local links with ids to actual positions
+	for (const link of newLinks) {
+		const localWithHash = document.uri + '#';
+		if (link.target && strings.startsWith(link.target, localWithHash)) {
+			const target = link.target.substr(localWithHash.length);
+			const offset = idLocations[target];
+			if (offset !== undefined) {
+				const pos = document.positionAt(offset);
+				link.target = `${localWithHash}${pos.line + 1},${pos.character + 1}`;
+			}
+		}
 	}
 	return newLinks;
 }

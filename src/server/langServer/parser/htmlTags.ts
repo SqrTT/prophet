@@ -36,8 +36,9 @@ BEGIN THIRD PARTY
 
 import strings = require('../utils/strings');
 import arrays = require('../utils/arrays');
-import * as nls from 'vscode-nls';
-let localize = nls.loadMessageBundle();
+
+
+const localize = (a: string, b: string) => b;
 
 export const EMPTY_ELEMENTS: string[] = [
 	'area',

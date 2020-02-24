@@ -5,7 +5,8 @@ import {
 	TextDocuments, InitializeResult, DocumentLinkParams, DocumentLink, Range, Position,
 	Hover,
 	WorkspaceFolder,
-	TextDocumentSyncKind
+	TextDocumentSyncKind,
+	FoldingRange
 } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { getLanguageService } from './langServer/htmlLanguageService';
@@ -113,8 +114,13 @@ connection.onInitialize((params): InitializeResult => {
 				resolveProvider: true
 			},
 			documentRangeFormattingProvider: true,
+			documentFormattingProvider:true,
 			documentHighlightProvider: true,
 			hoverProvider: true,
+			foldingRangeProvider: true,
+			selectionRangeProvider: true,
+			workspaceSymbolProvider: true,
+			renameProvider: true,
 			completionProvider: {
 				resolveProvider: false
 			},
@@ -269,12 +275,11 @@ connection.onDocumentRangeFormatting(formatParams => {
 		return;
 	}
 
-
-	return languageService.format(document, formatParams.range, Object.assign({}, userFormatParams, formatParams.options), connection);
+	return languageService.format(document, formatParams.range, Object.assign({}, userFormatParams, formatParams.options));
 });
 
 connection.onDocumentHighlight(docParam => {
-	let document = documents.get(docParam.textDocument.uri);
+	const document = documents.get(docParam.textDocument.uri);
 	if (!document) {
 		connection.console.error('124: Unable find document')
 		return;
@@ -283,6 +288,22 @@ connection.onDocumentHighlight(docParam => {
 	return languageService.findDocumentHighlights(
 		document,
 		docParam.position,
+		languageService.parseHTMLDocument(document)
+	);
+});
+
+
+connection.onRenameRequest(params => {
+	const document = documents.get(params.textDocument.uri);
+	if (!document) {
+		connection.console.error('124: Unable find document')
+		return;
+	}
+
+	return languageService.doRename(
+		document,
+		params.position,
+		params.newName,
 		languageService.parseHTMLDocument(document)
 	);
 });
@@ -300,6 +321,17 @@ connection.onHover(hoverParam => {
 	) || <Promise<Hover | undefined>>Promise.resolve(undefined);
 });
 
+connection.onFoldingRanges(hoverParam => {
+	let document = documents.get(hoverParam.textDocument.uri);
+	if (!document) {
+		connection.console.error('125: Unable find document')
+		return;
+	}
+	return languageService.getFoldingRanges(
+		document
+	) || <Promise<FoldingRange | undefined>>Promise.resolve(undefined);
+});
+
 
 connection.onCompletion(params => {
 	let document = documents.get(params.textDocument.uri);
@@ -311,8 +343,8 @@ connection.onCompletion(params => {
 		document,
 		params.position,
 		languageService.parseHTMLDocument(document),
-		undefined,
-		{ templateIndex: templatesIndex }
+		undefined
+	//	{ templateIndex: templatesIndex }
 	);
 });
 
@@ -330,6 +362,16 @@ connection.onDocumentSymbol(params => {
 	}
 
 	return languageService.findDocumentSymbols(document, languageService.parseHTMLDocument(document));
+});
+
+connection.onSelectionRanges(params => {
+	let document = documents.get(params.textDocument.uri);
+	if (!document) {
+		connection.console.error('126: Unable find document')
+		return;
+	}
+
+	return languageService.getSelectionRanges(document, params.positions);
 });
 
 

@@ -2,35 +2,9 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-'use strict';
 
-import * as nls from 'vscode-nls';
-let localize = nls.loadMessageBundle();
 
-export enum TokenType {
-	StartCommentTag,
-	Comment,
-	EndCommentTag,
-	StartTagOpen,
-	StartTagClose,
-	StartTagSelfClose,
-	StartTag,
-	EndTagOpen,
-	EndTagClose,
-	EndTag,
-	DelimiterAssign,
-	AttributeName,
-	AttributeValue,
-	StartDoctypeTag,
-	Doctype,
-	EndDoctypeTag,
-	Content,
-	Whitespace,
-	Unknown,
-	Script,
-	Styles,
-	EOS
-}
+import { TokenType, ScannerState, Scanner } from '../htmlLanguageTypes';
 
 class MultiLineStream {
 
@@ -103,20 +77,20 @@ class MultiLineStream {
 	}
 
 	public advanceIfRegExp(regex: RegExp): string {
-		let str = this.source.substr(this.position);
-		let match = str.match(regex);
+		const str = this.source.substr(this.position);
+		const match = str.match(regex);
 		if (match) {
-			this.position = this.position + (match.index || 0) + match[0].length;
+			this.position = this.position + match.index! + match[0].length;
 			return match[0];
 		}
 		return '';
 	}
 
 	public advanceUntilRegExp(regex: RegExp): string {
-		let str = this.source.substr(this.position);
-		let match = str.match(regex);
+		const str = this.source.substr(this.position);
+		const match = str.match(regex);
 		if (match) {
-			this.position = this.position + (match.index || 0);
+			this.position = this.position + match.index!;
 			return match[0];
 		} else {
 			this.goToEnd();
@@ -149,14 +123,14 @@ class MultiLineStream {
 	}
 
 	public skipWhitespace(): boolean {
-		let n = this.advanceWhileChar(ch => {
+		const n = this.advanceWhileChar(ch => {
 			return ch === _WSP || ch === _TAB || ch === _NWL || ch === _LFD || ch === _CAR;
 		});
 		return n > 0;
 	}
 
 	public advanceWhileChar(condition: (ch: number) => boolean): number {
-		let posNow = this.position;
+		const posNow = this.position;
 		while (this.position < this.len && condition(this.source.charCodeAt(this.position))) {
 			this.position++;
 		}
@@ -177,51 +151,23 @@ const _LFD = '\f'.charCodeAt(0);
 const _WSP = ' '.charCodeAt(0);
 const _TAB = '\t'.charCodeAt(0);
 
-const ISCOMMENT_START_CHARS = ('iscomment').split('').map(char => char.charCodeAt(0));
-const ISCOMMENT_END_CHARS = ('</iscomment>').split('').map(char => char.charCodeAt(0));
 
-export enum ScannerState {
-	WithinContent,
-	AfterOpeningStartTag,
-	AfterOpeningEndTag,
-	WithinDoctype,
-	WithinTag,
-	WithinEndTag,
-	WithinComment,
-	WithinScriptContent,
-	WithinStyleContent,
-	AfterAttributeName,
-	BeforeAttributeValue
-}
-
-export interface Scanner {
-	scan(): TokenType;
-	getTokenType(): TokenType;
-	getTokenOffset(): number;
-	getTokenLength(): number;
-	getTokenEnd(): number;
-	getTokenText(): string;
-	getTokenError(): string;
-	getScannerState(): ScannerState;
-}
-
-const htmlScriptContents = {
+const htmlScriptContents: { [key: string]: boolean } = {
 	'text/x-handlebars-template': true
 };
 
 export function createScanner(input: string, initialOffset = 0, initialState: ScannerState = ScannerState.WithinContent): Scanner {
 
-	let stream = new MultiLineStream(input, initialOffset);
+	const stream = new MultiLineStream(input, initialOffset);
 	let state = initialState;
 	let tokenOffset: number = 0;
-	let tokenType: number = 0;
-	let tokenError: string;
+	let tokenType: TokenType = TokenType.Unknown;
+	let tokenError: string | undefined;
 
 	let hasSpaceAfterTag: boolean;
 	let lastTag: string;
-	let lastAttributeName: string;
-	let lastTypeValue: string;
-	let isWithinIscomment = false;
+	let lastAttributeName: string | undefined;
+	let lastTypeValue: string | undefined;
 
 	function nextElementName(): string {
 		return stream.advanceIfRegExp(/^[_:\w][_:\w-.\d]*/).toLowerCase();
@@ -234,14 +180,14 @@ export function createScanner(input: string, initialOffset = 0, initialState: Sc
 	function finishToken(offset: number, type: TokenType, errorMessage?: string): TokenType {
 		tokenType = type;
 		tokenOffset = offset;
-		tokenError = errorMessage || '';
+		tokenError = errorMessage;
 		return type;
 	}
 
 	function scan(): TokenType {
-		let offset = stream.pos();
-		let oldState = state;
-		let token = internalScan();
+		const offset = stream.pos();
+		const oldState = state;
+		const token = internalScan();
 		if (token !== TokenType.EOS && offset === stream.pos()) {
 			console.log('Scanner.scan has not advanced at offset ' + offset + ', state before: ' + oldState + ' after: ' + state);
 			stream.advance(1);
@@ -250,32 +196,20 @@ export function createScanner(input: string, initialOffset = 0, initialState: Sc
 		return token;
 	}
 
-	function internalScan(): TokenType {		
-		let offset = stream.pos();
+	function internalScan(): TokenType {
+		const offset = stream.pos();
 		if (stream.eos()) {
 			return finishToken(offset, TokenType.EOS);
 		}
 		let errorMessage;
 
 		switch (state) {
-			case ScannerState.WithinComment: //
-
-				if (isWithinIscomment) {
-					if (stream.advanceIfChars(ISCOMMENT_END_CHARS)) { // </iscomment>
-						state = ScannerState.WithinContent;
-						return finishToken(offset, TokenType.EndCommentTag);
-					} else {
-						stream.advanceUntilChars(ISCOMMENT_END_CHARS);
-					}
-				} else {
-					if (stream.advanceIfChars([_MIN, _MIN, _RAN])) { // -->
-						state = ScannerState.WithinContent;
-						return finishToken(offset, TokenType.EndCommentTag);
-					} else {
-						stream.advanceUntilChars([_MIN, _MIN, _RAN])// -->
-					}
-				}; 
-				
+			case ScannerState.WithinComment:
+				if (stream.advanceIfChars([_MIN, _MIN, _RAN])) { // -->
+					state = ScannerState.WithinContent;
+					return finishToken(offset, TokenType.EndCommentTag);
+				}
+				stream.advanceUntilChars([_MIN, _MIN, _RAN]); // -->
 				return finishToken(offset, TokenType.Comment);
 			case ScannerState.WithinDoctype:
 				if (stream.advanceIfChar(_RAN)) {
@@ -289,18 +223,12 @@ export function createScanner(input: string, initialOffset = 0, initialState: Sc
 					if (!stream.eos() && stream.peekChar() === _BNG) { // !
 						if (stream.advanceIfChars([_BNG, _MIN, _MIN])) { // <!--
 							state = ScannerState.WithinComment;
-							isWithinIscomment = false;
 							return finishToken(offset, TokenType.StartCommentTag);
 						}
 						if (stream.advanceIfRegExp(/^!doctype/i)) {
 							state = ScannerState.WithinDoctype;
 							return finishToken(offset, TokenType.StartDoctypeTag);
 						}
-					}
-					if (stream.advanceIfChars(ISCOMMENT_START_CHARS)) { // iscomment
-						isWithinIscomment = true;
-						state = ScannerState.WithinComment;
-						return finishToken(offset, TokenType.StartCommentTag);
 					}
 					if (stream.advanceIfChar(_FSL)) { // /
 						state = ScannerState.AfterOpeningEndTag;
@@ -312,18 +240,18 @@ export function createScanner(input: string, initialOffset = 0, initialState: Sc
 				stream.advanceUntilChar(_LAN);
 				return finishToken(offset, TokenType.Content);
 			case ScannerState.AfterOpeningEndTag:
-				let tagName = nextElementName();
+				const tagName = nextElementName();
 				if (tagName.length > 0) {
 					state = ScannerState.WithinEndTag;
 					return finishToken(offset, TokenType.EndTag);
 				}
 				if (stream.skipWhitespace()) { // white space is not valid here
-					return finishToken(offset, TokenType.Whitespace, localize('error.unexpectedWhitespace', 'Tag name must directly follow the open bracket.'));
+					return finishToken(offset, TokenType.Whitespace, 'Tag name must directly follow the open bracket.');
 				}
 				state = ScannerState.WithinEndTag;
 				stream.advanceUntilChar(_RAN);
 				if (offset < stream.pos()) {
-					return finishToken(offset, TokenType.Unknown, localize('error.endTagNameExpected', 'End tag name expected.'));
+					return finishToken(offset, TokenType.Unknown, 'End tag name expected.');
 				}
 				return internalScan();
 			case ScannerState.WithinEndTag:
@@ -334,24 +262,24 @@ export function createScanner(input: string, initialOffset = 0, initialState: Sc
 					state = ScannerState.WithinContent;
 					return finishToken(offset, TokenType.EndTagClose);
 				}
-				errorMessage = localize('error.tagNameExpected', 'Closing bracket expected.');
+				errorMessage = 'Closing bracket expected.';
 				break;
 			case ScannerState.AfterOpeningStartTag:
 				lastTag = nextElementName();
-				lastTypeValue = '';
-				lastAttributeName = '';
+				lastTypeValue = void 0;
+				lastAttributeName = void 0;
 				if (lastTag.length > 0) {
 					hasSpaceAfterTag = false;
 					state = ScannerState.WithinTag;
 					return finishToken(offset, TokenType.StartTag);
 				}
 				if (stream.skipWhitespace()) { // white space is not valid here
-					return finishToken(offset, TokenType.Whitespace, localize('error.unexpectedWhitespace', 'Tag name must directly follow the open bracket.'));
+					return finishToken(offset, TokenType.Whitespace, 'Tag name must directly follow the open bracket.');
 				}
 				state = ScannerState.WithinTag;
 				stream.advanceUntilChar(_RAN);
 				if (offset < stream.pos()) {
-					return finishToken(offset, TokenType.Unknown, localize('error.startTagNameExpected', 'Start tag name expected.'));
+					return finishToken(offset, TokenType.Unknown, 'Start tag name expected.');
 				}
 				return internalScan();
 			case ScannerState.WithinTag:
@@ -372,7 +300,7 @@ export function createScanner(input: string, initialOffset = 0, initialState: Sc
 					return finishToken(offset, TokenType.StartTagSelfClose);
 				}
 				if (stream.advanceIfChar(_RAN)) { // >
-					if (lastTag === 'script' || lastTag === 'isscript') {
+					if (lastTag === 'script') {
 						if (lastTypeValue && htmlScriptContents[lastTypeValue]) {
 							// stay in html
 							state = ScannerState.WithinContent;
@@ -387,7 +315,7 @@ export function createScanner(input: string, initialOffset = 0, initialState: Sc
 					return finishToken(offset, TokenType.StartTagClose);
 				}
 				stream.advance(1);
-				return finishToken(offset, TokenType.Unknown, localize('error.unexpectedCharacterInTag', 'Unexpected character in tag.'));
+				return finishToken(offset, TokenType.Unknown, 'Unexpected character in tag.');
 			case ScannerState.AfterAttributeName:
 				if (stream.skipWhitespace()) {
 					hasSpaceAfterTag = true;
@@ -404,8 +332,12 @@ export function createScanner(input: string, initialOffset = 0, initialState: Sc
 				if (stream.skipWhitespace()) {
 					return finishToken(offset, TokenType.Whitespace);
 				}
-				let attributeValue = stream.advanceIfRegExp(/^[^\s"'`=<>\/]+/);
+				let attributeValue = stream.advanceIfRegExp(/^[^\s"'`=<>]+/);
 				if (attributeValue.length > 0) {
+					if (stream.peekChar() === _RAN && stream.peekChar(-1) === _FSL) { // <foo bar=http://foo/>
+						stream.goBack(1);
+						attributeValue = attributeValue.substr(0, attributeValue.length - 1);
+					}
 					if (lastAttributeName === 'type') {
 						lastTypeValue = attributeValue;
 					}
@@ -413,7 +345,7 @@ export function createScanner(input: string, initialOffset = 0, initialState: Sc
 					hasSpaceAfterTag = false;
 					return finishToken(offset, TokenType.AttributeValue);
 				}
-				let ch = stream.peekChar();
+				const ch = stream.peekChar();
 				if (ch === _SQO || ch === _DQO) {
 					stream.advance(1); // consume quote
 					if (stream.advanceUntilChar(ch)) {
@@ -433,7 +365,7 @@ export function createScanner(input: string, initialOffset = 0, initialState: Sc
 				// see http://stackoverflow.com/questions/14574471/how-do-browsers-parse-a-script-tag-exactly
 				let sciptState = 1;
 				while (!stream.eos()) {
-					let match = stream.advanceIfRegExp(/<!--|-->|<\/?isscript>|<\/?script\s*\/?>?/i);
+					const match = stream.advanceIfRegExp(/<!--|-->|<\/?script\s*\/?>?/i);
 					if (match.length === 0) {
 						stream.goToEnd();
 						return finishToken(offset, TokenType.Script);

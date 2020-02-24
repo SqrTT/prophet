@@ -5,7 +5,8 @@
 'use strict';
 
 import * as assert from 'assert';
-import {TokenType, ScannerState, createScanner} from '../server/langServer/parser/htmlScanner';
+import { createScanner } from '../server/langServer/parser/htmlScanner';
+import { TokenType, ScannerState } from '../server/langServer/htmlLanguageTypes';
 
 suite('HTML Scanner', () => {
 
@@ -224,18 +225,18 @@ suite('HTML Scanner', () => {
 				{ offset: 30, type: TokenType.StartTagClose }
 			]
 		}, {
-				input: 'var i= 10;',
-				tokens: [
-					{ offset: 0, type: TokenType.Script }
-				]
-			}, {
-				input: '</script>',
-				tokens: [
-					{ offset: 0, type: TokenType.EndTagOpen },
-					{ offset: 2, type: TokenType.EndTag, content: 'script' },
-					{ offset: 8, type: TokenType.EndTagClose }
-				]
-			}
+			input: 'var i= 10;',
+			tokens: [
+				{ offset: 0, type: TokenType.Script }
+			]
+		}, {
+			input: '</script>',
+			tokens: [
+				{ offset: 0, type: TokenType.EndTagOpen },
+				{ offset: 2, type: TokenType.EndTag, content: 'script' },
+				{ offset: 8, type: TokenType.EndTagClose }
+			]
+		}
 		]);
 	});
 
@@ -253,13 +254,13 @@ suite('HTML Scanner', () => {
 				{ offset: 31, type: TokenType.Script }
 			]
 		}, {
-				input: '</script>',
-				tokens: [
-					{ offset: 0, type: TokenType.EndTagOpen },
-					{ offset: 2, type: TokenType.EndTag, content: 'script' },
-					{ offset: 8, type: TokenType.EndTagClose }
-				]
-			}
+			input: '</script>',
+			tokens: [
+				{ offset: 0, type: TokenType.EndTagOpen },
+				{ offset: 2, type: TokenType.EndTag, content: 'script' },
+				{ offset: 8, type: TokenType.EndTagClose }
+			]
+		}
 		]);
 	});
 
@@ -276,14 +277,14 @@ suite('HTML Scanner', () => {
 				{ offset: 30, type: TokenType.StartTagClose }
 			]
 		}, {
-				input: 'var i= 10;</script>',
-				tokens: [
-					{ offset: 0, type: TokenType.Script },
-					{ offset: 10, type: TokenType.EndTagOpen },
-					{ offset: 12, type: TokenType.EndTag, content: 'script' },
-					{ offset: 18, type: TokenType.EndTagClose }
-				]
-			}
+			input: 'var i= 10;</script>',
+			tokens: [
+				{ offset: 0, type: TokenType.Script },
+				{ offset: 10, type: TokenType.EndTagOpen },
+				{ offset: 12, type: TokenType.EndTag, content: 'script' },
+				{ offset: 18, type: TokenType.EndTagClose }
+			]
+		}
 		]);
 	});
 
@@ -564,7 +565,7 @@ suite('HTML Scanner', () => {
 			]
 		}
 		]);
-	});	
+	});
 
 	test('Tag with Attribute And Whitespace', () => {
 		assertTokens([{
@@ -755,14 +756,14 @@ suite('HTML Scanner', () => {
 			input: '<div><iscomment>\nfoo bar\n</iscomment></div>',
 			tokens: [
 				{ offset: 0, type: TokenType.StartTagOpen },
-				{ offset: 1, type: TokenType.StartTag, content: 'div'},
+				{ offset: 1, type: TokenType.StartTag, content: 'div' },
 				{ offset: 4, type: TokenType.StartTagClose },
 				{ offset: 5, type: TokenType.StartCommentTag },
 				{ offset: 15, type: TokenType.Comment },
 				{ offset: 25, type: TokenType.EndCommentTag },
 				{ offset: 37, type: TokenType.EndTagOpen },
 				{ offset: 39, type: TokenType.EndTag, content: 'div' },
-				{ offset: 42, type: TokenType.EndTagClose}
+				{ offset: 42, type: TokenType.EndTagClose }
 			]
 		}
 		]);
@@ -849,6 +850,6 @@ suite('HTML Scanner', () => {
 				{ offset: 8, type: TokenType.Script }
 			]
 		}]);
-	});	
+	});
 
 });
