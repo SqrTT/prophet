@@ -38,8 +38,6 @@ import strings = require('../utils/strings');
 import arrays = require('../utils/arrays');
 
 
-const localize = (a: string, b: string) => b;
-
 export const EMPTY_ELEMENTS: string[] = [
 	'area',
 	'base',
