@@ -95,6 +95,40 @@ export function format(document: TextDocument, range: Range | undefined, options
 			result = indent + result; // keep the indent
 		}
 	}
+	const eol = htmlOptions.eol || '\n';
+	function findStartLine(res: string, index: number) {
+		while (res.charAt(index) !== eol && index > 0) {
+			index--;
+		}
+		return index;
+	}
+	let lastIndex = result.indexOf('${');
+	while (lastIndex > -1) {
+		const startPos = lastIndex + 2;
+		const endPos = result.indexOf('}', startPos);
+
+		if (endPos > -1) {
+			const scriptToFormat = result.substring(startPos, endPos);
+
+			const js_beautify = require('js-beautify').js;
+			const jsOptions = {
+				end_with_newline: false,
+				preserve_newlines: false,
+			}
+			var res: string = js_beautify(scriptToFormat.trim(), { ...htmlOptions, ...jsOptions });
+
+			if (res.split(eol).length > 1) {
+				const newLinePos = findStartLine(result, startPos - 2);
+				res = res.split(eol).map((
+					l, idx) => idx === 0 ? l : repeat(' ', startPos - newLinePos - 7) + l).join(eol);
+				//res += eol + repeat(' ', startPos - newLinePos - 3);
+			}
+
+			result = result.substr(0, startPos) + res + result.substr(endPos)
+			lastIndex = result.indexOf('}', startPos)
+		}
+		lastIndex = result.indexOf('${', lastIndex);
+	}
 	// restore iselse
 	result = result.replace(/[ ]{4}<iselse \/>/ig, '<iselse/>')
 	result = result.replace(/[ ]{4}<iselseif /ig, '<iselseif ')
