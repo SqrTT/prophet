@@ -230,7 +230,7 @@ function uploadAndWatch(
 							.pipe(flatMap(() => {
 								return of(fileData)
 							}));
-					} else if (fileData.stats) {
+					} else if (fileData.stats || fileData.action === 'delete') {
 						return of(fileData);
 					} else {
 						if (!fileData.fileName.endsWith('.git')) { // don't bother user by git files

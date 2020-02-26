@@ -290,7 +290,11 @@ The first occurrence of <isset> in a template declares and sets the variable, th
 		},
 		attributes: [{
 			name: 'type',
-			values: [{ name: 'text/html' }]
+			values: [{ name: 'text/html' }],
+			description: {
+				kind: 'markdown',
+				value: 'specifies the MIME type of the generated output stream. If no type is specified, the MIME_type is set to `text/html`. Generally, storefront pages and email output are set to `text/html`.Use an expression for dynamic content types. You can set the encoding explicitly using the charset attribute, or determine it implicitly from the content type.'
+			}
 		}, {
 			name: 'encoding',
 			valueSet: 'contentenc'
@@ -304,6 +308,190 @@ The first occurrence of <isset> in a template declares and sets the variable, th
 		references: [{
 			name: 'SFCC Docs',
 			url: 'https://documentation.b2c.commercecloud.salesforce.com/DOC1/topic/com.demandware.dochelp/ISML/iscontent.html'
+		}]
+	}, {
+		name: 'iscache',
+		attributes: [{
+			name: 'status',
+			values: [{ name: 'on' }],
+			description: {
+				kind: 'plaintext',
+				value: 'Before <iscache status="off"/> was deprecated, it was necessary to set <iscache status="on"/> to enable page caching. Now the presence of the <iscache/> tag implicitly enables page caching, and it is no longer necessary to set <iscache status="on"/>.'
+			}
+		}, {
+			name: 'type',
+			valueSet: 'sttype',
+		}, {
+			name: 'hour',
+		}, {
+			name: 'minute'
+		}, {
+			name: 'varyby',
+			valueSet: 'varyby',
+			description: {
+				kind: 'plaintext',
+				value: 'lets you mark a page as personalized. Salesforce B2C Commerce identifies unique pages based on a combination of price book, promotion, sorting rule and customization*, caches the different variants of the page, and then delivers the correct version to the user. If a page is personalized by means other than price book, promotion, sorting rule and customization, the page must not be cached, because the wrong variants of the page would be delivered to the user. For performance reasons, a page should be only marked with the varyby property if the page is personalized. Otherwise, the performance can unnecessarily degrade.'
+			}
+		}, {
+			name: 'if',
+			description: {
+				kind: 'plaintext',
+				value: 'This must be a boolean expression. Anything else returns an error.'
+			}
+		}],
+		description: {
+			kind: 'markdown',
+			value: 'To improve the performance of the online storefront by caching pages and also enable developers to disable page caching.\n\n' +
+
+				'The requested storefront page is retrieved from the cache without running the pipeline that invokes the template and generates the desired page.\n\n' +
+
+				'	Note: It isn\'t always possible or desirable to cache a page. For example, there are restrictions for caching pages that contain buyer-related data, such as address or basket information, or for pages containing framesets. See also Page Caching.\n\n' +
+				'If you want a storefront page to be cached after the response is generated to the first request for the template, you must include the <iscache> tag in the template. The tag allows you to specify when the cached page should expire from the cache; after a fixed period or daily at a particular time, for example.\n\n' +
+
+				'The tag can be located anywhere in the template. If the tag occurs several times in one template, the one set to cache off or the one with the shortest cache time is used as the cache setting for the resulting page. This is a safety mechanism, whereby content that isn\'t explicitly labeled for caching is never cached.'
+		},
+		references: [{
+			name: 'SFCC Docs',
+			url: 'https://documentation.b2c.commercecloud.salesforce.com/DOC1/topic/com.demandware.dochelp/ISML/iscache.html'
+		}]
+	}, {
+		name: 'iselse',
+		attributes: [],
+		description: {
+			kind: 'markdown',
+			value: 'Use with `<isif>` to specify what happens if neither the `<isif>` condition nor any `<iselseif>` conditions evaluate to true.'
+		},
+		references: [{
+			name: 'SFCC Docs',
+			url: 'https://documentation.b2c.commercecloud.salesforce.com/DOC1/topic/com.demandware.dochelp/ISML/iselse.html'
+		}]
+	}, {
+		name: 'iselseif',
+		attributes: [{
+			name: 'condition',
+			description: {
+				kind: 'markdown',
+				value: 'evaluates to a boolean value. If the `<isif>` condition is `true`, the system executes the code immediately following the `<isif>` tag, ignoring the enclosed `<iselseif>` and `<iselse>` tags. If the `<isif>` condition is `false`, the system ignores the code immediately following the `<isif>` tag, and then tests each `<iselseif>` condition in order. When the system finds a `true` `<iselseif>` condition, the system executes the code immediately following the `<iselseif>` tag and ignores any remaining `<iselseif>` and `<iselse>` tags. If all `<iselseif>` conditions are `false`, the system executes the code following the `<iselse>` tag.'
+			}
+		}],
+		description: {
+			kind: 'markdown',
+			value: 'Use with `<iselseif>` to specify a subcondition off an `<isif>` tag.'
+		},
+		references: [{
+			name: 'SFCC Docs',
+			url: 'https://documentation.b2c.commercecloud.salesforce.com/DOC1/topic/com.demandware.dochelp/ISML/iselseif.html'
+		}]
+	}, {
+		name: 'isredirect',
+		attributes: [{
+			name: 'location',
+			description: 'specifies a target URL used by the browser to send a new request.'
+		}, {
+			name: 'permanent',
+			valueSet: 'b',
+			description: ' causes the system to generate an HTTP 301 response code if set to true or HTTP 302 in case false'
+		}],
+		description: {
+			kind: 'markdown',
+			value: 'Use `<isredirect>` to redirect the browser to a specified URL.\n\n' +
+
+				'	*Note*: `<isredirect>` appears before `<iscache>` in templates, because it clears the response created up to that point.'
+		},
+		references: [{
+			name: 'SFCC Docs',
+			url: 'https://documentation.b2c.commercecloud.salesforce.com/DOC1/topic/com.demandware.dochelp/ISML/isredirect.html'
+		}]
+	}, {
+		name: 'iscontinue',
+		attributes: [],
+		description: {
+			kind: 'markdown',
+			value: 'Stops processing the current item in the loop and starts the next item in loop. The `<iscontinue/>` tag differs from the `<isnext/>` tag in that `isnext` just moves the iterator forward one and continues processing next line of code. `<iscontinue>` breaks out of the processing and then moves to top of loop to start processing again, if there are other items to process.\n\n' +
+
+			'`<iscontinue/>` can be used only within an <isloop>... </isloop> loop structure. It\'s similar to "continue" in Java.'
+		},
+		references: [{
+			name: 'SFCC Docs',
+			url: 'https://documentation.b2c.commercecloud.salesforce.com/DOC1/topic/com.demandware.dochelp/ISML/iscontinue.html'
+		}]
+	}, {
+		name: 'ismodule',
+		description: '',
+		attributes: [{
+			name: 'template',
+			description: 'Defines a path and a name for the template implementing the tag. Relative paths are expanded from the server\'s template root directory.'
+		}, {
+			name: 'name',
+			description: 'the name of the custom tag. Custom tags are always declared without the is prefix, for example, mytag. However, when using the custom tag in a template, you must include the is prefix like this: <ismytag>. Custom tags can use either case.'
+
+		}, {
+			name: 'attribute',
+			description: 'Specifies attributes you want your custom tag to have. You can have as many attributes as you want. Attributes are not required.'
+		}],
+		references: [{
+			name: 'SFCC Docs',
+			url: 'https://documentation.b2c.commercecloud.salesforce.com/DOC1/topic/com.demandware.dochelp/ISML/ismodule.html'
+		}]
+	}, {
+		name: 'isbreak',
+		attributes: [],
+		description: {
+			kind: 'markdown',
+			value: 'Terminating loops unconditionally.\n' +
+
+			'`<isbreak/>` can be used within a loop (defined by an <isloop> tag) to terminate a loop unconditionally. For more information on creating loops see `<isloop>`. If `<isbreak>` is used in a nested loop, it terminates only the inner loop.'
+		},
+		references: [{
+			name: 'SFCC Docs',
+			url: 'https://documentation.b2c.commercecloud.salesforce.com/DOC1/topic/com.demandware.dochelp/ISML/isbreak.html'
+		}]
+	}, {
+		name: 'isslot',
+		description: {
+			kind: 'markdown',
+			value: '<isslot> can be used as a placeholder for where the content should appear. The id attribute is used by Business Manager to identify the slot in one or more slot configurations. The context attribute specifies the scope of the slot. The context-object attribute is required when the scope of the context attribute is either category or folder. The context-object attribute is used to lookup the slot configuration for the given slot. Use the description attribute to describe the slot.\n\n' +
+			'In Business Manager, slots are grouped by context scope. Global slots are grouped together, category slots are grouped together, and folder slots are grouped together.\n\n' +
+			'For *Global* slots, Business Manager shows the following values:\n' +
+			' * Slot ID\n' +
+			' * Description\n' +
+			' * Number of slot configurations created\n\n' +
+			'For *Category* slots, Business Manager shows the following values:\n' +
+			' * Category (assuming the category\'s configuration specifies a template that includes the <isslot> tag)\n' +
+			' * Category name\n' +
+			' * Rendering template name\n' +
+			' * Slot ID\n' +
+			' * Description\n' +
+			' * Number of slot configurations created\n\n' +
+			'For *Folder* slots, Business Manager shows the following values:\n' +
+			' * Folder ID (assuming the folder\'s configuration specifies a template that includes the <isslot> tag)\n' +
+			' * Folder name\n'+
+			' * Rendering template name\n'+
+			' * Slot ID\n'+
+			' * Description\n'+
+			' * Number of slot configurations created\n\n'+
+			'When no slot is defined in the database for a given slot ID, the <isslot> tag does not render any content. An entry is written to the log file to identify this occurrence.'
+		},
+		attributes: [{
+			name: 'id',
+			description: 'identifies the slot in a slot configuration.'
+		}, {
+			name: 'context',
+			valueSet: 'sltcontext',
+			description: 'Scope of the slot'
+		}, {
+			name: 'context-object',
+			description: 'expression that evaluates to a category or folder object'
+		}, {
+			name: 'description',
+			description: 'describes the slot for the business user who needs to configure it'
+		}, {
+			name: 'preview-url',
+			description: 'identifies the URL used within Business Manager to preview the content slot. It you don\'t specify a value, a default URL is used.'
+		}],
+		references: [{
+			name: 'SFCC Docs',
+			url: 'https://documentation.b2c.commercecloud.salesforce.com/DOC1/topic/com.demandware.dochelp/ISML/isslot.html'
 		}]
 	}],
 	"globalAttributes": [],

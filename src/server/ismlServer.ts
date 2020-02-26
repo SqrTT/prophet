@@ -9,7 +9,7 @@ import {
 	FoldingRange
 } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { getLanguageService } from './langServer/htmlLanguageService';
+import { getLanguageService, IHTMLDataProvider, IValueData, ITagData } from './langServer/htmlLanguageService';
 
 import { URI } from 'vscode-uri';
 
@@ -70,8 +70,28 @@ builtinDataProviders.push(new HTMLDataProvider('isml', ismlData));
 // in the passed params the rootPath of the workspace plus the client capabilities.
 const languageService = getLanguageService();
 let userFormatParams;
-
-
+////////////////////////////////
+class TemplateCompetitionProvider implements IHTMLDataProvider {
+	isApplicable() { return true; }
+	getId() { return 'templateCompetition' }
+	provideTags(): ITagData[] {
+		return Array.from(customTagsIndex.keys()).map(tag => {
+			return {
+				name: 'is' + tag,
+				attributes: []
+			};
+		})
+	}
+	provideAttributes() { return []; }
+	provideValues(tag: string, attribute: string): IValueData[] {
+		if (attribute === 'template' && ['isinclude', 'isdecorate', 'ismodule'].includes(tag)) {
+			return templatesIndex.map(tpl => ({ name: tpl }))
+		}
+		return [];
+	};
+}
+builtinDataProviders.push(new TemplateCompetitionProvider());
+////////////////////////////////
 
 connection.onInitialized(() => {
 	actualizeIndexes(workspaceFolders);
@@ -281,6 +301,17 @@ connection.onDocumentRangeFormatting(formatParams => {
 	}
 
 	return languageService.format(document, formatParams.range, { ...userFormatParams, ...formatParams.options });
+});
+
+connection.onDocumentFormatting(formatParams => {
+	let document = documents.get(formatParams.textDocument.uri);
+
+	if (!document) {
+		connection.console.error('123: Unable find document')
+		return;
+	}
+
+	return languageService.format(document, undefined, { ...userFormatParams, ...formatParams.options });
 });
 
 connection.onDocumentHighlight(docParam => {
