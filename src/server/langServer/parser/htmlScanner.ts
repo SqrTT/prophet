@@ -152,8 +152,14 @@ const _WSP = ' '.charCodeAt(0);
 const _TAB = '\t'.charCodeAt(0);
 
 
+const ISCOMMENT_START_CHARS = ('iscomment').split('').map(char => char.charCodeAt(0));
+const IS_COMMENT_END_CHARS = ('</iscomment>').split('').map(char => char.charCodeAt(0));
+
+
 const htmlScriptContents: { [key: string]: boolean } = {
-	'text/x-handlebars-template': true
+	'text/x-handlebars-template': true,
+	'template/mustache': true,
+	'text/mustache': true,
 };
 
 export function createScanner(input: string, initialOffset = 0, initialState: ScannerState = ScannerState.WithinContent): Scanner {
@@ -168,6 +174,7 @@ export function createScanner(input: string, initialOffset = 0, initialState: Sc
 	let lastTag: string;
 	let lastAttributeName: string | undefined;
 	let lastTypeValue: string | undefined;
+	let isWithinIsComment = false;
 
 	function nextElementName(): string {
 		return stream.advanceIfRegExp(/^[_:\w][_:\w-.\d]*/).toLowerCase();
@@ -205,11 +212,21 @@ export function createScanner(input: string, initialOffset = 0, initialState: Sc
 
 		switch (state) {
 			case ScannerState.WithinComment:
-				if (stream.advanceIfChars([_MIN, _MIN, _RAN])) { // -->
-					state = ScannerState.WithinContent;
-					return finishToken(offset, TokenType.EndCommentTag);
-				}
-				stream.advanceUntilChars([_MIN, _MIN, _RAN]); // -->
+				if (isWithinIsComment) {
+					if (stream.advanceIfChars(IS_COMMENT_END_CHARS)) { // </iscomment>
+						state = ScannerState.WithinContent;
+						return finishToken(offset, TokenType.EndCommentTag);
+					} else {
+						stream.advanceUntilChars(IS_COMMENT_END_CHARS);
+					}
+				} else {
+					if (stream.advanceIfChars([_MIN, _MIN, _RAN])) { // -->
+						state = ScannerState.WithinContent;
+						return finishToken(offset, TokenType.EndCommentTag);
+					} else {
+						stream.advanceUntilChars([_MIN, _MIN, _RAN])// -->
+					}
+				};
 				return finishToken(offset, TokenType.Comment);
 			case ScannerState.WithinDoctype:
 				if (stream.advanceIfChar(_RAN)) {
@@ -223,12 +240,18 @@ export function createScanner(input: string, initialOffset = 0, initialState: Sc
 					if (!stream.eos() && stream.peekChar() === _BNG) { // !
 						if (stream.advanceIfChars([_BNG, _MIN, _MIN])) { // <!--
 							state = ScannerState.WithinComment;
+							isWithinIsComment = false;
 							return finishToken(offset, TokenType.StartCommentTag);
 						}
 						if (stream.advanceIfRegExp(/^!doctype/i)) {
 							state = ScannerState.WithinDoctype;
 							return finishToken(offset, TokenType.StartDoctypeTag);
 						}
+					}
+					if (stream.advanceIfChars(ISCOMMENT_START_CHARS)) { // iscomment
+						isWithinIsComment = true;
+						state = ScannerState.WithinComment;
+						return finishToken(offset, TokenType.StartCommentTag);
 					}
 					if (stream.advanceIfChar(_FSL)) { // /
 						state = ScannerState.AfterOpeningEndTag;
@@ -300,7 +323,7 @@ export function createScanner(input: string, initialOffset = 0, initialState: Sc
 					return finishToken(offset, TokenType.StartTagSelfClose);
 				}
 				if (stream.advanceIfChar(_RAN)) { // >
-					if (lastTag === 'script') {
+					if (lastTag === 'script' || lastTag === 'isscript') {
 						if (lastTypeValue && htmlScriptContents[lastTypeValue]) {
 							// stay in html
 							state = ScannerState.WithinContent;
@@ -365,7 +388,7 @@ export function createScanner(input: string, initialOffset = 0, initialState: Sc
 				// see http://stackoverflow.com/questions/14574471/how-do-browsers-parse-a-script-tag-exactly
 				let sciptState = 1;
 				while (!stream.eos()) {
-					const match = stream.advanceIfRegExp(/<!--|-->|<\/?script\s*\/?>?/i);
+					const match = stream.advanceIfRegExp(/<!--|-->|<\/?isscript>|<\/?script\s*\/?>?/i);
 					if (match.length === 0) {
 						stream.goToEnd();
 						return finishToken(offset, TokenType.Script);

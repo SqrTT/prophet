@@ -53,7 +53,7 @@ suite('HTML Parser', () => {
 			]
 		}]);
 	});
-	
+
 	test('iscomment', () => {
 		assertDocument('<iscomment> <br/> </iscomment>', []);
 		assertDocument('<div>123 <iscomment> <br/> </iscomment> qwerty </div>', [{
@@ -113,7 +113,7 @@ suite('HTML Parser', () => {
 				id: '"test"'
 			},
 			children: [{
-				tag: 'span', 
+				tag: 'span',
 				attributes: {
 					'aria-describedby': '"test"'
 				},
@@ -127,7 +127,7 @@ suite('HTML Parser', () => {
 		assertAttributes(str, [{
 			tag: 'div',
 			attributes: {
-				checked: '',
+				checked: null,
 				id: '"test"'
 			},
 			children: []
