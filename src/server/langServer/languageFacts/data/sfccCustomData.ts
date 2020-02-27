@@ -121,6 +121,10 @@ The first occurrence of <isset> in a template declares and sets the variable, th
 			values: [{
 				name: '${}'
 			}]
+		}],
+		references: [{
+			name: 'SFCC Docs',
+			url: 'https://documentation.b2c.commercecloud.salesforce.com/DOC1/topic/com.demandware.dochelp/ISML/isif.html'
 		}]
 	}, {
 		name: 'isloop',
