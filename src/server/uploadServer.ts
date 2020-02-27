@@ -201,8 +201,14 @@ function uploadAndWatch(
 	ask: (sb: string[], listc: string[]) => Promise<string[]>,
 	rootDir: string
 ) {
+	const startTime = Date.now();
 	return uploadWithProgress(webdav, outputChannel, config, rootDir, ask)
 		.pipe(flatMap(() => {
+			const diff = (Date.now() - startTime) / 1000; // sec
+			const sec = Math.floor(diff % 60);
+			const min = Math.floor(diff / 60);
+
+			outputChannel.appendLine(`Upload time: ${min} min ${sec} sec`);
 			outputChannel.appendLine(`Watching files`);
 			return fileWatcher(config, rootDir)
 				.pipe(delay(400))// delay uploading file (allow finish writing for large files)
