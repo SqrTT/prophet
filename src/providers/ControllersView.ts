@@ -95,38 +95,8 @@ export class ControllersView implements TreeDataProvider<ControllerItem> {
 			window.registerTreeDataProvider('dwControllersView', controllersView)
 		);
 
-		let qpItems : QuickPickTargetedItem[] | undefined;
-
-		context.subscriptions.push(commands.registerCommand('extension.prophet.command.controllers.find', async () => {
-			if (qpItems) {
-				window.showQuickPick(qpItems).then(selected => {
-					if (selected) {
-						commands.executeCommand(
-							'vscode.open',
-							selected.target.file.with({ fragment: String(selected.target.line + 1) })
-						);
-					}
-				});
-			} else {
-				controllersView.scanProjectForControllers().then(_qpItems=> {
-					qpItems = _qpItems;
-					window.showQuickPick(qpItems).then(selected => {
-						if (selected) {
-							commands.executeCommand(
-								'vscode.open',
-								selected.target.file.with({ fragment: String(selected.target.line + 1) })
-							);
-						}
-					});
-				})
-			}
-		}));
-
 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.controllers.refresh', (cartridgeDirectoryItem) => {
 			controllersView._onDidChangeTreeData.fire();
-			controllersView.scanProjectForControllers().then(_qpItems=> {
-				qpItems = _qpItems;
-			});
 		}));
 
 	}

@@ -2,7 +2,7 @@
 'use strict';
 import { join, sep, basename } from 'path';
 import { setExtensionPath } from './providers/extensionPath'
-import { workspace, ExtensionContext, commands, window, Uri, WorkspaceConfiguration, debug, WorkspaceFolder, RelativePattern } from 'vscode';
+import { workspace, ExtensionContext, commands, window, Uri, WorkspaceConfiguration, debug, WorkspaceFolder, RelativePattern, QuickPickItem } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
 import { CartridgesView } from './providers/CartridgesView';
 import { LogsView } from './providers/LogsView';
@@ -261,6 +261,61 @@ function createScriptLanguageServer(context: ExtensionContext, configuration: Wo
 				if (orderedCartridgesWithTemplatesFiltered.length) {
 					scriptLanguageClient.sendNotification('cartridges.templates', { list: orderedCartridgesWithTemplatesFiltered });
 				}
+
+				const orderedCartridgesWithControllers = await Promise.all(orderedCartridges.map(async cartridge => {
+					if (cartridge.fsPath) {
+						const files = await findFiles(new RelativePattern(cartridge.fsPath, 'cartridge/controllers/*.js'))
+							.pipe(reduce((acc, val) => {
+								return acc.concat(val);
+							}, [] as Uri[])).toPromise();
+
+						if (files.length) {
+							return {
+								name: cartridge.name,
+								fsPath: Uri.file(cartridge.fsPath).toString(),
+								files: files.map(file => ({
+									path: file.fsPath.split(sep).join('/').split('/cartridge/').pop()?.replace('.isml', ''),
+									fsPath: Uri.file(file.fsPath).toString()
+								}))
+							};
+						}
+					}
+				}));
+
+				const orderedCartridgesWithControllersFiltered = orderedCartridgesWithControllers.filter(Boolean);
+
+				if (orderedCartridgesWithControllersFiltered.length) {
+					scriptLanguageClient.sendNotification('cartridges.controllers', {
+						list: orderedCartridgesWithControllersFiltered
+					});
+				}
+
+				context.subscriptions.push(commands.registerCommand('extension.prophet.command.controllers.find', async () => {
+					scriptLanguageClient.sendNotification('get.controllers.list');
+				}));
+				scriptLanguageClient.onNotification('get.controllers.list.result', result => {
+					interface QuickPickTargetedItem extends QuickPickItem {
+						target: any
+					}
+					const quickPickItems: QuickPickTargetedItem[] = Object.keys(result).map(endpointName => {
+						return {
+							label: endpointName,
+							description: result[endpointName].mode + ' - ' + result[endpointName].cartridgeName,
+							target: result[endpointName]
+						}
+					});
+
+					window.showQuickPick(quickPickItems).then(selected => {
+						if (selected) {
+							commands.executeCommand(
+								'vscode.open',
+								Uri.parse(selected.target.fsPath).with({
+									fragment: selected.target.startPosition.line + 1
+								})
+							);
+						}
+					});
+				})
 			}
 		}
 	}).catch(err => {
