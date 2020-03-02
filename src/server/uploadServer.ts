@@ -1,4 +1,4 @@
-import { Observable, Subscription, empty, of, from , merge} from 'rxjs';
+import { Observable, Subscription, empty, of, from, merge, throwError } from 'rxjs';
 
 import { OutputChannel, workspace, window, ProgressLocation, FileSystemWatcher, Uri, Progress, RelativePattern } from 'vscode';
 import { default as WebDav, DavOptions } from './WebDav';
@@ -260,7 +260,7 @@ function uploadAndWatch(
 						outputChannel.appendLine(`[D ${date}] ${cleanPath(rootDir, fileName)}`);
 						return webdav.delete(fileName, rootDir);
 					} else {
-						return Observable.throw(Error('Unknown action'))
+						return throwError(new Error('Unknown action'))
 					}
 
 				}, CONCURRENT_FILE_UPLOADS));

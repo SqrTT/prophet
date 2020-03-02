@@ -83,6 +83,7 @@ const defaultLinterConfig = {
 	"tag-self-close": true,
 	"localize-strings": true,
 	"encoding-off-warn": true,
+	"unsafe-external-link": true,
 	"tags-check": {
 		"isslot": {
 			"selfclosing": true,
@@ -299,6 +300,34 @@ const customRules = [{
 		});
 	}
 }, {
+	id: 'unsafe-external-link',
+	description: 'Links to cross-origin destinations are unsafe',
+	init: function (parser, reporter) {
+		var self = this;
+
+		parser.addListener('tagstart', function (event) {
+			if (event.tagName.toLowerCase() === 'a') {
+				const attrs = event.attrs || [];
+				const targetAttr = attrs.find(attr => attr.name === 'target' && attr.value === '_blank');
+
+				if (targetAttr) {
+					const relAttr = attrs.find(attr => attr.name === 'rel');
+
+					if (
+						!relAttr
+						|| (!(relAttr.value || '').includes('noopener')
+							&& !(relAttr.value || '').includes('noreferrer'))
+					) {
+						const col = event.col + event.tagName.length + 1;
+						const spaces = targetAttr.raw.length - targetAttr.raw.trimLeft().length;
+
+						reporter.warn(`Links to cross-origin destinations are unsafe. Add 'rel = "noopener"' or 'rel = "noreferrer"' to any external links to improve performance and prevent security vulnerabilities.`, event.line, col + targetAttr.index + spaces, self, targetAttr.raw);
+					}
+				}
+			}
+		});
+	}
+}, {
 	id: 'encoding-off-warn',
 	description: 'Omit usage of encoding off.',
 	init: function (parser, reporter) {
@@ -312,7 +341,7 @@ const customRules = [{
 						const col = event.col + event.tagName.length + 1;
 						const spaces = attr.raw.length - attr.raw.trimLeft().length;
 
-						reporter.warn(`Try to omit usage of encoding="off". Use encoding="off" only if you understand consequences and this is really required. "${encodingValues.join(', ')}" may fit better your needs.` ,
+						reporter.warn(`Try to omit usage of encoding="off". Use encoding="off" only if you understand consequences and this is really required. "${encodingValues.join(', ')}" may fit better your needs.`,
 							event.line, col + attr.index + spaces, self, attr.raw);
 					}
 				});
@@ -496,10 +525,10 @@ function getRange(error: htmlhint.Error, lines: string[]): any {
 }
 
 const evidenceMap = {
-	'warn' : DiagnosticSeverity.Warning,
-	'error' : DiagnosticSeverity.Error,
-	'info' : DiagnosticSeverity.Information,
-	'hint' : DiagnosticSeverity.Hint
+	'warn': DiagnosticSeverity.Warning,
+	'error': DiagnosticSeverity.Error,
+	'info': DiagnosticSeverity.Information,
+	'hint': DiagnosticSeverity.Hint
 }
 /**
  * Given an htmlhint.Error type return a VS Code server Diagnostic object
@@ -516,10 +545,10 @@ function makeDiagnostic(problem: htmlhint.Error, lines: string[]): Diagnostic {
 function replaceSystemPlaceholders(str: string) {
 	let currentPos = -1;
 	while ((currentPos = str.indexOf('${', currentPos + 1)) !== -1) {
-			const closingTag = str.indexOf('}', currentPos);
-			const content = str.substr(currentPos, closingTag - currentPos + 1);
-			str = str.substr(0, currentPos) + content.replace(/[^\n^\r]/ig, '_') + str.substr(closingTag + 1);
-			currentPos = -1; // reset pos since content may shift
+		const closingTag = str.indexOf('}', currentPos);
+		const content = str.substr(currentPos, closingTag - currentPos + 1);
+		str = str.substr(0, currentPos) + content.replace(/[^\n^\r]/ig, '_') + str.substr(closingTag + 1);
+		currentPos = -1; // reset pos since content may shift
 	};
 	return str;
 }

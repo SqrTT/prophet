@@ -1,6 +1,6 @@
 
 import { relative, sep, resolve, join } from 'path';
-import { Observable, of, from, forkJoin } from 'rxjs';
+import { Observable, of, from, forkJoin, throwError } from 'rxjs';
 import { tap, map, flatMap, catchError, reduce, filter } from 'rxjs/operators';
 import { createReadStream, unlink, ReadStream } from 'fs';
 import { finished } from 'stream';
@@ -31,10 +31,11 @@ function request$(options) {
 			if (err) {
 				observer.error(err);
 			} else if (res.statusCode >= 400) {
+				const { pool, ...optionsCopy } = options;
 				const err = new WebDavError([
 					res.statusMessage,
 					body,
-					JSON.stringify({ response: res, request: options })].join('\n')
+					JSON.stringify({ response: res, request: optionsCopy })].join('\n')
 				);
 				err.statusCode = res.statusCode;
 
@@ -74,6 +75,11 @@ function getMatches(string: string, regex: RegExp, index = 1) {
 	}
 	return matches;
 }
+
+const globalPool = {
+	maxSockets: 100
+};
+
 export default class WebDav {
 	static WebDavError = WebDavError;
 	config: DavOptions;
@@ -110,11 +116,17 @@ export default class WebDav {
 				user: this.config.username,
 				password: this.config.password
 			},
-			strictSSL: false
+			strictSSL: false,
+			timeout: 15000,
+			pool: globalPool
 		};
 	}
 	makeRequest(options): Observable<string> {
-		this.log('request', JSON.stringify(options), JSON.stringify(this.getOptions()));
+		var pool, optionsCopy, defaultOptions;
+		({ pool, ...optionsCopy } = options);
+		({ pool, ...defaultOptions } = this.getOptions());
+
+		this.log('request', JSON.stringify(optionsCopy), JSON.stringify(defaultOptions));
 		return request$(Object.assign(this.getOptions(), options));
 	}
 	postBody(uriPath: string, bodyOfFile: string): Observable<string> {
@@ -263,7 +275,7 @@ export default class WebDav {
 			if (err && err.statusCode === 404) {
 				return of(err);
 			} else {
-				return Observable.throw(err);
+				return throwError(err);
 			}
 		}));
 	}
@@ -430,7 +442,7 @@ export function readConfigFile(configFilename: string) {
 					fn(moduleIn, moduleIn.exports, window, workspace);
 
 					if (moduleIn.exports) {
-						Promise.resolve(moduleIn.exports).then((config : DavOptions) => {
+						Promise.resolve(moduleIn.exports).then((config: DavOptions) => {
 							observer.next({ ...config, configFilename: configFilename });
 							observer.complete();
 						}).catch(error => {
