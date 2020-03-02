@@ -292,7 +292,7 @@ const completionsList: ((activeNode: any, offset: number, cartridgeName: string)
 				.concat(getTildaRequireFiles(cartridgeName))
 				.map(api => {
 					return {
-						label: `'${api}'`,
+						label: api,
 						kind: CompletionItemKind.Value,
 						value: `'${api}'`,
 						range: [offset, offset],
@@ -553,6 +553,44 @@ connection.onCompletion(async (params, cancelToken) => {
 			};
 			return list;
 		}
+	} else if (document.languageId === 'isml' && activeCartridge) {
+		const content = document.getText();
+		const endSymbol = content.indexOf('}', offset);
+
+		if (endSymbol > -1) {
+			const openingSymbol = content.lastIndexOf('${', endSymbol);
+
+			if (openingSymbol > -1) {
+				if (endSymbol >= offset && openingSymbol <= offset) {
+					const scriptOffset = openingSymbol + 2;
+					const scriptContent = content.substring(scriptOffset, endSymbol);
+
+					const completions = await completion(scriptContent, offset - scriptOffset, cancelToken, reqTime, activeCartridge);
+
+					if (!cancelToken.isCancellationRequested && completions?.length) {
+						const list: CompletionList = {
+							isIncomplete: false,
+							items: completions.map(completion => {
+								return {
+									label: completion.label,
+									kind: completion.kind,
+									textEdit: TextEdit.replace(
+										getReplaceRange(document,
+											scriptOffset + completion.range[0],
+											scriptOffset + completion.range[1]
+										),
+										completion.value
+									),
+									insertTextFormat: completion.insertTextFormat
+								};
+							})
+						};
+						return list;
+					}
+				}
+
+			}
+		}
 	}
 });
 
@@ -731,6 +769,26 @@ connection.onDefinition(async (params, cancelToken) => {
 		if (!cancelToken.isCancellationRequested && loc) {
 
 			return loc;
+		}
+	} else if (document.languageId === 'isml' && activeCartridge) {
+		const content = document.getText();
+		const endSymbol = content.indexOf('}', offset);
+
+		if (endSymbol > -1) {
+			const openingSymbol = content.lastIndexOf('${', endSymbol);
+
+			if (openingSymbol > -1) {
+				if (endSymbol >= offset && openingSymbol <= offset) {
+					const scriptOffset = openingSymbol + 2;
+					const scriptContent = content.substring(scriptOffset, endSymbol);
+
+					const loc = await definition(scriptContent, offset - scriptOffset, cancelToken, reqTime, activeCartridge, uri);
+					if (!cancelToken.isCancellationRequested && loc) {
+						return loc;
+					}
+				}
+
+			}
 		}
 	}
 	return null;

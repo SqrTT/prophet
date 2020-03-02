@@ -192,6 +192,9 @@ function createScriptLanguageServer(context: ExtensionContext, configuration: Wo
 		documentSelector: [{
 			scheme: 'file',
 			pattern: '**/cartridge/{scripts,controllers,models}/**/*.js'
+		}, {
+			scheme: 'file',
+			pattern: '**/cartridge/templates/default/**/*.isml'
 		}],
 		synchronize: {
 			// Synchronize the setting section 'languageServerExample' to the server
