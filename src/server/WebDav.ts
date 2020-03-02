@@ -122,9 +122,8 @@ export default class WebDav {
 		};
 	}
 	makeRequest(options): Observable<string> {
-		var pool, optionsCopy, defaultOptions;
-		({ pool, ...optionsCopy } = options);
-		({ pool, ...defaultOptions } = this.getOptions());
+		const { pool: _pool, ...optionsCopy } = options;
+		const { pool: _pool2, ...defaultOptions } = this.getOptions();
 
 		this.log('request', JSON.stringify(optionsCopy), JSON.stringify(defaultOptions));
 		return request$(Object.assign(this.getOptions(), options));
