@@ -318,7 +318,26 @@ function createScriptLanguageServer(context: ExtensionContext, configuration: Wo
 							);
 						}
 					});
-				})
+				});
+
+				orderedCartridges.forEach(cartridge => {
+					if (cartridge.fsPath) {
+						const watcher = workspace.createFileSystemWatcher(
+							new RelativePattern(cartridge.fsPath, 'cartridge/controllers/*.js'));
+
+						context.subscriptions.push(watcher);
+						['Change', 'Create', 'Delete'].forEach(action => {
+							context.subscriptions.push(watcher['onDid' + action](uri => {
+								scriptLanguageClient.sendNotification('cartridges.controllers.modification', {
+									action,
+									cartridge: cartridge,
+									uri: uri.toString()
+								});
+							}));
+						});
+
+					}
+				});
 			}
 		}
 	}).catch(err => {

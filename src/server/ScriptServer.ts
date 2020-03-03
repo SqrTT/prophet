@@ -19,7 +19,7 @@ import classesList from './langServer/reqClassList';
 import * as acornLoose from 'acorn-loose';
 //import * as acorn from 'acorn';
 import * as acornWalk from 'acorn-walk';
-import { sep } from 'path';
+import { sep, basename } from 'path';
 import { promises } from 'fs';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport
@@ -490,7 +490,7 @@ connection.onNotification('cartridges.controllers', async ({ list }) => {
 						const endpoints = getControllerEndpoints(ast, fileContent);
 						if (endpoints && endpoints.length) {
 							cartridgeControllers.controllers.push({
-								name: file.path.replace('.js', '').replace('controllers/', ''),
+								name: basename(fileName, '.js'),
 								fsPath: file.fsPath,
 								endpoints: endpoints
 							})
@@ -514,6 +514,41 @@ connection.onNotification('cartridges.controllers', async ({ list }) => {
 connection.onNotification('get.controllers.list', () => {
 	const endpoints = getEndpointsMap();
 	connection.sendNotification('get.controllers.list.result', endpoints);
+});
+
+connection.onNotification('cartridges.controllers.modification', async ({ action, cartridge, uri }) => {
+	const cartridgeController = controllers.find(controller => controller.name === cartridge.name);
+
+	if (cartridgeController) {
+		const index = cartridgeController.controllers.findIndex(controller => controller.fsPath === uri);
+		if (index > -1) {
+			cartridgeController.controllers.splice(index, 1);
+		}
+
+		if ('Create' === action || 'Change' === action) {
+			try {
+				const fileName = URI.parse(uri).fsPath;
+				const fileContent = await promises.readFile(fileName, 'utf8');
+				if (fileContent) {
+					const ast = await acornLoose.parse(fileContent, { ecmaVersion: 5 });
+					if (ast) {
+						//insertParents(ast);
+						const endpoints = getControllerEndpoints(ast, fileContent);
+						if (endpoints && endpoints.length) {
+							cartridgeController.controllers.push({
+								name: basename(fileName, '.js'),
+								fsPath: uri,
+								endpoints: endpoints
+							})
+						}
+					}
+				}
+			} catch (e) {
+				console.error('Error: \n' + JSON.stringify(e, null, '    '));
+			}
+		}
+	}
+	console.info(`controller modified: ${action} : ${uri}`);
 });
 
 connection.onCompletion(async (params, cancelToken) => {
@@ -624,7 +659,7 @@ interface IGoTo {
 	originalEnd: number;
 }
 
-async function definition(content: string, offset: number, cancelToken: CancellationToken, reqTime: number, activeCartridge: ICartridge, uri: URI): Promise<IGoTo | undefined> {
+async function gotoLocation(content: string, offset: number, cancelToken: CancellationToken, reqTime: number, activeCartridge: ICartridge, uri: URI): Promise<IGoTo | undefined> {
 	const ast = await acornLoose.parse(content, { ecmaVersion: 5 });
 	if (cancelToken.isCancellationRequested) {
 		console.log('Canceled definition request');
@@ -865,7 +900,7 @@ connection.onDefinition(async (params, cancelToken) => {
 
 	if (document.languageId === 'javascript' && activeCartridge) {
 		const content = document.getText();
-		const loc = await definition(document.getText(), offset, cancelToken, reqTime, activeCartridge, uri);
+		const loc = await gotoLocation(document.getText(), offset, cancelToken, reqTime, activeCartridge, uri);
 
 		if (!cancelToken.isCancellationRequested && loc) {
 
@@ -891,7 +926,7 @@ connection.onDefinition(async (params, cancelToken) => {
 					const scriptOffset = openingSymbol + 2;
 					const scriptContent = content.substring(scriptOffset, endSymbol);
 
-					const loc = await definition(scriptContent, offset - scriptOffset, cancelToken, reqTime, activeCartridge, uri);
+					const loc = await gotoLocation(scriptContent, offset - scriptOffset, cancelToken, reqTime, activeCartridge, uri);
 					if (!cancelToken.isCancellationRequested && loc) {
 
 						return [LocationLink.create(

@@ -70,7 +70,8 @@ export default class Connection {
 				'x-dw-client-id': this.options.clientId,
 				'Content-Type': 'application/json'
 			},
-			strictSSL: false
+			strictSSL: false,
+			timeout: 10000
 		};
 	}
 	makeRequest<T>(options, cb: (resolve, reject, body) => void): Promise<T> {
