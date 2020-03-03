@@ -11,8 +11,7 @@ import {
 	TextEdit,
 	Range,
 	CancellationToken,
-	Location,
-	Definition,
+	LocationLink,
 } from 'vscode-languageserver';
 import { URI } from 'vscode-uri';
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -617,7 +616,15 @@ function getEndpointsMap() {
 	return endpoints;
 }
 
-async function definition(content: string, offset: number, cancelToken: CancellationToken, reqTime: number, activeCartridge: ICartridge, uri: URI): Promise<Definition | undefined> {
+interface IGoTo {
+	fsPath: string;
+	range: Range;
+	showRange: Range;
+	originalStart: number;
+	originalEnd: number;
+}
+
+async function definition(content: string, offset: number, cancelToken: CancellationToken, reqTime: number, activeCartridge: ICartridge, uri: URI): Promise<IGoTo | undefined> {
 	const ast = await acornLoose.parse(content, { ecmaVersion: 5 });
 	if (cancelToken.isCancellationRequested) {
 		console.log('Canceled definition request');
@@ -647,10 +654,31 @@ async function definition(content: string, offset: number, cancelToken: Cancella
 					});
 				});
 				if (found) {
-					return Location.create(found, {
-						start: { character: 0, line: 0 },
-						end: { character: 0, line: 0 }
-					});
+					return {
+						fsPath: found,
+						range: {
+							start: {
+								line: 0,
+								character: 0
+							},
+							end: {
+								line: 0,
+								character: 0
+							}
+						},
+						showRange: {
+							start: {
+								line: 0,
+								character: 0
+							},
+							end: {
+								line: 0,
+								character: 0
+							}
+						},
+						originalEnd: activeNode.end,
+						originalStart: activeNode.start
+					}
 				}
 			} else if (activeNode.value.startsWith('~')) {
 				var found = '';
@@ -664,10 +692,31 @@ async function definition(content: string, offset: number, cancelToken: Cancella
 				});
 
 				if (found) {
-					return Location.create(found, {
-						start: { character: 0, line: 0 },
-						end: { character: 0, line: 0 }
-					});
+					return {
+						fsPath: found,
+						range: {
+							start: {
+								line: 0,
+								character: 0
+							},
+							end: {
+								line: 0,
+								character: 0
+							}
+						},
+						showRange: {
+							start: {
+								line: 0,
+								character: 0
+							},
+							end: {
+								line: 0,
+								character: 0
+							}
+						},
+						originalEnd: activeNode.end,
+						originalStart: activeNode.start
+					};
 				}
 			} else if (activeNode.value.startsWith('dw')) {
 				return;
@@ -698,10 +747,31 @@ async function definition(content: string, offset: number, cancelToken: Cancella
 				});
 			});
 			if (found) {
-				return Location.create(found, {
-					start: { character: 0, line: 0 },
-					end: { character: 0, line: 0 }
-				});
+				return {
+					fsPath: found,
+					range: {
+						start: {
+							line: 0,
+							character: 0
+						},
+						end: {
+							line: 0,
+							character: 0
+						}
+					},
+					showRange: {
+						start: {
+							line: 0,
+							character: 0
+						},
+						end: {
+							line: 0,
+							character: 0
+						}
+					},
+					originalEnd: activeNode.end,
+					originalStart: activeNode.start
+				};
 			}
 		} else if (
 			activeNode.type === 'Literal' &&
@@ -717,10 +787,31 @@ async function definition(content: string, offset: number, cancelToken: Cancella
 				return value === template;
 			});
 			if (found) {
-				return Location.create(found[1], {
-					start: { character: 0, line: 0 },
-					end: { character: 0, line: 0 }
-				});
+				return {
+					fsPath: found[1],
+					range: {
+						start: {
+							line: 0,
+							character: 0
+						},
+						end: {
+							line: 0,
+							character: 0
+						}
+					},
+					showRange: {
+						start: {
+							line: 0,
+							character: 0
+						},
+						end: {
+							line: 0,
+							character: 0
+						}
+					},
+					originalEnd: activeNode.end,
+					originalStart: activeNode.start
+				};
 			}
 		} else if (
 			activeNode.type === 'Literal' &&
@@ -735,10 +826,19 @@ async function definition(content: string, offset: number, cancelToken: Cancella
 			const found = endpoints[value];
 
 			if (found) {
-				return Location.create(found.fsPath, {
-					start: found.startPosition,
-					end: found.endPosition
-				});
+				return {
+					fsPath: found.fsPath,
+					range: {
+						start: found.startPosition,
+						end: found.endPosition
+					},
+					showRange: {
+						start: found.startPosition,
+						end: found.endPosition
+					},
+					originalEnd: activeNode.end,
+					originalStart: activeNode.start
+				};
 			}
 
 		};
@@ -764,11 +864,20 @@ connection.onDefinition(async (params, cancelToken) => {
 		params.textDocument.uri.startsWith(cartridge.fsPath));
 
 	if (document.languageId === 'javascript' && activeCartridge) {
+		const content = document.getText();
 		const loc = await definition(document.getText(), offset, cancelToken, reqTime, activeCartridge, uri);
 
 		if (!cancelToken.isCancellationRequested && loc) {
 
-			return loc;
+			return [LocationLink.create(
+				loc.fsPath,
+				loc.range,
+				loc.showRange,
+				{
+					start: positionAt(loc.originalStart, content),
+					end: positionAt(loc.originalEnd, content)
+				}
+			)];
 		}
 	} else if (document.languageId === 'isml' && activeCartridge) {
 		const content = document.getText();
@@ -784,7 +893,16 @@ connection.onDefinition(async (params, cancelToken) => {
 
 					const loc = await definition(scriptContent, offset - scriptOffset, cancelToken, reqTime, activeCartridge, uri);
 					if (!cancelToken.isCancellationRequested && loc) {
-						return loc;
+
+						return [LocationLink.create(
+							loc.fsPath,
+							loc.range,
+							loc.showRange,
+							{
+								start: positionAt(loc.originalStart + scriptOffset, content),
+								end: positionAt(loc.originalEnd + scriptOffset, content)
+							}
+						)];
 					}
 				}
 
