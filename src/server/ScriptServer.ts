@@ -53,6 +53,14 @@ interface IEndpoint {
 	endPosition: {
 		line: number,
 		character: number
+	},
+	endShow: {
+		line: number,
+		character: number
+	},
+	startShow: {
+		line: number,
+		character: number
 	}
 }
 interface IController {
@@ -455,6 +463,7 @@ function getControllerEndpoints(ast, content: string) {
 				activeNode?.callee?.object.name === 'server' &&
 				['get', 'post', 'append', 'prepend', 'use', 'replace'].includes(activeNode?.callee?.property?.name)
 			) {
+				insertParents(ast);
 				result.push({
 					name: activeNode.arguments[0].value,
 					mode: activeNode.callee.property.name,
@@ -462,6 +471,8 @@ function getControllerEndpoints(ast, content: string) {
 					end: activeNode.arguments[0].end,
 					startPosition: positionAt(activeNode.arguments[0].start, content),
 					endPosition: positionAt(activeNode.arguments[0].end, content),
+					startShow: positionAt(activeNode.parent.start, content),
+					endShow: positionAt(activeNode.parent.end, content),
 				});
 			};
 		}
@@ -498,7 +509,7 @@ connection.onNotification('cartridges.controllers', async ({ list }) => {
 					}
 				}
 			} catch (e) {
-				console.error('Error: \n' + JSON.stringify(e, null, '    '));
+				console.error('Error parse file: \n' + JSON.stringify(e, null, '    '));
 			}
 		}
 		return cartridgeControllers;
@@ -642,7 +653,9 @@ function getEndpointsMap() {
 						mode: endpoint.mode,
 						cartridgeName: cartridgeControllers.name,
 						startPosition: endpoint.startPosition,
-						endPosition: endpoint.endPosition
+						endPosition: endpoint.endPosition,
+						endShow: endpoint.endShow,
+						startShow: endpoint.startShow
 					};
 				}
 			});
@@ -707,7 +720,7 @@ async function gotoLocation(content: string, offset: number, cancelToken: Cancel
 								character: 0
 							},
 							end: {
-								line: 0,
+								line: 9,
 								character: 0
 							}
 						},
@@ -745,7 +758,7 @@ async function gotoLocation(content: string, offset: number, cancelToken: Cancel
 								character: 0
 							},
 							end: {
-								line: 0,
+								line: 9,
 								character: 0
 							}
 						},
@@ -800,7 +813,7 @@ async function gotoLocation(content: string, offset: number, cancelToken: Cancel
 							character: 0
 						},
 						end: {
-							line: 0,
+							line: 9,
 							character: 0
 						}
 					},
@@ -840,7 +853,7 @@ async function gotoLocation(content: string, offset: number, cancelToken: Cancel
 							character: 0
 						},
 						end: {
-							line: 0,
+							line: 9,
 							character: 0
 						}
 					},
@@ -868,14 +881,13 @@ async function gotoLocation(content: string, offset: number, cancelToken: Cancel
 						end: found.endPosition
 					},
 					showRange: {
-						start: found.startPosition,
-						end: found.endPosition
+						start: found.startShow,
+						end: found.endShow
 					},
 					originalEnd: activeNode.end,
 					originalStart: activeNode.start
 				};
 			}
-
 		};
 	}
 	console.log(`no definition: ${Date.now() - reqTime}ms `);
