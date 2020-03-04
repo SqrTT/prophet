@@ -62,12 +62,54 @@ const tagsTypings = {
 		attrsRequired: [
 			'src', 'alt'
 		]
+	},
+	area: {
+		selfclosing: true
+	},
+	base: {
+		selfclosing: true
+	},
+	col: {
+		selfclosing: true
+	},
+	embed: {
+		selfclosing: true
+	},
+	hr: {
+		selfclosing: true
+	},
+	input: {
+		selfclosing: true
+	},
+	keygen: {
+		selfclosing: true
+	},
+	link: {
+		selfclosing: true
+	},
+	menuitem: {
+		selfclosing: true
+	},
+	meta: {
+		selfclosing: true
+	},
+	param: {
+		selfclosing: true
+	},
+	source: {
+		selfclosing: true
+	},
+	track: {
+		selfclosing: true
+	},
+	wbr: {
+		selfclosing: true
 	}
 };
 
 const defaultLinterConfig = {
 	"tagname-lowercase": true,
-	"attr-lowercase": false,
+	"attr-lowercase": true,
 	"attr-value-double-quotes": false,
 	"doctype-first": false,
 	"max-length": false,

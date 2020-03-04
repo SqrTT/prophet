@@ -49,9 +49,11 @@ function fileWatcher(config, cartRoot: string): Observable<['change' | 'delete' 
 
 			// manually check for the excludes in the callback
 			var callback = (method: 'change' | 'delete' | 'create') => ((uri: Uri) => {
-				observer.next([method, uri.fsPath])
+				if (uri.scheme === 'file') {
+					observer.next([method, uri.fsPath])
+				}
 			});
-			// add the listerners to all watchers
+			// add the listeners to all watchers
 			watchers.forEach(watcher => {
 				watcher.onDidChange(callback('change'));
 				watcher.onDidCreate(callback('create'));

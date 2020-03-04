@@ -79,6 +79,17 @@ const cartridges = new Set<ICartridge>();
 const templates = new Set<ICartridge>()
 const controllers = new Array<ICartridgeControllers>();
 
+const zeroRange = Object.freeze({
+	start: {
+		line: 0,
+		character: 0
+	},
+	end: {
+		line: 0,
+		character: 0
+	}
+});
+
 function getAsteriskRequireFiles() {
 	var asteriskFiles = new Set<string>();
 
@@ -90,6 +101,14 @@ function getAsteriskRequireFiles() {
 
 	return Array.from(asteriskFiles);
 }
+
+function isStartingWithCartridgeName(value: string) {
+	const val = value.startsWith('/') ? value.substring(1) : value;
+	const [cartridgeName] = val.split('/');
+
+	return Array.from(cartridges).some(controllerCartridge => controllerCartridge.name === cartridgeName);
+}
+
 function getLineOffsets(text: string) {
 	var lineOffsets: number[] = [];
 	var isLineStart = true;
@@ -261,10 +280,9 @@ const completionsList: ((activeNode: any, offset: number, cartridgeName: string)
 	function (activeNode, offset, cartridgeName) {
 		if (
 			activeNode &&
-			activeNode.type === 'Literal' &&
-			activeNode.parent &&
-			activeNode.parent.type === 'CallExpression' &&
-			activeNode.parent.callee.name === 'require'
+			activeNode?.type === 'Literal' &&
+			activeNode?.parent?.type === 'CallExpression' &&
+			activeNode.parent?.callee.name === 'require'
 		) {
 			const showAsterisk = !activeNode.value || (activeNode.value[0] !== '.' && activeNode.value[0] !== '~');
 			const showCartridge = !activeNode.value || (activeNode.value[0] !== '*' && activeNode.value[0] !== '.' && activeNode.value[0] !== '~');
@@ -289,7 +307,7 @@ const completionsList: ((activeNode: any, offset: number, cartridgeName: string)
 	function (activeNode, offset, cartridgeName) {
 		if (
 			activeNode &&
-			activeNode.type === 'CallExpression' &&
+			activeNode?.type === 'CallExpression' &&
 			activeNode.callee.name === 'require' &&
 			!activeNode.arguments.length
 		) {
@@ -681,13 +699,18 @@ async function gotoLocation(content: string, offset: number, cancelToken: Cancel
 	if (ast && offset !== undefined) {
 		const findNodeAround: Function = acornWalk.findNodeAround;
 		const activeNode: any = findNodeAround(ast, offset, () => true)?.node;
+
+		if (!activeNode) {
+			return;
+		}
+
 		insertParents(ast);
 
 		if (
-			activeNode?.type === 'Literal' &&
-			activeNode?.parent?.type === 'CallExpression' &&
-			activeNode?.parent?.callee?.name === 'require' &&
-			activeNode?.value
+			activeNode.type === 'Literal' &&
+			activeNode.value &&
+			activeNode.parent?.type === 'CallExpression' &&
+			activeNode.parent?.callee?.name === 'require'
 		) {
 			if (activeNode.value.startsWith('*')) {
 				var found = '';
@@ -704,16 +727,7 @@ async function gotoLocation(content: string, offset: number, cancelToken: Cancel
 				if (found) {
 					return {
 						fsPath: found,
-						range: {
-							start: {
-								line: 0,
-								character: 0
-							},
-							end: {
-								line: 0,
-								character: 0
-							}
-						},
+						range: zeroRange,
 						showRange: {
 							start: {
 								line: 0,
@@ -742,16 +756,7 @@ async function gotoLocation(content: string, offset: number, cancelToken: Cancel
 				if (found) {
 					return {
 						fsPath: found,
-						range: {
-							start: {
-								line: 0,
-								character: 0
-							},
-							end: {
-								line: 0,
-								character: 0
-							}
-						},
+						range: zeroRange,
 						showRange: {
 							start: {
 								line: 0,
@@ -768,11 +773,47 @@ async function gotoLocation(content: string, offset: number, cancelToken: Cancel
 				}
 			} else if (activeNode.value.startsWith('dw')) {
 				return;
+			} else if (isStartingWithCartridgeName(activeNode.value)) {
+				const value : string = activeNode.value;
+				const val = value.startsWith('/') ? value.substring(1) : value;
+				const [cartridgeName, ...other] = val.split('/');
+				const filePath = '/' + other.join('/').replace(/\.js$/, '')
+
+				const cartridge = Array.from(cartridges).find(controllerCartridge => controllerCartridge.name === cartridgeName);
+
+				if (cartridge) {
+					let found: string | undefined;
+					cartridge.files.some(file => {
+						if (filePath === file.path.replace('.js', '')) {
+							found = file.fsPath;
+							return true;
+						}
+					});
+
+					if (found) {
+						return {
+							fsPath: found,
+							range: zeroRange,
+							showRange: {
+								start: {
+									line: 0,
+									character: 0
+								},
+								end: {
+									line: 9,
+									character: 0
+								}
+							},
+							originalEnd: activeNode.end,
+							originalStart: activeNode.start
+						};
+					}
+				}
 			}
 		} else if (
-			activeNode?.type === 'MemberExpression'
-			&& activeNode?.object?.name === 'module'
-			&& activeNode?.property?.name === 'superModule'
+			activeNode.type === 'MemberExpression'
+			&& activeNode.object?.name === 'module'
+			&& activeNode.property?.name === 'superModule'
 		) {
 			var found = '';
 
@@ -797,16 +838,7 @@ async function gotoLocation(content: string, offset: number, cancelToken: Cancel
 			if (found) {
 				return {
 					fsPath: found,
-					range: {
-						start: {
-							line: 0,
-							character: 0
-						},
-						end: {
-							line: 0,
-							character: 0
-						}
-					},
+					range: zeroRange,
 					showRange: {
 						start: {
 							line: 0,
@@ -823,11 +855,11 @@ async function gotoLocation(content: string, offset: number, cancelToken: Cancel
 			}
 		} else if (
 			activeNode.type === 'Literal' &&
-			activeNode?.parent?.type === 'CallExpression' &&
-			activeNode?.parent?.callee?.type === 'MemberExpression' &&
-			activeNode?.parent?.callee?.object?.name === 'res' &&
-			activeNode?.parent?.callee?.property?.name === 'render' &&
-			activeNode?.value
+			activeNode.value &&
+			activeNode.parent?.type === 'CallExpression' &&
+			activeNode.parent?.callee?.type === 'MemberExpression' &&
+			activeNode.parent?.callee?.object?.name === 'res' &&
+			activeNode.parent?.callee?.property?.name === 'render'
 		) {
 			const value = activeNode.value.replace('.isml', '').replace(/^\//, '');
 
@@ -837,16 +869,7 @@ async function gotoLocation(content: string, offset: number, cancelToken: Cancel
 			if (found) {
 				return {
 					fsPath: found[1],
-					range: {
-						start: {
-							line: 0,
-							character: 0
-						},
-						end: {
-							line: 0,
-							character: 0
-						}
-					},
+					range: zeroRange,
 					showRange: {
 						start: {
 							line: 0,
@@ -863,9 +886,9 @@ async function gotoLocation(content: string, offset: number, cancelToken: Cancel
 			}
 		} else if (
 			activeNode.type === 'Literal' &&
-			activeNode.parent.type === 'CallExpression' &&
-			activeNode.parent.callee.type === 'MemberExpression' &&
-			activeNode.parent.callee.object.name === 'URLUtils' &&
+			activeNode.parent?.type === 'CallExpression' &&
+			activeNode.parent?.callee.type === 'MemberExpression' &&
+			activeNode.parent?.callee.object.name === 'URLUtils' &&
 			['url', 'http', 'https', 'abs'].includes(activeNode.parent.callee.property.name)
 		) {
 			const endpoints = getEndpointsMap();

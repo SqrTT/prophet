@@ -326,13 +326,16 @@ function createScriptLanguageServer(context: ExtensionContext, configuration: Wo
 							new RelativePattern(cartridge.fsPath, 'cartridge/controllers/*.js'));
 
 						context.subscriptions.push(watcher);
+
 						['Change', 'Create', 'Delete'].forEach(action => {
 							context.subscriptions.push(watcher['onDid' + action](uri => {
-								scriptLanguageClient.sendNotification('cartridges.controllers.modification', {
-									action,
-									cartridge: cartridge,
-									uri: uri.toString()
-								});
+								if (uri.scheme === 'file') {
+									scriptLanguageClient.sendNotification('cartridges.controllers.modification', {
+										action,
+										cartridge: cartridge,
+										uri: uri.toString()
+									});
+								}
 							}));
 						});
 
