@@ -19,6 +19,16 @@ import fs = require('fs');
 
 import * as htmlhint from '../htmlhint';
 import { replaceIsPrintAttr } from "../utils/strings";
+import { positionAt } from "../../getLineOffsets";
+
+function attributePos(event, attrOffset: number, attrContent: string) {
+	const spaces = attrContent.length - attrContent.trimLeft().length + event.tagName.length + 1;
+	const position = positionAt(attrOffset + spaces, event.raw)
+	return {
+		line: position.line + event.line,
+		col: position.line === 0 ? attrOffset + event.col + spaces : position.character + 1
+	}
+}
 
 var htmlHintClient: any = null;
 let htmlhintrcOptions: any = {};
@@ -126,6 +136,7 @@ const defaultLinterConfig = {
 	"localize-strings": true,
 	"encoding-off-warn": true,
 	"unsafe-external-link": true,
+	"no-html-comment": true,
 	"tags-check": {
 		"isslot": {
 			"selfclosing": true,
@@ -239,9 +250,9 @@ const customRules = [{
 				const currentTagType = tagsTypings[tagName];
 
 				if (currentTagType.selfclosing === true && !event.close) {
-					reporter.warn(`The <${tagName}> tag must be selfclosing.`, event.line, event.col, self, event.raw);
+					reporter.warn(`The <${tagName}> tag must be self closed.`, event.line, event.col, self, event.raw);
 				} else if (currentTagType.selfclosing === false && event.close) {
-					reporter.warn(`The <${tagName}> tag must not be selfclosing.`, event.line, event.col, self, event.raw);
+					reporter.warn(`The <${tagName}> tag must not be self closed.`, event.line, event.col, self, event.raw);
 				}
 
 				if (currentTagType.attrsRequired) {
@@ -275,7 +286,9 @@ const customRules = [{
 							if (attrs.some(attr => attr.name === realID)) {
 								attrs.forEach(attr => {
 									if (attr.name === realID && !values.includes(attr.value)) {
-										reporter.error(`The <${tagName}> tag must have optional attr '${realID}' with one value of '${values.join('\' or \'')}'.`, event.line, col + attr.index + 1, self, event.raw);
+										const { line, col } = attributePos(event, attr.index, attr.raw);
+
+										reporter.error(`The <${tagName}> tag must have optional attr '${realID}' with one value of '${values.join('\' or \'')}'.`, line, col, self, event.raw);
 									}
 								});
 							}
@@ -293,15 +306,17 @@ const customRules = [{
 								attr.name === nameOfAttr && valuesOfAttr.includes((attr.value || '').toLowerCase()))
 
 							if (found) {
-								const spaces = found.raw.length - found.raw.trimLeft().length;
-								reporter.error(`The attr '${found.name}' with  '${found.value}' is redundant for <${tagName}> and should be omitted.`, event.line, col + found.index + spaces, self, event.raw);
+								const { line, col } = attributePos(event, found.index, found.raw);
+
+								reporter.error(`The attr '${found.name}' with  '${found.value}' is redundant for <${tagName}> and should be omitted.`, line, col, self, event.raw);
 							}
 						} else {
 							const found = attrs.find(attr => attr.name === attrName);
 
 							if (found) {
-								const spaces = found.raw.length - found.raw.trimLeft().length;
-								reporter.error(`The attr '${found.name}' is redundant for <${tagName}> and should be omitted.`, event.line, col + found.index + spaces, self, event.raw);
+								const { line, col } = attributePos(event, found.index, found.raw);
+
+								reporter.error(`The attr '${found.name}' is redundant for <${tagName}> and should be omitted.`, line, col, self, event.raw);
 							}
 						}
 					});
@@ -322,20 +337,19 @@ const customRules = [{
 			var attrs = event.attrs;
 			var attr;
 			var attrName;
-			var col = event.col + event.tagName.length + 1;
 
 			if (event.tagName.toLowerCase() === 'ismodule') {
 				return;
 			}
 
 			var mapAttrName = {};
-
 			for (var i = 0, l = attrs.length; i < l; i++) {
 				attr = attrs[i];
 				attrName = attr.name;
 				if (mapAttrName[attrName] === true) {
+					const { line, col: attrCol } = attributePos(event, attr.index, attr.raw);
 					reporter.error('Duplicate of attribute name [ ' + attr.name + ' ] was found.',
-						event.line, col + attr.index, self, attr.raw);
+						line, attrCol, self, attr.raw);
 				}
 				mapAttrName[attrName] = true;
 			}
@@ -360,10 +374,9 @@ const customRules = [{
 						|| (!(relAttr.value || '').includes('noopener')
 							&& !(relAttr.value || '').includes('noreferrer'))
 					) {
-						const col = event.col + event.tagName.length + 1;
-						const spaces = targetAttr.raw.length - targetAttr.raw.trimLeft().length;
+						const { line, col } = attributePos(event, relAttr.index, relAttr.raw);
 
-						reporter.warn(`Links to cross-origin destinations are unsafe. Add 'rel = "noopener"' or 'rel = "noreferrer"' to any external links to improve performance and prevent security vulnerabilities.`, event.line, col + targetAttr.index + spaces, self, targetAttr.raw);
+						reporter.warn(`Links to cross-origin destinations are unsafe. Add 'rel = "noopener"' or 'rel = "noreferrer"' to any external links to improve performance and prevent security vulnerabilities.`, line, col, self, targetAttr.raw);
 					}
 				}
 			}
@@ -380,11 +393,10 @@ const customRules = [{
 				const attrs = event.attrs || [];
 				attrs.forEach(attr => {
 					if (attr.name === 'encoding' && attr.value === 'off') {
-						const col = event.col + event.tagName.length + 1;
-						const spaces = attr.raw.length - attr.raw.trimLeft().length;
+						const { line, col } = attributePos(event, attr.index, attr.raw);
 
 						reporter.warn(`Try to omit usage of encoding="off". Use encoding="off" only if you understand consequences and this is really required. "${encodingValues.join(', ')}" may fit better your needs.`,
-							event.line, col + attr.index + spaces, self, attr.raw);
+							line, col, self, attr.raw);
 					}
 				});
 			}
@@ -416,6 +428,23 @@ const customRules = [{
 			parser.addListener('comment', checkLength);
 		}
 	},
+}, {
+	id: 'no-html-comment',
+	description: 'avoid usage of html comments. Use  <iscomment/> instead.',
+	init(parser, reporter, option) {
+		const self = this;
+		parser.addListener('comment', event => {
+			if (!event.raw.includes('dwMarker') && !event.raw.includes('DOCTYPE')) {
+				reporter.warn(
+					`avoid usage of html comments. Use  <iscomment/> instead.`,
+					event.line,
+					event.col,
+					self,
+					event.raw
+				);
+			}
+		});
+	}
 },
 {
 	id: 'localize-strings',
