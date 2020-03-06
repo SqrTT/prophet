@@ -137,6 +137,7 @@ const defaultLinterConfig = {
 	"encoding-off-warn": true,
 	"unsafe-external-link": true,
 	"no-html-comment": true,
+	"no-div-without-class": true,
 	"tags-check": {
 		"isslot": {
 			"selfclosing": true,
@@ -445,6 +446,28 @@ const customRules = [{
 			}
 		});
 	}
+}, {
+	id: 'no-div-without-class',
+	description: 'avoid usage div without attribute class',
+	init(parser, reporter, option) {
+		const self = this;
+
+		parser.addListener('tagstart', function (event) {
+			if (event.tagName.toLowerCase() === 'div') {
+				const attrs = event.attrs || [];
+				const classAttr = attrs.find(attr => attr.name === 'class');
+
+				if (!classAttr || !classAttr.value) {
+					reporter.warn('Please avoid usage div tag without class. Most likely this block is redundant',
+						event.line,
+						event.col,
+						self,
+						event.raw
+					);
+				}
+			}
+		});
+	}
 },
 {
 	id: 'localize-strings',
@@ -470,9 +493,7 @@ const customRules = [{
 				);
 			};
 		});
-
 	},
-
 }];
 
 function getErrorMessage(err: any, document: TextDocument): string {
@@ -489,15 +510,15 @@ function getErrorMessage(err: any, document: TextDocument): string {
  * Given a path to a .htmlhintrc file, load it into a javascript object and return it.
  */
 function loadConfigurationFile(configFile): any {
-	var ruleset: any = null;
+	var ruleSet: any = null;
 	if (fs.existsSync(configFile)) {
 		var config = fs.readFileSync(configFile, 'utf8');
 		try {
-			ruleset = JSON.parse(stripJsonComments(config));
+			ruleSet = JSON.parse(stripJsonComments(config));
 		}
 		catch (e) { }
 	}
-	return ruleset;
+	return ruleSet;
 }
 
 export function validateTextDocument(connection: IConnection, document: TextDocument): void {

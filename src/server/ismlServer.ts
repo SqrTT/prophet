@@ -247,7 +247,10 @@ connection.onDocumentLinkResolve(documentLink => {
 				}
 
 				Promise.all(workspaceFolders.map(workspaceFolder => {
-					return findFiles(workspaceFolder.uri, '**/templates/**/' + fileToOpen);
+					return findFiles(
+						workspaceFolder.uri,
+						'**/templates/*' + (fileToOpen.startsWith('/') ? '' : '/') + fileToOpen
+					);
 				})).then(result => {
 					const files = ([] as string[]).concat(...result);
 
