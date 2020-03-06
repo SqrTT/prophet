@@ -22,6 +22,7 @@ import * as acornWalk from 'acorn-walk';
 import { sep, basename } from 'path';
 import { promises } from 'fs';
 import { positionAt } from './getLineOffsets';
+import { parse } from './scriptServer/propertiesParser';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport
 const connection: IConnection = createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
@@ -74,6 +75,28 @@ interface ICartridgeControllers {
 	name: string;
 	fsPath: string,
 	controllers: IController[]
+}
+
+interface IPropertyRecord {
+	startPosition: {
+		line: number,
+		character: number,
+	},
+	endPosition: {
+		line: number,
+		character: number
+	},
+	value: string
+}
+interface IProperty{
+	name: string;
+	fsPath: string,
+	records: Map<string, IPropertyRecord>
+}
+interface ICartridgeProperties {
+	name: string;
+	fsPath: string,
+	properties: IProperty[]
 }
 
 const cartridges = new Set<ICartridge>();
@@ -499,8 +522,27 @@ connection.onNotification('cartridges.controllers', async ({ list }) => {
 });
 
 connection.onNotification('get.controllers.list', () => {
-	const endpoints = getEndpointsMap();
-	connection.sendNotification('get.controllers.list.result', endpoints);
+	const endpoints: any[] = [];
+	controllers.forEach(cartridgeControllers => {
+		cartridgeControllers.controllers.forEach(controller => {
+			controller.endpoints.forEach(endpoint => {
+				endpoints.push({
+					fsPath: controller.fsPath,
+					start: endpoint.start,
+					end: endpoint.end,
+					mode: endpoint.mode,
+					name: endpoint.name,
+					cartridgeName: cartridgeControllers.name,
+					startPosition: endpoint.startPosition,
+					endPosition: endpoint.endPosition,
+					endShow: endpoint.endShow,
+					startShow: endpoint.startShow
+				});
+			});
+		});
+	});
+
+	connection.sendNotification('get.controllers.list.result', { endpoints });
 });
 
 connection.onNotification('cartridges.controllers.modification', async ({ action, cartridge, uri }) => {
@@ -536,6 +578,35 @@ connection.onNotification('cartridges.controllers.modification', async ({ action
 		}
 	}
 	console.info(`controller modified: ${action} : ${uri}`);
+});
+
+connection.onNotification('cartridges.properties', async ({ list }) => {
+	const startTime = Date.now();
+
+	const cartridges = await Promise.all((list as any[]).map(async cartridge => {
+		const cartridgeControllers: ICartridgeProperties = {
+			name: cartridge.name,
+			fsPath: cartridge.fsPath,
+			properties: []
+		}
+		for (const file of cartridge.files) {
+			if (!file.name.includes('_')) { // ignore locale specific translations, yet
+				try {
+					const fileName = URI.parse(file.fsPath).fsPath;
+					const fileContent = await promises.readFile(fileName, 'utf8');
+					if (fileContent) {
+						const records = parse(fileContent);
+						debugger;
+					}
+				} catch (e) {
+					console.error('Error parse properties file: \n' + JSON.stringify(e, null, '    '));
+				}
+			}
+		}
+		return cartridgeControllers;
+	}));
+
+	console.info(`got cartridges properties list, parse time: ${(Date.now() - startTime) / 1000}]`);
 });
 
 connection.onCompletion(async (params, cancelToken) => {
@@ -732,7 +803,7 @@ async function gotoLocation(content: string, offset: number, cancelToken: Cancel
 			} else if (activeNode.value.startsWith('dw')) {
 				return;
 			} else if (isStartingWithCartridgeName(activeNode.value)) {
-				const value : string = activeNode.value;
+				const value: string = activeNode.value;
 				const val = value.startsWith('/') ? value.substring(1) : value;
 				const [cartridgeName, ...other] = val.split('/');
 				const filePath = '/' + other.join('/').replace(/\.js$/, '')
