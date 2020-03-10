@@ -22,7 +22,7 @@ import * as acornWalk from 'acorn-walk';
 import { sep, basename } from 'path';
 import { promises } from 'fs';
 import { positionAt } from './getLineOffsets';
-import { parse } from './scriptServer/propertiesParser';
+// import { parse } from './scriptServer/propertiesParser';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport
 const connection: IConnection = createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
@@ -77,27 +77,27 @@ interface ICartridgeControllers {
 	controllers: IController[]
 }
 
-interface IPropertyRecord {
-	startPosition: {
-		line: number,
-		character: number,
-	},
-	endPosition: {
-		line: number,
-		character: number
-	},
-	value: string
-}
-interface IProperty{
-	name: string;
-	fsPath: string,
-	records: Map<string, IPropertyRecord>
-}
-interface ICartridgeProperties {
-	name: string;
-	fsPath: string,
-	properties: IProperty[]
-}
+// interface IPropertyRecord {
+// 	startPosition: {
+// 		line: number,
+// 		character: number,
+// 	},
+// 	endPosition: {
+// 		line: number,
+// 		character: number
+// 	},
+// 	value: string
+// }
+// interface IProperty{
+// 	name: string;
+// 	fsPath: string,
+// 	records: Map<string, IPropertyRecord>
+// }
+// interface ICartridgeProperties {
+// 	name: string;
+// 	fsPath: string,
+// 	properties: IProperty[]
+// }
 
 const cartridges = new Set<ICartridge>();
 const templates = new Set<ICartridge>()
@@ -580,34 +580,34 @@ connection.onNotification('cartridges.controllers.modification', async ({ action
 	console.info(`controller modified: ${action} : ${uri}`);
 });
 
-connection.onNotification('cartridges.properties', async ({ list }) => {
-	const startTime = Date.now();
+// connection.onNotification('cartridges.properties', async ({ list }) => {
+// 	const startTime = Date.now();
 
-	const cartridges = await Promise.all((list as any[]).map(async cartridge => {
-		const cartridgeControllers: ICartridgeProperties = {
-			name: cartridge.name,
-			fsPath: cartridge.fsPath,
-			properties: []
-		}
-		for (const file of cartridge.files) {
-			if (!file.name.includes('_')) { // ignore locale specific translations, yet
-				try {
-					const fileName = URI.parse(file.fsPath).fsPath;
-					const fileContent = await promises.readFile(fileName, 'utf8');
-					if (fileContent) {
-						const records = parse(fileContent);
-						debugger;
-					}
-				} catch (e) {
-					console.error('Error parse properties file: \n' + JSON.stringify(e, null, '    '));
-				}
-			}
-		}
-		return cartridgeControllers;
-	}));
+// 	const cartridges = await Promise.all((list as any[]).map(async cartridge => {
+// 		const cartridgeControllers: ICartridgeProperties = {
+// 			name: cartridge.name,
+// 			fsPath: cartridge.fsPath,
+// 			properties: []
+// 		}
+// 		for (const file of cartridge.files) {
+// 			if (!file.name.includes('_')) { // ignore locale specific translations, yet
+// 				try {
+// 					const fileName = URI.parse(file.fsPath).fsPath;
+// 					const fileContent = await promises.readFile(fileName, 'utf8');
+// 					if (fileContent) {
+// 						const records = parse(fileContent);
+// 						debugger;
+// 					}
+// 				} catch (e) {
+// 					console.error('Error parse properties file: \n' + JSON.stringify(e, null, '    '));
+// 				}
+// 			}
+// 		}
+// 		return cartridgeControllers;
+// 	}));
 
-	console.info(`got cartridges properties list, parse time: ${(Date.now() - startTime) / 1000}]`);
-});
+// 	console.info(`got cartridges properties list, parse time: ${(Date.now() - startTime) / 1000}]`);
+// });
 
 connection.onCompletion(async (params, cancelToken) => {
 	const reqTime = Date.now();
