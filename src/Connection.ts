@@ -41,7 +41,7 @@ export interface IVariable {
 
 export default class Connection {
 	protected options: any;
-	protected estabilished: boolean;
+	protected established: boolean;
 	protected verbose = false;
 	//protected logger : Logger;
 
@@ -52,7 +52,7 @@ export default class Connection {
 			username: 'username',
 			clientId: 'prophet'
 		}, params);
-		this.estabilished = false;
+		this.established = false;
 
 		if (params.verbose) {
 			this.verbose = true;
@@ -79,8 +79,8 @@ export default class Connection {
 			logger.verbose('req -> ' + JSON.stringify(options));
 		}
 		return new Promise((resolve, reject) => {
-			if (!this.estabilished) {
-				reject(Error('Connection is not estabilished'));
+			if (!this.established) {
+				reject(Error('Connection is not established'));
 				return;
 			}
 			if (typeof options.json === 'undefined') {
@@ -97,25 +97,49 @@ export default class Connection {
 				}
 
 				if (res.statusCode >= 400) {
+					if (res.body) {
+						try {
+							const content = JSON.parse(res.body);
+							if (content) {
+								return reject(new Error(JSON.stringify(content, null, '    ')));
+							}
+						} catch (e) {
+							return reject(new Error(`establish error: ${res.statusCode} ${res.statusMessage} ${res.body} :  ${e}`));
+						}
+					}
 					return reject(new Error(res.statusMessage));
 				}
 				cb(resolve, reject, body);
 			});
 		});
 	}
-	estabilish() {
+	establish() {
 		return new Promise((resolve, reject) => {
 			request(Object.assign(this.getOptions(), {
 				uri: '/client',
 				method: 'POST'
-			}), (err, res) => {
+			}), (err, res, body) => {
 				if (err) {
 					return reject(err);
 				}
+				if (this.verbose) {
+					logger.verbose('req: ' + JSON.stringify(Object.assign(this.getOptions())));
+					logger.verbose('res: ' + JSON.stringify(body));
+				}
 				if (res.statusCode >= 400) {
+					if (res.body) {
+						try {
+							const content = JSON.parse(res.body);
+							if (content) {
+								return reject(new Error(JSON.stringify(content, null, '    ')));
+							}
+						} catch (e) {
+							return reject(new Error('establish error: ' + e));
+						}
+					}
 					return reject(new Error(res.statusMessage));
 				}
-				this.estabilished = true
+				this.established = true
 				resolve();
 			});
 		});
@@ -154,7 +178,7 @@ export default class Connection {
 		});
 	}
 	disconnect() {
-		this.estabilished = false;
+		this.established = false;
 		return new Promise((resolve, reject) => {
 			request(Object.assign(this.getOptions(), {
 				uri: '/client',

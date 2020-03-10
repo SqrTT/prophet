@@ -182,7 +182,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 			this.connection = new Connection(this.config);
 
 			this.connection
-				.estabilish()
+				.establish()
 				.then(() => {
 					this.connection && this.connection
 						.removeBreakpoints()
@@ -327,7 +327,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 				]
 			};
 			response.success = false;
-			response.message = 'Connection is not estabilished';
+			response.message = 'Connection is not established';
 			this.sendResponse(response);
 		}
 	}
@@ -775,7 +775,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 			}, 30000);
 			this.awaitThreadsTimer = setInterval(() => {
 				this.awaitThreads()
-			}, 5000);
+			}, 3000);
 			this.isAwaitingThreads = true;
 		}
 	}
