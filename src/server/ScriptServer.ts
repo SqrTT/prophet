@@ -21,8 +21,8 @@ import * as acornLoose from 'acorn-loose';
 import * as acornWalk from 'acorn-walk';
 import { sep, basename } from 'path';
 import { promises } from 'fs';
-import { positionAt } from './getLineOffsets';
-// import { parse } from './scriptServer/propertiesParser';
+import { positionAt, getLineOffsets } from './getLineOffsets';
+import { parse } from './scriptServer/propertiesParser';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport
 const connection: IConnection = createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
@@ -77,31 +77,33 @@ interface ICartridgeControllers {
 	controllers: IController[]
 }
 
-// interface IPropertyRecord {
-// 	startPosition: {
-// 		line: number,
-// 		character: number,
-// 	},
-// 	endPosition: {
-// 		line: number,
-// 		character: number
-// 	},
-// 	value: string
-// }
-// interface IProperty{
-// 	name: string;
-// 	fsPath: string,
-// 	records: Map<string, IPropertyRecord>
-// }
-// interface ICartridgeProperties {
-// 	name: string;
-// 	fsPath: string,
-// 	properties: IProperty[]
-// }
+interface IPropertyRecord {
+	startPosition: {
+		line: number,
+		character: number,
+	},
+	endPosition: {
+		line: number,
+		character: number
+	},
+	value: string
+}
+interface IProperty{
+	name: string;
+	linesCount: number;
+	fsPath: string,
+	records: Map<string, IPropertyRecord>
+}
+interface ICartridgeProperties {
+	name: string;
+	fsPath: string,
+	properties: Map<string, IProperty>
+}
 
 const cartridges = new Set<ICartridge>();
 const templates = new Set<ICartridge>()
-const controllers = new Array<ICartridgeControllers>();
+const controllers : ICartridgeControllers[] = [];
+const cartridgesProperties : ICartridgeProperties[] = []
 
 const zeroRange = Object.freeze({
 	start: {
@@ -514,9 +516,7 @@ connection.onNotification('cartridges.controllers', async ({ list }) => {
 		return cartridgeControllers;
 	}));
 
-	cartridges.forEach(cartridgeControllers => {
-		controllers.push(cartridgeControllers);
-	});
+	controllers.push(...cartridges);
 
 	console.info(`got cartridges controllers list, parse time: ${(Date.now() - startTime) / 1000}]`);
 });
@@ -531,7 +531,7 @@ connection.onNotification('get.controllers.list', () => {
 					start: endpoint.start,
 					end: endpoint.end,
 					mode: endpoint.mode,
-					name: endpoint.name,
+					name: controller.name + '-' + endpoint.name,
 					cartridgeName: cartridgeControllers.name,
 					startPosition: endpoint.startPosition,
 					endPosition: endpoint.endPosition,
@@ -580,34 +580,49 @@ connection.onNotification('cartridges.controllers.modification', async ({ action
 	console.info(`controller modified: ${action} : ${uri}`);
 });
 
-// connection.onNotification('cartridges.properties', async ({ list }) => {
-// 	const startTime = Date.now();
+connection.onNotification('cartridges.properties', async ({ list }) => {
+	const startTime = Date.now();
 
-// 	const cartridges = await Promise.all((list as any[]).map(async cartridge => {
-// 		const cartridgeControllers: ICartridgeProperties = {
-// 			name: cartridge.name,
-// 			fsPath: cartridge.fsPath,
-// 			properties: []
-// 		}
-// 		for (const file of cartridge.files) {
-// 			if (!file.name.includes('_')) { // ignore locale specific translations, yet
-// 				try {
-// 					const fileName = URI.parse(file.fsPath).fsPath;
-// 					const fileContent = await promises.readFile(fileName, 'utf8');
-// 					if (fileContent) {
-// 						const records = parse(fileContent);
-// 						debugger;
-// 					}
-// 				} catch (e) {
-// 					console.error('Error parse properties file: \n' + JSON.stringify(e, null, '    '));
-// 				}
-// 			}
-// 		}
-// 		return cartridgeControllers;
-// 	}));
+	const cartridges = await Promise.all((list as any[]).map(async cartridge => {
+		const cartridgeControllers: ICartridgeProperties = {
+			name: cartridge.name,
+			fsPath: cartridge.fsPath,
+			properties: new Map()
+		}
+		for (const file of cartridge.files) {
+			if (!file.name.includes('_')) { // ignore locale specific translations, yet
+				try {
+					const fileName = URI.parse(file.fsPath).fsPath;
+					const fileContent = await promises.readFile(fileName, 'utf8');
+					if (fileContent) {
+						const records = parse(fileContent);
+						const property : IProperty = {
+							fsPath: file.fsPath,
+							name: file.name,
+							linesCount: getLineOffsets(fileContent).length,
+							records: new Map()
+						};
+						records.forEach(record => {
+							property.records.set(record.recordName, {
+								value: record.value,
+								startPosition: positionAt(record.startPos, fileContent),
+								endPosition: positionAt(record.endPos, fileContent)
+							});
+						});
+						cartridgeControllers.properties.set(file.name, property);
+					}
+				} catch (e) {
+					console.error('Error parse properties file: \n' + JSON.stringify(e, null, '    '));
+				}
+			}
+		}
+		return cartridgeControllers;
+	}));
 
-// 	console.info(`got cartridges properties list, parse time: ${(Date.now() - startTime) / 1000}]`);
-// });
+	cartridgesProperties.push(...cartridges);
+
+	console.info(`got cartridges properties list, parse time: ${(Date.now() - startTime) / 1000}]`);
+});
 
 connection.onCompletion(async (params, cancelToken) => {
 	const reqTime = Date.now();
@@ -940,7 +955,57 @@ async function gotoLocation(content: string, offset: number, cancelToken: Cancel
 					originalStart: activeNode.start
 				};
 			}
-		};
+		} else if (
+			activeNode.type === 'Literal' &&
+			activeNode.value &&
+			activeNode.parent?.type === 'CallExpression' &&
+			activeNode.parent?.callee?.type === 'MemberExpression' &&
+			activeNode.parent?.callee?.object?.name === 'Resource' &&
+			['msg', 'msgf'].includes(activeNode.parent?.callee?.property?.name)
+		) {
+			const namespace = activeNode.parent?.arguments[1]?.value;
+			const key = activeNode.value;
+
+			if (key && namespace) {
+				const found = cartridgesProperties.find(cartridgesProperty => {
+					return cartridgesProperty.properties.get(namespace)?.records.has(key);
+				});
+
+				if (found) {
+					const prop = found.properties.get(namespace);
+					if (prop) {
+						const record = prop.records.get(key);
+						if (record) {
+							return {
+								fsPath: prop.fsPath,
+								showRange: {
+									start: {
+										line: Math.max(record.startPosition.line, 0),
+										character: 0
+									},
+									end: {
+										line: Math.min(record.endPosition.line + 1, prop.linesCount),
+										character: 0
+									}
+								},
+								range: {
+									start: {
+										line: Math.max(record.startPosition.line - 1, 0),
+										character: 0
+									},
+									end: {
+										line: Math.min(record.endPosition.line + 1, prop.linesCount),
+										character: 0
+									}
+								},
+								originalEnd: activeNode.end,
+								originalStart: activeNode.start
+							};
+						}
+					}
+				}
+			}
+		}
 	}
 	console.log(`no definition: ${Date.now() - reqTime}ms `);
 }
