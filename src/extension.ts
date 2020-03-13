@@ -269,7 +269,7 @@ function initFS(context: ExtensionContext) {
 			if (!workspace.workspaceFolders.some(workspaceFolder => workspaceFolder.uri.scheme.toLowerCase() === SandboxFS.SCHEME)) {
 				const extConf = workspace.getConfiguration('extension.prophet');
 				if (extConf.get('sandbox.filesystem.enabled')) {
-					workspace.updateWorkspaceFolders(0, 0, {
+					workspace.updateWorkspaceFolders(workspace.workspaceFolders.length, 0, {
 						uri: Uri.parse(SandboxFS.SCHEME + '://current-sandbox'),
 						name: "Sandbox - FileSystem",
 					});

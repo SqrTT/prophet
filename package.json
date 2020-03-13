@@ -448,7 +448,7 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Enable Sandbox File System workspace",
-                    "scope": "application"
+                    "scope": "window"
                 }
             }
         }
