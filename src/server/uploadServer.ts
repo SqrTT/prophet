@@ -160,7 +160,24 @@ function uploadWithProgress(
 									obs.complete();
 								}
 							});
+							let retryCounter = 0;
 							subscription = uploadCartridges(webdav, outputChannel, config, rootDir, ask, progress)
+								.pipe(retryWhen(function (errors) {
+									// retry for some errors, end the stream with an error for others
+									return errors.pipe(tap(function (e) {
+										if (e instanceof WebDav.WebDavError && e.statusCode === 401) {
+											throw e;
+										} else if (retryCounter < 3) {
+											outputChannel.appendLine(`Error: ${e}`);
+											outputChannel.appendLine(`Trying to re-upload cartridge`);
+											retryCounter++;
+										} else {
+											throw e;
+										}
+									}));
+								})).pipe(tap(() => {
+									retryCounter = 0;
+								}))
 								.subscribe((val) => {
 									resolve();
 									obs.next(val);
@@ -255,12 +272,45 @@ function uploadAndWatch(
 							// skip directory changes handled on prev step
 							return empty();
 						} else {
+							let retryCounter = 0;
 							outputChannel.appendLine(`[U ${date}] ${cleanPath(rootDir, fileName)}`);
-							return webdav.post(fileName, rootDir);
+							return webdav.post(fileName, rootDir)
+								.pipe(retryWhen(function (errors) {
+									// retry for some errors, end the stream with an error for others
+									return errors.pipe(tap(function (e) {
+										if (e instanceof WebDav.WebDavError && e.statusCode === 401) {
+											throw e;
+										} else if (retryCounter < 3) {
+											outputChannel.appendLine(`Error: ${e}`);
+											outputChannel.appendLine(`Trying to re-upload file`);
+											retryCounter++;
+										} else {
+											throw e;
+										}
+									}));
+								})).pipe(tap(() => {
+									retryCounter = 0;
+								}));
 						}
 					} else if (action === 'delete') {
+						let retryCounter = 0;
 						outputChannel.appendLine(`[D ${date}] ${cleanPath(rootDir, fileName)}`);
-						return webdav.delete(fileName, rootDir);
+						return webdav.delete(fileName, rootDir).pipe(retryWhen(function (errors) {
+							// retry for some errors, end the stream with an error for others
+							return errors.pipe(tap(function (e) {
+								if (e instanceof WebDav.WebDavError && e.statusCode === 401) {
+									throw e;
+								} else if (retryCounter < 3) {
+									outputChannel.appendLine(`Error: ${e}`);
+									outputChannel.appendLine(`Trying to re-upload file`);
+									retryCounter++;
+								} else {
+									throw e;
+								}
+							}));
+						})).pipe(tap(() => {
+							retryCounter = 0;
+						}));
 					} else {
 						return throwError(new Error('Unknown action'))
 					}

@@ -660,6 +660,7 @@ connection.onNotification('cartridges.properties', async ({ list }) => {
 	console.info(`got cartridges properties list, parse time: ${(Date.now() - startTime) / 1000}]`);
 });
 
+
 connection.onCompletion(async (params, cancelToken) => {
 	const reqTime = Date.now();
 
