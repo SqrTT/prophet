@@ -254,6 +254,29 @@ export function createScriptLanguageServer(context: ExtensionContext, configurat
 				if (orderedCartridgesWithPropertiesFiltered.length) {
 					scriptLanguageClient.sendNotification('cartridges.properties', { list: orderedCartridgesWithPropertiesFiltered });
 				}
+
+				orderedCartridges.forEach(cartridge => {
+					if (cartridge.fsPath) {
+						const watcher = workspace.createFileSystemWatcher(
+							new RelativePattern(cartridge.fsPath, 'cartridge/templates/resources/*.properties'));
+
+						context.subscriptions.push(watcher);
+
+						['Change', 'Create', 'Delete'].forEach(action => {
+							context.subscriptions.push(watcher['onDid' + action](uri => {
+								if (uri.scheme === 'file') {
+									scriptLanguageClient.sendNotification('cartridges.properties.modification', {
+										action,
+										template: uri.fsPath.split(sep).join('/').split('/cartridge/templates/resources/').pop()?.replace('.properties', ''),
+										cartridge: cartridge,
+										uri: uri.toString()
+									});
+								}
+							}));
+						});
+
+					}
+				});
 			}
 		}
 	}).catch(err => {

@@ -580,6 +580,42 @@ connection.onNotification('cartridges.controllers.modification', async ({ action
 	console.info(`controller modified: ${action} : ${uri}`);
 });
 
+
+connection.onNotification('cartridges.properties.modification', async ({ action, cartridge, uri, template }) => {
+	const cartridgeProperties = cartridgesProperties.find(controller => controller.name === cartridge.name);
+
+	if (cartridgeProperties) {
+		cartridgeProperties.properties.delete(template);
+
+		if ('Create' === action || 'Change' === action) {
+			try {
+				const fileName = URI.parse(uri).fsPath;
+				const fileContent = await promises.readFile(fileName, 'utf8');
+				if (fileContent) {
+					const records = parse(fileContent);
+					const property : IProperty = {
+						fsPath: uri,
+						name: template,
+						linesCount: getLineOffsets(fileContent).length,
+						records: new Map()
+					};
+					records.forEach(record => {
+						property.records.set(record.recordName, {
+							value: record.value,
+							startPosition: positionAt(record.startPos, fileContent),
+							endPosition: positionAt(record.endPos, fileContent)
+						});
+					});
+					cartridgeProperties.properties.set(template, property);
+				}
+			} catch (e) {
+				console.error('Error: \n' + JSON.stringify(e, null, '    '));
+			}
+		}
+	}
+	console.info(`properties modified: ${action} : ${uri}`);
+});
+
 connection.onNotification('cartridges.properties', async ({ list }) => {
 	const startTime = Date.now();
 
