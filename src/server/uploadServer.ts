@@ -73,7 +73,7 @@ function cleanPath(rootPath, filePath) {
 }
 
 const uploadCartridges = (
-	webdav: WebDav,
+	webDav: WebDav,
 	outputChannel: OutputChannel,
 	config: ({ cartridge, ignoreList: Array<string> }),
 	cartRoot: string,
@@ -87,19 +87,40 @@ const uploadCartridges = (
 		outputChannel.appendLine(msgs.join(' '));
 	};
 
-	const toUpload = cartridges.map(cartridge => webdav
-		.uploadCartridge(join(cartRoot, cartridge), notify, { ignoreList: config.ignoreList }).pipe(tap(
-			(data) => { },
-			(error) => { },
-			() => {
-				count++;
-				progress.report({ message: `Uploading cartridges: ${count} of ${cartridges.length}`, increment: 100 / cartridges.length });
-			}
-		))
-	);
+	const toUpload = cartridges.map(cartridge => {
+		let retryCounter = 0;
+		return webDav.uploadCartridge(join(cartRoot, cartridge), notify, { ignoreList: config.ignoreList })
+			.pipe(
+				retryWhen(function (errors) {
+					// retry for some errors, end the stream with an error for others
+					return errors.pipe(
+						delay(500),
+						tap(function (e) {
+							if (e instanceof WebDav.WebDavError && e.statusCode === 401) {
+								throw e;
+							} else if (retryCounter < 3) {
+								outputChannel.appendLine(`Error: ${e}`);
+								outputChannel.appendLine(`Trying to re-upload cartridge`);
+								retryCounter++;
+							} else {
+								throw e;
+							}
+						}));
+				}),
+				tap(
+					(data) => { },
+					(error) => { },
+					() => {
+						retryCounter = 0;
+						count++;
+						progress.report({ message: `Uploading cartridges: ${count} of ${cartridges.length}`, increment: 100 / cartridges.length });
+					}
+				)
+			);
+	});
 
 	notify('Cleanup code version...');
-	return webdav.cleanUpCodeVersion(notify, ask, config.cartridge)
+	return webDav.cleanUpCodeVersion(notify, ask, config.cartridge)
 		.pipe(
 			flatMap(() => merge(...toUpload, CONCURRENT_CARTRIDGES_UPLOADS))
 		).pipe(concat(of('')));
@@ -160,24 +181,7 @@ function uploadWithProgress(
 									obs.complete();
 								}
 							});
-							let retryCounter = 0;
 							subscription = uploadCartridges(webdav, outputChannel, config, rootDir, ask, progress)
-								.pipe(retryWhen(function (errors) {
-									// retry for some errors, end the stream with an error for others
-									return errors.pipe(tap(function (e) {
-										if (e instanceof WebDav.WebDavError && e.statusCode === 401) {
-											throw e;
-										} else if (retryCounter < 3) {
-											outputChannel.appendLine(`Error: ${e}`);
-											outputChannel.appendLine(`Trying to re-upload cartridge`);
-											retryCounter++;
-										} else {
-											throw e;
-										}
-									}));
-								})).pipe(tap(() => {
-									retryCounter = 0;
-								}))
 								.subscribe((val) => {
 									resolve();
 									obs.next(val);
@@ -275,7 +279,9 @@ function uploadAndWatch(
 							let retryCounter = 0;
 							outputChannel.appendLine(`[U ${date}] ${cleanPath(rootDir, fileName)}`);
 							return webdav.post(fileName, rootDir)
-								.pipe(retryWhen(function (errors) {
+								.pipe(
+									delay(500),
+									retryWhen(function (errors) {
 									// retry for some errors, end the stream with an error for others
 									return errors.pipe(tap(function (e) {
 										if (e instanceof WebDav.WebDavError && e.statusCode === 401) {
