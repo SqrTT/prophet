@@ -375,7 +375,7 @@ const customRules = [{
 						|| (!(relAttr.value || '').includes('noopener')
 							&& !(relAttr.value || '').includes('noreferrer'))
 					) {
-						const { line, col } = attributePos(event, relAttr.index, relAttr.raw);
+						const { line, col } = relAttr ? attributePos(event, relAttr.index, relAttr.raw) : event;
 
 						reporter.warn(`Links to cross-origin destinations are unsafe. Add 'rel = "noopener"' or 'rel = "noreferrer"' to any external links to improve performance and prevent security vulnerabilities.`, line, col, self, targetAttr.raw);
 					}

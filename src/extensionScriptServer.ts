@@ -5,7 +5,7 @@ import { findFiles, getDWConfig, readFile, getCartridgesFolder } from "./lib/Fil
 import { reduce } from "rxjs/operators";
 
 let isOrderedCartridgesWarnShown = false;
-export async function getOrderedCartridges(workspaceFolders: WorkspaceFolder[]) {
+export async function getOrderedCartridges(workspaceFolders: readonly WorkspaceFolder[]) {
 	let cartridgesPath = workspace.getConfiguration('extension.prophet').get('cartridges.path') as string;
 
 	if (!cartridgesPath || !cartridgesPath.trim()) {

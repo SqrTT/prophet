@@ -36,7 +36,7 @@ export default class Uploader {
 	 *
 	 * @param configuration the workspace configuration to use
 	 */
-	constructor(workspaceFolders: WorkspaceFolder[]) {
+	constructor(workspaceFolders: readonly WorkspaceFolder[]) {
 		this.outputChannel = window.createOutputChannel(`Prophet Uploader`);
 		this.workspaceFolders = workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
 

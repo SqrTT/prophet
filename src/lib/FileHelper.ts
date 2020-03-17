@@ -138,7 +138,7 @@ export function getCartridgesFolder(workspaceFolder: WorkspaceFolder) {
 		.pipe(map<Uri, string>(project => dirname(project.fsPath)));
 };
 
-export function getDWConfig(workspaceFolders?: WorkspaceFolder[]): Promise<DavOptions> {
+export function getDWConfig(workspaceFolders?: readonly WorkspaceFolder[]): Promise<DavOptions> {
 	if (workspaceFolders) {
 		const filesWorkspaceFolders = workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
 		const dwConfigFiles = Promise.all(filesWorkspaceFolders.map(
