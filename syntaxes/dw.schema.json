@@ -63,7 +63,17 @@
                 "leave"
             ],
             "description": "Leaves all the cartridges instead of asking"
-        }
+        },
+        "client-id": {
+            "type":"string",
+            "default": "aaaaaaaaaaaaaaaaaaa",
+            "description": "Client id for On-Demand Sandbox API"
+        },
+        "client-secret": {
+            "type":"string",
+            "default": "passw0rd!",
+            "description": "Client secret for On-Demand Sandbox API"
+        },
     },
     "dependencies": {
         "p12": [
