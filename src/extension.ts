@@ -1,6 +1,6 @@
 
 'use strict';
-import { join, sep } from 'path';
+import { join, sep, basename, dirname } from 'path';
 import { setExtensionPath } from './providers/extensionPath'
 import { workspace, ExtensionContext, commands, window, Uri, WorkspaceConfiguration, debug, WorkspaceFolder, RelativePattern } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
@@ -8,7 +8,7 @@ import { CartridgesView } from './providers/CartridgesView';
 import { LogsView } from './providers/LogsView';
 import { ControllersView } from './providers/ControllersView';
 
-import { existsSync } from 'fs';
+import { existsSync, promises } from 'fs';
 import { createServer, ServerResponse, IncomingMessage } from 'http';
 import Uploader from "./providers/Uploader";
 import { ProphetConfigurationProvider } from './providers/ConfigurationProvider';
@@ -17,6 +17,7 @@ import { map, flatMap, tap, takeUntil, filter, reduce, merge, mergeAll } from 'r
 import { findFiles, getDWConfig, getCartridgesFolder } from './lib/FileHelper';
 import { SandboxFS } from './providers/SandboxFileSystemProvider';
 import { createScriptLanguageServer, getOrderedCartridges } from './extensionScriptServer';
+
 
 
 /**
@@ -69,6 +70,35 @@ function createIsmlLanguageServer(context: ExtensionContext, configuration: Work
 
 		}
 	};
+
+	context.subscriptions.push(commands.registerCommand('extension.prophet.command.override.template', async (fileURI?: Uri) => {
+		if (workspace.workspaceFolders && fileURI && fileURI.scheme === 'file') {
+			const cartridges = await getOrderedCartridges(workspace.workspaceFolders);
+
+			if (cartridges && cartridges.length > 1) {
+				const fileSep = '/cartridge/templates/'.split('/').join(sep);
+				const [, filePath] = fileURI.fsPath.split(fileSep);
+				const selected = await window.showQuickPick(cartridges.map(cartridge => cartridge.name));
+
+				if (selected) {
+					const selectedCartridge = cartridges.find(cartridge => cartridge.name === selected);
+
+					if (selectedCartridge && selectedCartridge.fsPath) {
+						const newDestPath = join(selectedCartridge.fsPath, 'cartridge', 'templates', filePath);
+						await promises.mkdir(dirname(newDestPath), { recursive: true });
+
+						try {
+							await promises.access(newDestPath);
+						} catch (e) {
+							await promises.copyFile(fileURI.fsPath, newDestPath);
+						}
+
+						await commands.executeCommand('vscode.open', Uri.parse(newDestPath));
+					}
+				}
+			}
+		}
+	}));
 
 	// Create the language client and start the client.
 	const ismlLanguageClient = new LanguageClient('ismlLanguageServer', 'ISML Language Server', serverOptions, clientOptions);
