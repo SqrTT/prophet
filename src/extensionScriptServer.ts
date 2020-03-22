@@ -3,7 +3,7 @@ import { ServerOptions, TransportKind, LanguageClientOptions, LanguageClient } f
 import { join, sep, basename, dirname } from "path";
 import { findFiles, getDWConfig, readFile, getCartridgesFolder } from "./lib/FileHelper";
 import { reduce } from "rxjs/operators";
-import { promises, writeFile } from "fs";
+import { promises } from "fs";
 
 let isOrderedCartridgesWarnShown = false;
 export async function getOrderedCartridges(workspaceFolders: readonly WorkspaceFolder[]) {
