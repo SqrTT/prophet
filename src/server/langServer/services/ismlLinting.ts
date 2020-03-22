@@ -21,7 +21,7 @@ import * as htmlhint from '../htmlhint';
 import { replaceIsPrintAttr } from "../utils/strings";
 import { positionAt } from "../../getLineOffsets";
 
-function attributePos(event, attrOffset: number, attrContent: string) {
+function attributePos(event: IParserEvent, attrOffset: number, attrContent: string) {
 	const spaces = attrContent.length - attrContent.trimLeft().length + event.tagName.length + 1;
 	const position = positionAt(attrOffset + spaces, event.raw)
 	return {
@@ -43,7 +43,16 @@ interface Settings {
 
 let settings: Settings | null = null;
 
-const tagsTypings = {
+interface ITagType {
+	denyTag?: string;
+	selfclosing?: boolean;
+	attrsRequired?: string[];
+	redundantAttrs?: string[];
+	attrsOptional?: [string, string][]
+}
+
+
+const tagsTypings: { [key: string]: ITagType } = {
 	br: {
 		denyTag: 'error',
 	},
@@ -231,7 +240,41 @@ const defaultLinterConfig = {
 
 const encodingValues = ["on", "htmlcontent", "htmlsinglequote", "htmldoublequote", "htmlunquote", "jshtml", "jsattribute", "jsblock", "jssource", "jsonvalue", "uricomponent", "uristrict", "xmlcontent", "xmlsinglequote", "xmldoublequote", "xmlcomment"];
 
-const customRules = [{
+interface IParserEvent {
+	tagName: string;
+	col: number;
+	line: number;
+	raw: string;
+	attrs: {
+		name: string,
+		value: string,
+		index: number;
+		raw: string;
+	}[];
+	close: boolean;
+	lastEvent?: IParserEvent
+}
+interface IParser {
+	addListener: (eventName: string, handler: (event: IParserEvent) => void) => void
+}
+
+interface IReporter {
+	warn: (msg: string, line: number, col: number, self: any, raw: string) => void;
+	error: (msg: string, line: number, col: number, self: any, raw: string) => void;
+	report: (tag: string, msg: string, line: number, col: number, self: any, raw: string) => void;
+}
+
+interface IOptions {
+
+}
+
+interface IRules {
+	id: string;
+	description: string;
+	init: (parser: IParser, reporter: IReporter, options: IOptions) => void
+}
+
+const customRules: IRules[] = [{
 	id: 'tags-check',
 	description: 'Checks html tags.',
 	init(parser, reporter, options) {
@@ -343,7 +386,7 @@ const customRules = [{
 				return;
 			}
 
-			var mapAttrName = {};
+			var mapAttrName: { [key: string]: boolean } = {};
 			for (var i = 0, l = attrs.length; i < l; i++) {
 				attr = attrs[i];
 				attrName = attr.name;
@@ -410,7 +453,7 @@ const customRules = [{
 		var self = this;
 
 		if (option) {
-			const checkLength = event => {
+			const checkLength = (event: IParserEvent) => {
 				if (event.col > option) {
 					reporter.error(
 						`Line must be at most ${option} characters`,
@@ -509,7 +552,7 @@ function getErrorMessage(err: any, document: TextDocument): string {
 /**
  * Given a path to a .htmlhintrc file, load it into a javascript object and return it.
  */
-function loadConfigurationFile(configFile): any {
+function loadConfigurationFile(configFile: string): any {
 	var ruleSet: any = null;
 	if (fs.existsSync(configFile)) {
 		var config = fs.readFileSync(configFile, 'utf8');
@@ -626,6 +669,7 @@ const evidenceMap = {
  * Given an htmlhint.Error type return a VS Code server Diagnostic object
  */
 function makeDiagnostic(problem: htmlhint.Error, lines: string[]): Diagnostic {
+
 	return {
 		severity: evidenceMap[problem.type] || DiagnosticSeverity.Error,
 		message: problem.message,

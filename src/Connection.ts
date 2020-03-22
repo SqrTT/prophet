@@ -144,7 +144,7 @@ export default class Connection {
 			});
 		});
 	}
-	getStackTrace(threadID): Promise<IStackFrame[]> {
+	getStackTrace(threadID : number): Promise<IStackFrame[]> {
 		return this.makeRequest({
 			uri: '/threads/' + threadID,
 			method: 'get'
@@ -156,7 +156,7 @@ export default class Connection {
 			}
 		});
 	}
-	getMembers(threadID, frame_index, path?, start = 0, count = 100): Promise<IMember[]> {
+	getMembers(threadID: number, frame_index: number, path? : string, start = 0, count = 100): Promise<IMember[]> {
 		//get all variables
 
 		return this.makeRequest({
@@ -195,7 +195,7 @@ export default class Connection {
 		});
 	}
 
-	createBreakpoints(breakpoints): Promise<{ id, file, line }[]> {
+	createBreakpoints(breakpoints): Promise<{ id : string, file: string, line: string }[]> {
 		return this.makeRequest({
 			uri: '/breakpoints',
 			method: 'POST',
@@ -213,7 +213,7 @@ export default class Connection {
 			})));
 		});
 	}
-	getBreakpoints(id?): Promise<{ id, file, line }[]> {
+	getBreakpoints(id? : string): Promise<{ id:string, file: string, line: string }[]> {
 		return this.makeRequest({
 			uri: '/breakpoints' + (id ? '/' + id : ''),
 			method: 'get'
@@ -230,7 +230,7 @@ export default class Connection {
 			}
 		});
 	}
-	removeBreakpoints(id?) {
+	removeBreakpoints(id?: number) {
 		return this.makeRequest({
 			uri: '/breakpoints' + (id ? '/' + id : ''),
 			method: 'DELETE'
@@ -280,42 +280,42 @@ export default class Connection {
 
 		});
 	}
-	stepInto(threadID): Promise<IThread> {
+	stepInto(threadID: number): Promise<IThread> {
 		//threads/{thread_id}/into
 		return this.makeRequest({
 			uri: '/threads/' + threadID + '/into',
 			method: 'POST'
 		}, justResolve);
 	}
-	stepOut(threadID): Promise<IThread> {
+	stepOut(threadID: number): Promise<IThread> {
 		//threads/{thread_id}/out
 		return this.makeRequest({
 			uri: '/threads/' + threadID + '/out',
 			method: 'POST'
 		}, justResolve);
 	}
-	stepOver(threadID): Promise<IThread> {
+	stepOver(threadID: number): Promise<IThread> {
 		//threads/{thread_id}/over
 		return this.makeRequest({
 			uri: '/threads/' + threadID + '/over',
 			method: 'POST'
 		}, justResolve);
 	}
-	resume(threadID): Promise<IThread> {
+	resume(threadID: number): Promise<IThread> {
 		//threads/{thread_id}/resume
 		return this.makeRequest({
 			uri: '/threads/' + threadID + '/resume',
 			method: 'POST'
 		}, justResolve);
 	}
-	stop(threadID) {
+	stop(threadID : number) {
 		//threads/{thread_id}/stop
 		return this.makeRequest({
 			uri: '/threads/' + threadID + '/stop',
 			method: 'POST'
 		}, justResolve);
 	}
-	evaluate(threadID, expr = 'this', frameNo = 0): Promise<string> {
+	evaluate(threadID: number, expr = 'this', frameNo = 0): Promise<string> {
 		return this.makeRequest({
 			uri: '/threads/' + threadID + '/frames/' + frameNo +
 				'/eval?expr=' + encodeURIComponent(expr),

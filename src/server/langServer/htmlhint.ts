@@ -7,7 +7,7 @@ export interface Verifier {
 }
 
 export interface Error {
-	type: string,
+	type: 'warn' | 'error' | 'info' | 'hint',
 	message: string,
 	raw: string,
 	evidence: string,

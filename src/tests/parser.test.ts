@@ -12,9 +12,19 @@ suite('HTML Parser', () => {
 	function toJSON(node: Node): any {
 		return { tag: node.tag, start: node.start, end: node.end, endTagStart: node.endTagStart, closed: node.closed, children: node.children.map(toJSON) };
 	}
-
-	function toJSONWithAttributes(node: Node) {
-		return { tag: node.tag, attributes: node.attributes, children: node.children.map(toJSONWithAttributes) };
+	interface IJSONWithAttributes {
+		tag?: string;
+		attributes?: {
+			[name: string]: string | null;
+		};
+		children: IJSONWithAttributes[]
+	}
+	function toJSONWithAttributes(node: Node) : IJSONWithAttributes {
+		return {
+			tag: node.tag,
+			attributes: node.attributes,
+			children: node.children.map(toJSONWithAttributes)
+		};
 	}
 
 	function assertDocument(input: string, expected: any) {

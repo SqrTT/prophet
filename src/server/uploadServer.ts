@@ -10,8 +10,8 @@ import { flatMap, delay, concat, tap, retryWhen } from 'rxjs/operators';
 const CONCURRENT_CARTRIDGES_UPLOADS: number = 4;
 const CONCURRENT_FILE_UPLOADS: number = 5;
 
-export function getWebDavClient(config: DavOptions, outputChannel: OutputChannel, rootDir: string): Observable<WebDav> {
-	return Observable.create(observer => {
+export function getWebDavClient(config: DavOptions, outputChannel: OutputChannel, rootDir: string) {
+	return new Observable<WebDav>(observer => {
 		const webdav = new WebDav({
 			hostname: config.hostname,
 			username: config.username,
@@ -19,7 +19,7 @@ export function getWebDavClient(config: DavOptions, outputChannel: OutputChannel
 			version: config['code-version'] || config.version,
 			root: rootDir
 		}, config.debug ?
-			(...msgs) => { outputChannel.appendLine(`${msgs.join(' ')}`); } :
+			(...msgs: string[]) => { outputChannel.appendLine(`${msgs.join(' ')}`); } :
 			() => {
 				// DO NOTHING
 			}
@@ -28,8 +28,8 @@ export function getWebDavClient(config: DavOptions, outputChannel: OutputChannel
 	});
 }
 
-function fileWatcher(config, cartRoot: string): Observable<['change' | 'delete' | 'create', string]> {
-	return Observable.create(observer => {
+function fileWatcher(config: { cartridge?: string[] }, cartRoot: string): Observable<['change' | 'delete' | 'create', string]> {
+	return new Observable<['change' | 'delete' | 'create', string]>((observer) => {
 		const watchers: FileSystemWatcher[] = [];
 		let cartridges: Promise<string[]>;
 
@@ -68,19 +68,19 @@ function fileWatcher(config, cartRoot: string): Observable<['change' | 'delete' 
 	});
 }
 
-function cleanPath(rootPath, filePath) {
+function cleanPath(rootPath: string, filePath: string) {
 	return filePath.replace(rootPath, '');
 }
 
 const uploadCartridges = (
 	webDav: WebDav,
 	outputChannel: OutputChannel,
-	config: ({ cartridge, ignoreList: Array<string> }),
+	config: ({ cartridge?: string[], ignoreList: Array<string> }),
 	cartRoot: string,
 	ask: (sb: string[], listc: string[]) => Promise<string[]>,
 	progress: Progress<{ message?: string, increment?: number }>
 ) => {
-	let cartridges: string[] = config.cartridge;
+	let cartridges: string[] = config.cartridge || [];
 	var count = 0;
 
 	const notify = (...msgs: string[]) => {
@@ -120,7 +120,7 @@ const uploadCartridges = (
 	});
 
 	notify('Cleanup code version...');
-	return webDav.cleanUpCodeVersion(notify, ask, config.cartridge)
+	return webDav.cleanUpCodeVersion(notify, ask, config.cartridge || [])
 		.pipe(
 			flatMap(() => merge(...toUpload, CONCURRENT_CARTRIDGES_UPLOADS))
 		).pipe(concat(of('')));
@@ -131,7 +131,7 @@ const uploadCartridges = (
 function uploadWithProgress(
 	webdav: WebDav,
 	outputChannel: OutputChannel,
-	config: ({ cartridge, version, cleanOnStart: boolean, ignoreList: Array<string> }),
+	config: ({ cartridge?: string[], version: string, cleanOnStart: boolean, ignoreList: Array<string> }),
 	rootDir: string,
 	ask: (sb: string[], listc: string[]) => Promise<string[]>
 ) {
@@ -220,7 +220,7 @@ function uploadWithProgress(
 function uploadAndWatch(
 	webdav: WebDav,
 	outputChannel: OutputChannel,
-	config: ({ cartridge, version, cleanOnStart: boolean, ignoreList: Array<string> }),
+	config: ({ cartridge?: string[], version: string, cleanOnStart: boolean, ignoreList: Array<string> }),
 	ask: (sb: string[], listc: string[]) => Promise<string[]>,
 	rootDir: string
 ) {
@@ -236,7 +236,7 @@ function uploadAndWatch(
 			return fileWatcher(config, rootDir)
 				.pipe(delay(400))// delay uploading file (allow finish writing for large files)
 				.pipe(flatMap(([action, fileName]) => {
-					const rootDir = dirname(config.cartridge.find(cartridge => fileName.startsWith(cartridge)) || '');
+					const rootDir = dirname((config.cartridge || []).find(cartridge => fileName.startsWith(cartridge)) || '');
 
 					return from(stat(fileName).catch(err => {
 						if (err.code === 'ENOENT') {
@@ -282,21 +282,21 @@ function uploadAndWatch(
 								.pipe(
 									delay(500),
 									retryWhen(function (errors) {
-									// retry for some errors, end the stream with an error for others
-									return errors.pipe(tap(function (e) {
-										if (e instanceof WebDav.WebDavError && e.statusCode === 401) {
-											throw e;
-										} else if (retryCounter < 3) {
-											outputChannel.appendLine(`Error: ${e}`);
-											outputChannel.appendLine(`Trying to re-upload file`);
-											retryCounter++;
-										} else {
-											throw e;
-										}
+										// retry for some errors, end the stream with an error for others
+										return errors.pipe(tap(function (e) {
+											if (e instanceof WebDav.WebDavError && e.statusCode === 401) {
+												throw e;
+											} else if (retryCounter < 3) {
+												outputChannel.appendLine(`Error: ${e}`);
+												outputChannel.appendLine(`Trying to re-upload file`);
+												retryCounter++;
+											} else {
+												throw e;
+											}
+										}));
+									})).pipe(tap(() => {
+										retryCounter = 0;
 									}));
-								})).pipe(tap(() => {
-									retryCounter = 0;
-								}));
 						}
 					} else if (action === 'delete') {
 						let retryCounter = 0;

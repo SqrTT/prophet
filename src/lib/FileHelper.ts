@@ -170,7 +170,7 @@ export function getDWConfig(workspaceFolders?: readonly WorkspaceFolder[]): Prom
  *
  * @param filePath
  */
-export function getConfig(filePath: string) {
+export function getConfig(filePath?: string) {
 	if (filePath) {
 		return readConfigFile(filePath).toPromise().then(config => {
 			if (config.password) {

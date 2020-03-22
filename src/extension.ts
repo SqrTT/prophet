@@ -78,7 +78,9 @@ function createIsmlLanguageServer(context: ExtensionContext, configuration: Work
 
 	ismlLanguageClient.onReady().then(() => {
 		ismlLanguageClient.onNotification('isml:selectfiles', async (test) => {
-			if (workspace.workspaceFolders) {
+			const data: string[] | undefined = test.data;
+
+			if (workspace.workspaceFolders && data) {
 				const orderedCartridges = await getOrderedCartridges(workspace.workspaceFolders);
 				const cartPath = orderedCartridges?.map(cartridge => cartridge.name).join(':');
 
@@ -86,10 +88,10 @@ function createIsmlLanguageServer(context: ExtensionContext, configuration: Work
 					const cartridges = cartPath.split(':');
 
 					const cartridge = cartridges.find(cartridgeItem =>
-						(test.data || []).some(filename => filename.includes(cartridgeItem)));
+						data.some(filename => filename.includes(cartridgeItem)));
 
 					if (cartridge) {
-						ismlLanguageClient.sendNotification('isml:selectedfile', test.data.find(
+						ismlLanguageClient.sendNotification('isml:selectedfile', data.find(
 							filename => filename.includes(cartridge)
 						));
 						return;
@@ -241,7 +243,7 @@ export function activate(context: ExtensionContext) {
 
 	context.subscriptions.push(createScriptLanguageServer(context).start());
 
-	const excludedMasks = workspace.getConfiguration('files', null).get<{}>('exclude') || {};
+	const excludedMasks: { [key: string]: boolean } = workspace.getConfiguration('files', null).get<{}>('exclude') || {};
 
 	const ignoreProjects = Object.keys(excludedMasks || {})
 		.some(excludedMask => excludedMask.includes('.project') && excludedMasks && excludedMasks[excludedMask]);

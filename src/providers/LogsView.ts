@@ -316,8 +316,6 @@ class LogStatus {
 }
 
 class LogItem extends TreeItem {
-	fileExtension: string;
-
 	constructor(
 		public readonly name: string,
 		public readonly type: string,

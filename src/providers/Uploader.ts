@@ -20,7 +20,7 @@ export default class Uploader {
 	private outputChannel: OutputChannel;
 	//private configuration;
 	private prevState;
-	private uploaderSubscription: Subscription | null;
+	private uploaderSubscription: Subscription | null = null;
 	private get cleanOnStart(): boolean {
 		if (firstClean) {
 			firstClean = false;

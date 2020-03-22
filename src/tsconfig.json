@@ -8,6 +8,7 @@
 		"sourceMap": true,
 		"outDir": "../out",
 		"noImplicitAny": false,
+		"strict": true,
 		"removeComments": false,
 		"preserveConstEnums": true,
 		"strictNullChecks": true,

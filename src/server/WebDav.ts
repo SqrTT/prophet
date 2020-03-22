@@ -10,12 +10,16 @@ import * as request from 'request';
 import * as yazl from 'yazl';
 
 class WebDavError extends Error {
-	statusCode: number
+	statusCode: number;
+	constructor(...args: any[]) {
+		super(...args)
+		this.statusCode = 401;
+	}
 }
 
-function request$(options) {
+function request$(options: request.Options) {
 	return new Observable<string>(observer => {
-		var req;
+		var req: request.Request | undefined;
 
 		const body = options.body;
 		if (body && body instanceof ReadStream) {
@@ -61,10 +65,19 @@ export interface DavOptions {
 	username: string,
 	password: string,
 	version: string,
+	'code-version'?: string;
 	root: string,
 	debug?: boolean,
 	cartridgeResolution?: 'ask' | 'leave' | 'remove',
 	cartridgesPath?: string
+}
+
+interface WebDavOptions {
+	hostname: string,
+	username: string,
+	password: string,
+	version: string,
+	root: string
 }
 
 function getMatches(string: string, regex: RegExp, index = 1) {
@@ -82,10 +95,10 @@ const globalPool = {
 
 export default class WebDav {
 	static WebDavError = WebDavError;
-	config: DavOptions;
-	log: (...string) => any;
+	config: WebDavOptions;
+	log: (...str: string[]) => any;
 	folder: string = 'Cartridges';
-	constructor(config, log = (() => { })) {
+	constructor(config: WebDavOptions, log = (() => { })) {
 		this.config = Object.assign({}, {
 			hostname: 'some.demandware.net',
 			username: 'username',
@@ -152,7 +165,7 @@ export default class WebDav {
 			this.log('post-response', uriPath, body);
 		}));
 	}
-	postStream(filePath: string, stream: ReadStream, root: string = this.config.root): Observable<string> {
+	postStream(filePath: string, stream: NodeJS.ReadableStream, root: string = this.config.root): Observable<string> {
 		const uriPath = relative(root, filePath);
 
 		this.log('post', uriPath);
@@ -243,7 +256,7 @@ export default class WebDav {
 	postAndUnzip(filePath: string) {
 		return this.post(filePath).pipe(flatMap(() => this.unzip(filePath)));
 	}
-	cleanUpCodeVersion(notify: (...string) => void, ask: (sb: string[], listc: string[]) => Promise<string[]>, list: string[]) {
+	cleanUpCodeVersion(notify: (...str: string[]) => void, ask: (sb: string[], listc: string[]) => Promise<string[]>, list: string[]) {
 		return this.dirList('/', '/').pipe(flatMap((res: string) => {
 			const matches = getMatches(res, /<displayname>(.+?)<\/displayname>/g);
 			const filteredPath = matches.filter(match => match && match !== this.config.version);
@@ -310,8 +323,8 @@ export default class WebDav {
 			}
 		});
 	}
-	deleteLocalFile(fileName): Observable<undefined> {
-		return Observable.create(observer => {
+	deleteLocalFile(fileName: string) {
+		return new Observable<undefined>(observer => {
 			let isCanceled = false;
 
 			unlink(fileName, err => {
@@ -323,7 +336,7 @@ export default class WebDav {
 			return () => { isCanceled = true }
 		});
 	}
-	zipFiles(pathToCartridgesDir, { ignoreList = [] as Array<string> }) {
+	zipFiles(pathToCartridgesDir: string, { ignoreList = [] as Array<string> }) {
 		return this.getFileList(pathToCartridgesDir, { ignoreList })
 			.pipe(reduce((zipFile, files) => {
 				if (files.length === 1) {
@@ -336,8 +349,11 @@ export default class WebDav {
 				return zipFile;
 			}, new yazl.ZipFile()))
 			.pipe(flatMap(
-				zipFile => new Observable<ReadStream>(observer => {
-					zipFile.once('error', err => observer.error(err));
+				zipFile => new Observable<NodeJS.ReadableStream>(observer => {
+					const zp = zipFile as any;
+					if (typeof zp.once === 'function') {
+						zp.once('error', (err: Error) => observer.error(err));
+					}
 
 					observer.next(zipFile.outputStream);
 
@@ -352,19 +368,19 @@ export default class WebDav {
 					zipFile.end();
 
 					return () => {
-						zipFile.outputStream.destroy();
+						zipFile.end();
 					}
 				})
 			));
 
 	}
 	uploadCartridge(
-		pathToCartridgesDir,
+		pathToCartridgesDir: string,
 		notify = (arg: string) => { },
 		{ ignoreList = [] as Array<string> }
 	) {
 
-		const processingFolder = pathToCartridgesDir.split(sep).pop();
+		const processingFolder = pathToCartridgesDir.split(sep).pop() || '';
 		const cartridgesZipFileName = join(pathToCartridgesDir, processingFolder + '_cartridge.zip');
 
 
@@ -441,10 +457,10 @@ export function readConfigFile(configFilename: string) {
 					fn(moduleIn, moduleIn.exports, window, workspace);
 
 					if (moduleIn.exports) {
-						Promise.resolve(moduleIn.exports).then((config: DavOptions) => {
+						Promise.resolve(moduleIn.exports as any).then((config: DavOptions) => {
 							observer.next({ ...config, configFilename: configFilename });
 							observer.complete();
-						}).catch(error => {
+						}).catch((error: Error) => {
 							observer.error('dw.js error:' + error);
 						})
 					} else {

@@ -52,7 +52,9 @@
         "@types/estree": "0.0.42",
         "@types/mocha": "^7.0.1",
         "@types/node": "^12.0.0",
-        "mocha": "^7.1.0",
+        "@types/request": "^2.48.4",
+        "@types/yazl": "^2.4.2",
+        "mocha": "^7.1.1",
         "ts-loader": "^6.2.1",
         "typescript": "^3.8.3",
         "vscode": "^1.1.36",
@@ -311,7 +313,7 @@
             {
                 "id": "dwscript",
                 "aliases": [
-                    "Demandware Script[Deprecated]",
+                    "DemandWare Script[Deprecated]",
                     "dwscript"
                 ],
                 "extensions": [

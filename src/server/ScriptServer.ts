@@ -231,7 +231,7 @@ connection.onInitialize((params): InitializeResult => {
 
 });
 
-function insertParents(ast) {
+function insertParents(ast: any) {
 	(function walk(node, parent) {
 		node.parent = parent;
 

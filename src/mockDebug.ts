@@ -36,14 +36,14 @@ export interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArgum
 
 class ProphetDebugSession extends LoggingDebugSession {
 
-	cartridgesList: string[];
+	cartridgesList?: string[];
 	// maps from sourceFile to array of Breakpoints
 	private _breakPoints = new Map<string, Array<number>>();
 	//private threadsArray = new Array<number>();
-	private connection: Connection;
-	private config: LaunchRequestArguments;
-	private threadsTimer: NodeJS.Timer;
-	private awaitThreadsTimer: NodeJS.Timer;
+	private connection?: Connection;
+	private config?: LaunchRequestArguments;
+	private threadsTimer?: NodeJS.Timer;
+	private awaitThreadsTimer?: NodeJS.Timer;
 	private isAwaitingThreads = false;
 	private _variableHandles = new Handles<IVariable[] | string>();
 	private pendingThreads = new Map<number, 'step' | 'breakpoint' | 'exception' | 'pause' | 'entry'>();
@@ -61,7 +61,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 		this.setDebuggerColumnsStartAt1(false);
 
 		process.once('uncaughtException', err => {
-			this.logError(err);
+			this.logError(`${err.name} \n ${err.message} \n ${err.stack}`);
 			this.shutdown();
 		})
 	}
@@ -147,7 +147,9 @@ class ProphetDebugSession extends LoggingDebugSession {
 			//this.log('gotData:' + JSON.stringify(options, null, '  '));
 
 			this.config = options.config;
-			this.config.codeversion = options.config.version;
+			if (this.config) {
+				this.config.codeversion = options.config.version;
+			}
 
 			this.cartridgesList = options.cartridges;
 
@@ -256,14 +258,14 @@ class ProphetDebugSession extends LoggingDebugSession {
 
 		// remove if unexist
 		const removeOld = scriptBrks.map(brkId => {
-			return this.connection
+			return this.connection && this.connection
 				.removeBreakpoints(brkId).catch(() => {
 					this.log('unable unset breakpoint. ignoring...');
 				});
 		});
 
 		Promise.all(removeOld).then(() => {
-			if (clientLines.length) {
+			if (clientLines.length && this.connection) {
 				this.connection
 					.createBreakpoints(clientLines.map(clientLine => ({
 						file: scriptPath,
@@ -271,14 +273,14 @@ class ProphetDebugSession extends LoggingDebugSession {
 					})))
 					.then(brks => {
 						// send back the actual breakpoint positions
-						this._breakPoints.set(path, brks.map(brk => brk.id));
+						this._breakPoints.set(path, brks.map(brk => Number(brk.id)));
 						response.body = {
 							breakpoints:
 								brks.filter(brk => brk.file === scriptPath)
 									.map(brk =>
 										new Breakpoint(
 											true,
-											this.convertDebuggerLineToClient(brk.line),
+											this.convertDebuggerLineToClient(Number(brk.line)),
 											undefined,
 											new Source(
 												brk.id + " - " + basename(scriptPath),
@@ -333,7 +335,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 	}
 	protected stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments): void {
 
-		this.connection.getStackTrace(args.threadId)
+		this.connection && this.connection.getStackTrace(args.threadId)
 			.then(stack => {
 
 				response.body = {
@@ -370,7 +372,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 		// scopes.push(new Scope("Closure", this._variableHandles.create("closure_" + frameReference), false));
 		// scopes.push(new Scope("Global", this._variableHandles.create("global_" + frameReference), true));
 
-		this.connection.getVariables(threadID, frameID).then((vars) => {
+		this.connection && this.connection.getVariables(threadID, frameID).then((vars) => {
 			const scopesMap = new Map<string, IVariable[]>();
 
 			vars.forEach(vr => {
@@ -410,7 +412,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 			const threadID = parseInt((frameReference / 100000) + '');
 			const frameID = frameReference - (threadID * 100000)
 
-			this.connection.getMembers(threadID, frameID, path)
+			this.connection && this.connection.getMembers(threadID, frameID, path)
 				.then(members => {
 
 					response.body = {
@@ -505,66 +507,94 @@ class ProphetDebugSession extends LoggingDebugSession {
 
 	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
 		response.body = { allThreadsContinued: false };
-		this.connection
-			.resume(args.threadId)
-			.then(this.handleDebugStep.bind(this))
-			.then(() => {
+		if (this.connection) {
+			this.connection
+				.resume(args.threadId)
+				.then(this.handleDebugStep.bind(this))
+				.then(() => {
 
-				this.sendResponse(response);
-			})
-			.catch((err) => {
-				response.success = false;
-				response.message = err;
-				this.sendResponse(response);
-				this.catchLog(err);
-			});
+					this.sendResponse(response);
+				})
+				.catch((err) => {
+					response.success = false;
+					response.message = err;
+					this.sendResponse(response);
+					this.catchLog(err);
+				});
+		} else {
+			response.success = false;
+			response.message = 'No connection';
+			this.sendResponse(response);
+		}
 	}
 
 	protected stepInRequest(response: DebugProtocol.StepInResponse, args: DebugProtocol.StepInArguments): void {
 		response.body = { allThreadsContinued: false };
-		this.connection
-			.stepInto(args.threadId)
-			.then(this.handleDebugStep.bind(this))
-			.then(() => {
-				this.sendResponse(response);
-			})
-			.catch((err) => {
-				response.success = false;
-				response.message = err;
-				this.sendResponse(response);
-				this.catchLog(err);
-			});
+
+		if (this.connection) {
+			this.connection
+				.stepInto(args.threadId)
+				.then(this.handleDebugStep.bind(this))
+				.then(() => {
+					this.sendResponse(response);
+				})
+				.catch((err) => {
+					response.success = false;
+					response.message = err;
+					this.sendResponse(response);
+					this.catchLog(err);
+				});
+		} else {
+			response.success = false;
+			response.message = 'No connection';
+			this.sendResponse(response);
+		}
+
 	}
 	protected stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments): void {
 		response.body = { allThreadsContinued: false };
-		this.connection
-			.stepOut(args.threadId)
-			.then(this.handleDebugStep.bind(this))
-			.then(() => {
-				this.sendResponse(response);
-			})
-			.catch((err) => {
-				response.success = false;
-				response.message = err;
-				this.sendResponse(response);
-				this.catchLog(err);
-			});
+
+		if (this.connection) {
+			this.connection
+				.stepOut(args.threadId)
+				.then(this.handleDebugStep.bind(this))
+				.then(() => {
+					this.sendResponse(response);
+				})
+				.catch((err) => {
+					response.success = false;
+					response.message = err;
+					this.sendResponse(response);
+					this.catchLog(err);
+				});
+		} else {
+			response.success = false;
+			response.message = 'No connection';
+			this.sendResponse(response);
+		}
 	}
 
 	protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
 		response.body = { allThreadsContinued: false };
-		this.connection
-			.stepOver(args.threadId)
-			.then(this.handleDebugStep.bind(this))
-			.then(() => {
-				this.sendResponse(response);
-			})
-			.catch((err) => {
-				response.success = false;
-				response.message = err;
-				this.sendResponse(response);
-				this.catchLog(err);
-			});
+
+		if (this.connection) {
+			this.connection
+				.stepOver(args.threadId)
+				.then(this.handleDebugStep.bind(this))
+				.then(() => {
+					this.sendResponse(response);
+				})
+				.catch((err) => {
+					response.success = false;
+					response.message = err;
+					this.sendResponse(response);
+					this.catchLog(err);
+				});
+		} else {
+			response.success = false;
+			response.message = 'No connection';
+			this.sendResponse(response);
+		}
 	}
 
 	protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {
@@ -576,7 +606,6 @@ class ProphetDebugSession extends LoggingDebugSession {
 		if (this.connection && args.frameId && threadID) {
 
 			if (args.context === 'watch') {
-
 
 				this.connection.getMembers(threadID, frameID, args.expression)
 					.then(res => {
@@ -661,7 +690,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 				result: '',
 				variablesReference: 0
 			};
-			// TODO: add aviability evaluate trought server's eval
+			// TODO: add availability evaluate troughs server's eval
 			this.logError('Unable evaluate without stopped thread')
 			this.sendResponse(response);
 		}
@@ -702,7 +731,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 
 	protected convertClientPathToDebugger(clientPath: string): string {
 
-		const cartPath = this.cartridgesList.find(cartridge => {
+		const cartPath = (this.cartridgesList || []).find(cartridge => {
 			if (process.platform === 'win32') {// windows way
 				return clientPath.toLocaleLowerCase().startsWith(cartridge.toLocaleLowerCase())
 			} else {
@@ -754,7 +783,7 @@ class ProphetDebugSession extends LoggingDebugSession {
 		const cartridgeName = debuggerSep.shift() || '';
 
 
-		const cartPath = this.cartridgesList.find(cartridge => basename(cartridge) === cartridgeName);
+		const cartPath = (this.cartridgesList || []).find(cartridge => basename(cartridge) === cartridgeName);
 
 		if (cartPath) {
 			const tmp = path.join(cartPath, debuggerSep.join(path.sep));
@@ -769,9 +798,13 @@ class ProphetDebugSession extends LoggingDebugSession {
 	startAwaitThreads() {
 		if (!this.isAwaitingThreads) {
 			this.threadsTimer = setInterval(() => {
-				this.connection.resetThreads().catch(err => {
-					this.logError(err + ' Please restart debugger')
-				})
+				if (this.connection) {
+					this.connection.resetThreads().catch(err => {
+						this.logError(err + ' Please restart debugger')
+					})
+				} else if (this.threadsTimer) {
+					clearInterval(this.threadsTimer);
+				}
 			}, 30000);
 			this.awaitThreadsTimer = setInterval(() => {
 				this.awaitThreads()
@@ -781,13 +814,17 @@ class ProphetDebugSession extends LoggingDebugSession {
 	}
 	stopAwaitThreads() {
 		if (this.isAwaitingThreads) {
-			clearInterval(this.awaitThreadsTimer);
-			clearInterval(this.threadsTimer);
+			if (this.awaitThreadsTimer) {
+				clearInterval(this.awaitThreadsTimer);
+			}
+			if (this.threadsTimer) {
+				clearInterval(this.threadsTimer);
+			}
 			this.isAwaitingThreads = false;
 		}
 	}
 	awaitThreads() {
-		if (this.isAwaitingThreads) {
+		if (this.isAwaitingThreads && this.connection) {
 			this.connection.getThreads()
 				.then(remoteThreads => {
 
@@ -817,12 +854,12 @@ class ProphetDebugSession extends LoggingDebugSession {
 				.catch(this.catchLog.bind(this));
 		}
 	}
-	private catchLog(err) {
+	private catchLog(err : Error) {
 		const e = new OutputEvent(`${err}\n ${err.stack}`);
 		//(<DebugProtocol.OutputEvent>e).body.variablesReference = this._variableHandles.create("args");
 		this.sendEvent(e);	// print current line on debug console
 	}
-	private logError(err) {
+	private logError(err: string) {
 		const e = new OutputEvent(err, 'stderr');
 		this.sendEvent(e);	// print current line on debug console
 	}

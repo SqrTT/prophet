@@ -91,7 +91,7 @@ export const getPathsCartridges = (workspaceFolder, packageFile): Promise<string
 						});
 
 						Promise.all(promises).then(result => {
-							resolve([].concat(result.concat.apply([], result)));
+							resolve(([] as string[]).concat(...result));
 						}, error => {
 							reject('Exception processing package paths: ' + error);
 						});

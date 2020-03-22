@@ -25,7 +25,8 @@ function getNodeText(node): string | undefined {
 }
 
 function ab2str(buf: Uint8Array) {
-	return String.fromCharCode.apply(null, new Uint16Array(buf));
+	const dec = new TextDecoder();
+	return  dec.decode(buf);
 }
 function str2ab(str: string) {
 	var buf = new ArrayBuffer(str.length); // 2 bytes for each char
