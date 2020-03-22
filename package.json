@@ -179,12 +179,22 @@
                     "command": "extension.prophet.command.override.template",
                     "when": "resourceLangId == isml",
                     "group": "1_modification"
+                },
+                {
+                    "command": "extension.prophet.command.override.script",
+                    "when": "resourceLangId == javascript",
+                    "group": "1_modification"
                 }
             ],
             "editor/context": [
                 {
                     "command": "extension.prophet.command.override.template",
                     "when": "resourceLangId == isml",
+                    "group": "1_modification"
+                },
+                {
+                    "command": "extension.prophet.command.override.script",
+                    "when": "resourceLangId == javascript",
                     "group": "1_modification"
                 }
             ]
@@ -193,6 +203,10 @@
             {
                 "command": "extension.prophet.command.override.template",
                 "title": "Override template in another cartridge..."
+            },
+            {
+                "command": "extension.prophet.command.override.script",
+                "title": "Override script in another cartridge..."
             },
             {
                 "command": "extension.prophet.command.controllers.find",

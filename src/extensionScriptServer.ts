@@ -1,8 +1,9 @@
 import { ExtensionContext, window, WorkspaceConfiguration, workspace, RelativePattern, Uri, commands, QuickPickItem, WorkspaceFolder } from "vscode";
 import { ServerOptions, TransportKind, LanguageClientOptions, LanguageClient } from "vscode-languageclient";
-import { join, sep, basename } from "path";
+import { join, sep, basename, dirname } from "path";
 import { findFiles, getDWConfig, readFile, getCartridgesFolder } from "./lib/FileHelper";
 import { reduce } from "rxjs/operators";
+import { promises, writeFile } from "fs";
 
 let isOrderedCartridgesWarnShown = false;
 export async function getOrderedCartridges(workspaceFolders: readonly WorkspaceFolder[]) {
@@ -91,6 +92,57 @@ export function createScriptLanguageServer(context: ExtensionContext, configurat
 			//fileEvents: workspace.createFileSystemWatcher('**/.htmlhintrc')
 		}
 	};
+
+	context.subscriptions.push(commands.registerCommand('extension.prophet.command.override.script', async (fileURI?: Uri) => {
+		if (workspace.workspaceFolders && fileURI && fileURI.scheme === 'file') {
+			const cartridges = await getOrderedCartridges(workspace.workspaceFolders);
+
+			if (cartridges && cartridges.length > 1) {
+				const fileSep = '/cartridge/'.split('/').join(sep);
+				const [, filePath] = fileURI.fsPath.split(fileSep);
+				const selected = await window.showQuickPick(cartridges.map(cartridge => cartridge.name));
+
+				if (selected) {
+					const selectedCartridge = cartridges.find(cartridge => cartridge.name === selected);
+
+					if (selectedCartridge && selectedCartridge.fsPath) {
+						const newDestPath = join(selectedCartridge.fsPath, 'cartridge', filePath);
+						await promises.mkdir(dirname(newDestPath), { recursive: true });
+
+						try {
+							await promises.access(newDestPath);
+							await commands.executeCommand('vscode.open', Uri.parse(newDestPath));
+						} catch (e) {
+							const fileContent = await promises.readFile(fileURI.fsPath);
+
+							if (fileContent.includes('server.exports')) {
+								await promises.writeFile(newDestPath,
+`var server = require('server');
+server.extend(module.superModule);
+
+
+
+module.exports = server.exports();
+`);
+								await commands.executeCommand('vscode.open', Uri.parse(newDestPath).with({ fragment: 'L4' }));
+
+							} else {
+								await promises.writeFile(newDestPath,
+`var base = module.superModule;
+
+
+
+module.exports = base;
+`);
+								await commands.executeCommand('vscode.open', Uri.parse(newDestPath).with({ fragment: 'L3' }));
+							}
+						}
+
+					}
+				}
+			}
+		}
+	}));
 
 	// Create the language client and start the client.
 	const scriptLanguageClient = new LanguageClient('dwScriptLanguageServer', 'Script Language Server', serverOptions, clientOptions);

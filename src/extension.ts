@@ -1,6 +1,6 @@
 
 'use strict';
-import { join, sep, basename, dirname } from 'path';
+import { join, sep, dirname } from 'path';
 import { setExtensionPath } from './providers/extensionPath'
 import { workspace, ExtensionContext, commands, window, Uri, WorkspaceConfiguration, debug, WorkspaceFolder, RelativePattern } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
