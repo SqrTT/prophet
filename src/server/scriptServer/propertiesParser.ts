@@ -52,7 +52,7 @@ class Scanner {
 	getNextRecord() {
 		this.skipWhitespace();
 		if (!this.eos()) {
-			if (this.content.charCodeAt(this.position) === COM) {
+			while (this.content.charCodeAt(this.position) === COM) {
 				// skip code till the end
 				this.advanceUntilChar(NWL);
 				this.skipWhitespace();

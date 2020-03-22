@@ -88,7 +88,7 @@ interface IPropertyRecord {
 	},
 	value: string
 }
-interface IProperty{
+interface IProperty {
 	name: string;
 	linesCount: number;
 	fsPath: string,
@@ -102,8 +102,8 @@ interface ICartridgeProperties {
 
 const cartridges = new Set<ICartridge>();
 const templates = new Set<ICartridge>()
-const controllers : ICartridgeControllers[] = [];
-const cartridgesProperties : ICartridgeProperties[] = []
+const controllers: ICartridgeControllers[] = [];
+const cartridgesProperties: ICartridgeProperties[] = []
 
 const zeroRange = Object.freeze({
 	start: {
@@ -394,6 +394,51 @@ const completionsList: ((activeNode: any, offset: number, cartridgeName: string)
 		};
 		return [];
 	},
+	function (activeNode, offset, cartridgeName) {
+		if (
+			activeNode?.type === 'CallExpression' &&
+			activeNode?.callee?.type === 'MemberExpression' &&
+			activeNode?.callee?.object?.name === 'Resource' &&
+			['msgf', 'msg'].includes(activeNode?.callee?.property?.name) &&
+			!activeNode.arguments.length
+		) {
+			const messagesList = getMessagesList();
+			return Array.from(messagesList.values()).map(message => {
+				return {
+					label: message.label,
+					kind: CompletionItemKind.Field,
+					value: message.fullValue,
+					range: [offset, offset],
+					insertTextFormat: InsertTextFormat.PlainText
+				}
+			})
+		};
+		return [];
+	},
+	function (activeNode, offset, cartridgeName) {
+		if (
+			activeNode?.type === 'Literal' &&
+			activeNode?.parent?.type === 'CallExpression' &&
+			activeNode?.parent?.callee?.type === 'MemberExpression' &&
+			activeNode?.parent?.callee?.object?.name === 'Resource' &&
+			['msgf', 'msg'].includes(activeNode?.parent?.callee?.property?.name) &&
+			activeNode?.parent?.arguments.length > 1 &&
+			activeNode?.parent?.arguments[1].value &&
+			activeNode === activeNode?.parent?.arguments[0]
+		) {
+			const messagesList = getMessagesList(activeNode.parent.arguments[1].value);
+			return Array.from(messagesList.values()).map(message => {
+				return {
+					label: message.label,
+					kind: CompletionItemKind.Field,
+					value: message.value,
+					range: [activeNode.start + 1, activeNode.end - 1],
+					insertTextFormat: InsertTextFormat.PlainText
+				}
+			})
+		};
+		return [];
+	}
 ]
 
 async function completion(content: string, offset: number, cancelToken: CancellationToken, reqTime: number, activeCartridge: ICartridge) {
@@ -593,7 +638,7 @@ connection.onNotification('cartridges.properties.modification', async ({ action,
 				const fileContent = await promises.readFile(fileName, 'utf8');
 				if (fileContent) {
 					const records = parse(fileContent);
-					const property : IProperty = {
+					const property: IProperty = {
 						fsPath: uri,
 						name: template,
 						linesCount: getLineOffsets(fileContent).length,
@@ -632,7 +677,7 @@ connection.onNotification('cartridges.properties', async ({ list }) => {
 					const fileContent = await promises.readFile(fileName, 'utf8');
 					if (fileContent) {
 						const records = parse(fileContent);
-						const property : IProperty = {
+						const property: IProperty = {
 							fsPath: file.fsPath,
 							name: file.name,
 							linesCount: getLineOffsets(fileContent).length,
@@ -761,6 +806,30 @@ function getEndpointsMap() {
 		});
 	});
 	return endpoints;
+}
+
+function getMessagesList(file?: string) {
+	const messages = new Map<string, { label: string, fullValue: string; value: string }>();
+
+	cartridgesProperties.forEach(cartridge => {
+		cartridge.properties.forEach(propertyFile => {
+			if (!file || file === propertyFile.name) {
+				Array.from(propertyFile.records.keys()).forEach(name => {
+					const key = name + ' [' + propertyFile.name + ']';
+
+					if (!messages.has(key)) {
+						messages.set(key, {
+							label: key,
+							fullValue: `'${name}', '${propertyFile.name}', null`,
+							value: name
+						});
+					}
+				});
+			}
+		});
+	});
+
+	return messages;
 }
 
 interface IGoTo {
