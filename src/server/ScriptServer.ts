@@ -315,8 +315,12 @@ const completionsList: ((activeNode: any, offset: number, cartridgeName: string)
 			activeNode?.type === 'Literal' &&
 			activeNode?.parent?.type === 'CallExpression' &&
 			activeNode?.parent?.callee?.type === 'MemberExpression' &&
-			activeNode?.parent?.callee?.object?.name === 'res' &&
-			activeNode?.parent?.callee?.property?.name === 'render'
+			(
+				(activeNode.parent?.callee?.object?.name === 'res' &&
+					activeNode.parent?.callee?.property?.name === 'render')
+				|| (activeNode.parent?.callee?.object?.name === 'ISML' &&
+					activeNode.parent?.callee?.property?.name === 'renderTemplate')
+			)
 		) {
 
 			return Array.from(getTemplatesList().keys()).map(template => {
@@ -335,8 +339,12 @@ const completionsList: ((activeNode: any, offset: number, cartridgeName: string)
 		if (
 			activeNode?.type === 'CallExpression' &&
 			activeNode?.callee?.type === 'MemberExpression' &&
-			activeNode?.callee?.object.name === 'res' &&
-			activeNode?.callee?.property?.name === 'render' &&
+			(
+				(activeNode?.callee?.object?.name === 'res' &&
+					activeNode?.callee?.property?.name === 'render')
+				|| (activeNode?.callee?.object?.name === 'ISML' &&
+					activeNode?.callee?.property?.name === 'renderTemplate')
+			) &&
 			!activeNode.arguments.length
 		) {
 			return Array.from(getTemplatesList().keys()).map(template => {
@@ -1008,8 +1016,12 @@ async function gotoLocation(content: string, offset: number, cancelToken: Cancel
 			activeNode.value &&
 			activeNode.parent?.type === 'CallExpression' &&
 			activeNode.parent?.callee?.type === 'MemberExpression' &&
-			activeNode.parent?.callee?.object?.name === 'res' &&
-			activeNode.parent?.callee?.property?.name === 'render'
+			(
+				(activeNode.parent?.callee?.object?.name === 'res' &&
+					activeNode.parent?.callee?.property?.name === 'render')
+				|| (activeNode.parent?.callee?.object?.name === 'ISML' &&
+					activeNode.parent?.callee?.property?.name === 'renderTemplate')
+			)
 		) {
 			const value = activeNode.value.replace('.isml', '').replace(/^\//, '');
 
