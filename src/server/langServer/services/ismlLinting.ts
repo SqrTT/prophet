@@ -519,8 +519,8 @@ const customRules: IRules[] = [{
 		var self = this;
 
 		parser.addListener('text', event => {
-			const str: string = event.raw.trim();
-			if (str.length && (!str.startsWith('${') && !str.startsWith('___'))) {// non empty text
+			const str: string = event.raw.trimLeft();
+			if (str.length && (!str.startsWith('${') && !str.startsWith('___') && !str.startsWith('{{'))) {// non empty text
 				if (event.lastEvent && ['isscript', 'iscomment'].includes(event.lastEvent.tagName)) {
 					return;
 				}
