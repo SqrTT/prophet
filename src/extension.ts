@@ -93,7 +93,7 @@ function createIsmlLanguageServer(context: ExtensionContext, configuration: Work
 							await promises.copyFile(fileURI.fsPath, newDestPath);
 						}
 
-						await commands.executeCommand('vscode.open', Uri.parse(newDestPath));
+						await commands.executeCommand('vscode.open', Uri.file(newDestPath));
 					}
 				}
 			}
@@ -352,14 +352,14 @@ interface IServerRequest {
 
 
 function initializeToolkitActions() {
-	return new Observable<IServerRequest>(observeer => {
-		const server = createServer((req, res) => { observeer.next({ req, res }) });
+	return new Observable<IServerRequest>(observer => {
+		const server = createServer((req, res) => { observer.next({ req, res }) });
 		server.once('error', err => {
 			if (err instanceof Error) {
 				window.showWarningMessage(`Unable open port for browsers files, probably other instance or Digital Studio is opened. Error: ${err.message}`);
 				server.close();
 			}
-			observeer.error(err);
+			observer.error(err);
 		});
 
 		server.listen(60606);

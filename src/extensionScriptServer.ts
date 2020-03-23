@@ -124,7 +124,7 @@ server.extend(module.superModule);
 
 module.exports = server.exports();
 `);
-								await commands.executeCommand('vscode.open', Uri.parse(newDestPath).with({ fragment: 'L4' }));
+								await commands.executeCommand('vscode.open', Uri.file(newDestPath).with({ fragment: 'L4' }));
 
 							} else {
 								await promises.writeFile(newDestPath,
@@ -134,7 +134,7 @@ module.exports = server.exports();
 
 module.exports = base;
 `);
-								await commands.executeCommand('vscode.open', Uri.parse(newDestPath).with({ fragment: 'L3' }));
+								await commands.executeCommand('vscode.open', Uri.file(newDestPath).with({ fragment: 'L3' }));
 							}
 						}
 
