@@ -508,6 +508,34 @@ connection.onNotification('cartridges.templates', ({ list }) => {
 function getControllerEndpoints(ast, content: string) {
 	const result: IEndpoint[] = [];
 	acornWalk.simple(ast, {
+		AssignmentExpression: (node) => {
+			const activeNode: any = node;
+
+			if (
+				activeNode &&
+				activeNode.type === 'AssignmentExpression' &&
+				activeNode?.left?.type === 'MemberExpression' &&
+				activeNode?.right?.type === 'CallExpression' &&
+				activeNode?.right?.callee?.type === 'MemberExpression' &&
+				activeNode?.right?.callee?.object?.name === 'guard' &&
+				activeNode?.right?.callee?.property?.name === 'ensure' &&
+				activeNode?.right?.arguments[0]?.type === 'ArrayExpression' &&
+				activeNode?.right?.arguments[0]?.elements
+			) {
+				const elements = activeNode.right.arguments[0].elements;
+
+				result.push({
+					name: activeNode.left.property.name,
+					mode: elements.map(element => element.value).join(' : '),
+					start: activeNode.left.property.start,
+					end: activeNode.left.property.end,
+					startPosition: positionAt(activeNode.left.property.start, content),
+					endPosition: positionAt(activeNode.left.property.end, content),
+					startShow: positionAt(activeNode.start, content),
+					endShow: positionAt(activeNode.end, content),
+				});
+			}
+		},
 		CallExpression: (node, state) => {
 			const activeNode: any = node;
 			if (
