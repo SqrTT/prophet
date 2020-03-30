@@ -682,9 +682,12 @@ function replaceSystemPlaceholders(str: string) {
 	let currentPos = -1;
 	while ((currentPos = str.indexOf('${', currentPos + 1)) !== -1) {
 		const closingTag = str.indexOf('}', currentPos);
-		const content = str.substr(currentPos, closingTag - currentPos + 1);
-		str = str.substr(0, currentPos) + content.replace(/[^\n^\r]/ig, '_') + str.substr(closingTag + 1);
-		currentPos = -1; // reset pos since content may shift
+
+		if (closingTag > -1) {
+			const content = str.substr(currentPos, closingTag - currentPos + 1);
+			str = str.substr(0, currentPos) + content.replace(/[^\n^\r]/ig, '_') + str.substr(closingTag + 1);
+			currentPos = -1; // reset pos since content may shift
+		}
 	};
 	return str;
 }
