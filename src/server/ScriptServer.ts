@@ -259,7 +259,7 @@ interface ICompetitions {
 	insertTextFormat: 1;
 }
 
-const completionsList: ((activeNode: any, offset: number, cartridgeName: string) => ICompetitions[])[] = [
+const completionsList: ((activeNode: any, offset: number, cartridgeName: string, fsPath: string) => ICompetitions[])[] = [
 	function (activeNode, offset, cartridgeName) {
 		if (
 			activeNode &&
@@ -381,6 +381,59 @@ const completionsList: ((activeNode: any, offset: number, cartridgeName: string)
 		};
 		return [];
 	},
+	function (activeNode, offset, cartridgeName, fsPath) {
+		if (
+			activeNode?.type === 'Literal' &&
+			activeNode?.parent?.type === 'CallExpression' &&
+			activeNode?.parent?.callee?.type === 'MemberExpression' &&
+			activeNode?.parent?.callee?.object?.name === 'server' &&
+			['append', 'prepend', 'replace'].includes(activeNode?.parent?.callee?.property?.name)
+		) {
+			const controllerName = basename(fsPath, '.js');
+			if (controllerName) {
+				const endpoints = getEndpointsMap();
+				return Object.keys(endpoints)
+					.filter(endpointName => endpointName.startsWith(controllerName + '-'))
+					.map(endpointName => {
+						return {
+							label: endpointName.replace(controllerName + '-', ''),
+							kind: CompletionItemKind.Value,
+							value: endpointName.replace(controllerName + '-', ''),
+							range: [activeNode.start + 1, activeNode.end - 1],
+							insertTextFormat: InsertTextFormat.PlainText
+						}
+					})
+			}
+		};
+		return [];
+	},
+	function (activeNode, offset, cartridgeName, fsPath) {
+		if (
+			activeNode?.type === 'CallExpression' &&
+			activeNode?.callee?.type === 'MemberExpression' &&
+			activeNode?.callee?.object?.name === 'server' &&
+			['append', 'prepend', 'replace'].includes(activeNode?.callee?.property?.name) &&
+			!activeNode.arguments.length
+		) {
+			const controllerName = basename(fsPath, '.js');
+			if (controllerName) {
+				const controllerPrefix = controllerName + '-';
+				const endpoints = getEndpointsMap();
+				return Object.keys(endpoints)
+					.filter(endpointName => endpointName.startsWith(controllerPrefix))
+					.map(endpointName => {
+						return {
+							label: endpointName.replace(controllerPrefix, ''),
+							kind: CompletionItemKind.Value,
+							value: `'${endpointName.replace(controllerPrefix, '')}'`,
+							range: [offset, offset],
+							insertTextFormat: InsertTextFormat.PlainText
+						}
+					})
+			}
+		};
+		return [];
+	},
 	function (activeNode, offset, cartridgeName) {
 		if (
 			activeNode?.type === 'CallExpression' &&
@@ -449,7 +502,7 @@ const completionsList: ((activeNode: any, offset: number, cartridgeName: string)
 	}
 ]
 
-async function completion(content: string, offset: number, cancelToken: CancellationToken, reqTime: number, activeCartridge: ICartridge) {
+async function completion(content: string, offset: number, cancelToken: CancellationToken, reqTime: number, activeCartridge: ICartridge, fsPath: string) {
 	const ast = await acornLoose.parse(content, { ecmaVersion: 5 });
 	if (cancelToken.isCancellationRequested) {
 		console.log('Canceled completion request');
@@ -461,7 +514,7 @@ async function completion(content: string, offset: number, cancelToken: Cancella
 		insertParents(ast);
 
 		const completions = completionsList.reduce((acc, completionFn) => {
-			const res = completionFn(activeNode, offset, activeCartridge.name)
+			const res = completionFn(activeNode, offset, activeCartridge.name, fsPath)
 			if (res) {
 				return acc.concat(res);
 			} else {
@@ -758,7 +811,7 @@ connection.onCompletion(async (params, cancelToken) => {
 
 	if (document.languageId === 'javascript' && activeCartridge) {
 
-		const completions = await completion(document.getText(), offset, cancelToken, reqTime, activeCartridge);
+		const completions = await completion(document.getText(), offset, cancelToken, reqTime, activeCartridge, uri.fsPath);
 
 		if (!cancelToken.isCancellationRequested && completions?.length) {
 
@@ -790,7 +843,7 @@ connection.onCompletion(async (params, cancelToken) => {
 					const scriptOffset = openingSymbol + 2;
 					const scriptContent = content.substring(scriptOffset, endSymbol);
 
-					const completions = await completion(scriptContent, offset - scriptOffset, cancelToken, reqTime, activeCartridge);
+					const completions = await completion(scriptContent, offset - scriptOffset, cancelToken, reqTime, activeCartridge, uri.fsPath);
 
 					if (!cancelToken.isCancellationRequested && completions?.length) {
 						const list: CompletionList = {
@@ -819,8 +872,20 @@ connection.onCompletion(async (params, cancelToken) => {
 	}
 });
 
+interface IEndpointsMapEntry {
+	fsPath: string,
+	start: number,
+	end: number,
+	mode: IEndpoint['mode'],
+	cartridgeName: string,
+	startPosition: IEndpoint['startPosition'],
+	endPosition: IEndpoint['endPosition'],
+	endShow: IEndpoint['endShow'],
+	startShow: IEndpoint['startShow']
+}
+
 function getEndpointsMap() {
-	const endpoints = {};
+	const endpoints: ({ [key: string]: IEndpointsMapEntry }) = {};
 	controllers.forEach(cartridgeControllers => {
 		cartridgeControllers.controllers.forEach(controller => {
 			controller.endpoints.forEach(endpoint => {
