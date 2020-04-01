@@ -12,6 +12,7 @@ A VS Code extension to work with Demandware/Salesforce Cloud code on Sandbox tha
   * auto formatting
   * find Symbols
   * highlighting selected tags
+  * rename tag (via F2)
 * Setting breakpoints
 * Stepping
 * Change variables values in running threads
@@ -19,14 +20,21 @@ A VS Code extension to work with Demandware/Salesforce Cloud code on Sandbox tha
 * View variables on hover
 * Variable watches
 * Console/evaluate code
-* Open files trought Storefront Toolkit
+* Open files trough Storefront Toolkit
 * Quick open `isinclude` templates and custom tags via Ctrl+Click (as links)
 * Cartridges overview in explorer
 * Server logs viewer with syntax highlight
 * [Multi-root Workspaces](https://code.visualstudio.com/docs/editor/multi-root-workspaces) (allows to work with different repo in same time).
+* Override template and JS file in another cartridge (via context menu).
+* enhanced autocompletion and goto for `Resource.msg/msgf` (js files and isml)
+* autocompletion and goto for `URLUtils.url/http/https/abs` (js files and isml)
+* Added autocompletion for `server.append/prepend/replace`
+* autocompletion for `require('dw/')`
+* autocompletion and goto for `require('~/...')` & `require('*/...')` (correct resolving based on cartridge path)
+* autocompletion and goto for `res.render` & `isinclude` & `isdecorate` & `ismodule` (`template=""` attribute) (correct resolving based on cartridge path)
+* quick find controllers (via Ctrl-F7)
 
 > WARNING: Some users had reported that debugger completely halts sandbox. Currently, this issue is not fixed and no known steps to reproduce. If you have some info about it please share. So please, before debugger usage make sure that you have availability to restart sandbox for the case if extension halts yours.
-
 
 
 ## Getting Started
@@ -64,16 +72,6 @@ Example `launch.json` configs with `"request": "launch"`. You must not specify h
 
 ## Using the uploader
 
-Configuration for uploader should be in the `cartridges` folder in a file named `dw.json` or `dw.js` (similar is used by `dwupload` and is compatible witn the uploader).
-
-```
-├── bc_library
-├── bm_integrationframework
-├── dw.json
-├── jsconfig.json
-└── modules
-```
-
 Example of file:
 ```json
 {
@@ -81,6 +79,7 @@ Example of file:
     "username": "user",
     "password": "password",
     "cartridge": ["cartridgeA", "cartridgeB"],// optional
+    "cartridgePath": "cartridgeA:cartridgeB",// optional
     "code-version": "version2"
 }
 ```
@@ -151,9 +150,9 @@ var product = someMethod();
 // arguments types
 
 /**
-/ @param {dw.util.Iterator.<dw.catalog.Product>} products
+/ @param {dw.util.Iterator<dw.catalog.Product>} products
 / @param {dw.order.Basket} basket
-/ @returns {Array.<dw.catalog.Product>}
+/ @returns {Array<dw.catalog.Product>}
 /*
 function doSomething(product, basket) {
 ...
@@ -184,7 +183,7 @@ There are many ways to contribute to Prophet.
 
 #### Pull requests
 
-If you have made or wish to make some features/fixes, please, make a fork of this repo, do your changes, and send your pull request to this repo into `develop` branch. After review it will be merged to `develop`, and during some time it will be available in `master` and extension itself. Before making pull request, please, make that it doesn't break anything. (currently there no tests, so test that covers current functionality are welcomed)
+If you have made or wish to make some features/fixes, please, make a fork of this repo, do your changes, and send your pull request to this repo into `master` branch. After review it will be merged to `master` and during some time it will be available in extension itself. Before making pull request, please, make that it doesn't break anything. (currently there no tests, so test that covers current functionality are welcomed)
 
 
 

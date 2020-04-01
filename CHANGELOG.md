@@ -1,3 +1,15 @@
+### 1.3.0
+
+* [add] Override template and JS file in another cartridge (via context menu).
+* [add] enhanced autocompletion and goto for `Resource.msg/msgf` (js files and isml)
+* [add] rename tag in isml file (via F2)
+* [add] autocompletion and goto for `URLUtils.url/http/https/abs` (js files and isml)
+* [add] Added autocompletion for `server.append/prepend/replace`
+* [add] autocompletion for `require('dw/')`
+* [add] autocompletion and goto for `require('~/...')` & `require('*/...')` (correct resolving based on cartridge path)
+* [add] autocompletion and goto for `res.render` & `isinclude` & `isdecorate` & `ismodule` (`template=""` attribute) (correct resolving based on cartridge path)
+* [add] quick find controllers (via Ctrl-F7)
+
 ### 1.2.7
  * allow to use credentials in `dw.js` file (thanks to [Martin Kalábek](https://github.com/Eneris))
  * Sync dw.json on LogsView update (thanks to [challmannsf](https://github.com/challmannsf))
@@ -7,20 +19,20 @@
  * Controllers list view
 
 ### 1.0.18
- * fix expandable variables in watcher
- * add htmlhint option to disable/enable
- * add configuration of isml linter based on `.htmlhintrc`
- * fix activate extension once first cartridge may be created
+ * [add] htmlhint option to disable/enable
+ * [add] configuration of isml linter based on `.htmlhintrc`
+ * [fix] activate extension once first cartridge may be created
+ * [fix] expandable variables in watcher
 
 ### 1.0.17
- * fix issue with indentation and closing isbreak
+ * [fix] issue with indentation and closing isbreak
 
 ### 1.0.16
-* added htmlhing for linting isml
-* fix issue with incorrect formating multiline plecaholders
+* [add] htmlhing for linting isml
+* [fix] issue with incorrect formating multiline plecaholders
 
 ### 1.0.15
-* improve isml formatter - formats `isscript` tags and placeholders (`${ }`)
+* [add] improve isml formatter - formats `isscript` tags and placeholders (`${ }`)
 
 ### 1.0.13
 * trim path output (thanks to [khaitu](https://github.com/khaitu))
@@ -28,41 +40,41 @@
 
 ### 1.0.11
 
-* add prophet icon on activity bar
-* add time on log list
-* fix issue when debugger detects wrong cartridges based on .project
+* [add] prophet icon on activity bar
+* [add] time on log list
+* [fix] issue when debugger detects wrong cartridges based on .project
 
 
 ### 1.0.10
 
-* fix wrong type detection (now allows expand JS classes instance) #108
+* [fix] wrong type detection (now allows expand JS classes instance) #108
 
 ### 1.0.9
 
-* `dw.json` `password` field may be omitted, it will be asked for user when needed
+* [add] `dw.json` `password` field may be omitted, it will be asked for user when needed
 
 ### 1.0.8
 
-* fix debuggers hung up in case when thread doesn't stop immediately after start (i.e. breakpoint is set after long running operation or service call) #92
-* add upload notification popup
+* [add] upload notification popup
+* [fix] debuggers hung up in case when thread doesn't stop immediately after start (i.e. breakpoint is set after long running operation or service call) #92
 
 ### 1.0.7
 
-* fix pagination issue, now UI shows all properties instead of first 200;
+* [fix] pagination issue, now UI shows all properties instead of first 200;
 
 ### 1.0.4
 
-* fix issue with watching files on windows (windows emits change event for directory if file is created/removed and the extension tried upload folder in file manner)
+* [fix] issue with watching files on windows (windows emits change event for directory if file is created/removed and the extension tried upload folder in file manner)
 
 ### 1.0.1
 
-* add `extension.prophet.ignore.list` for ignoring files/folders during clean
-* fix `findFile` in windows (custom tags and includes)
+* [add] `extension.prophet.ignore.list` for ignoring files/folders during clean
+* [fix] `findFile` in windows (custom tags and includes)
 
 
 ### 1.0.0
-* Multi-root Workspaces
-* changed cartridge detection logic and debugger configuration
+* [add] Multi-root Workspaces
+* [add] changed cartridge detection logic and debugger configuration
 
 ### 0.10.3
 
@@ -72,23 +84,23 @@
 
 ### 0.10.0
 
-* Add support of SDAPI v2
-* Add availability to filter log files (thanks to [Lacho Tomov](https://github.com/ltomov))
+* [add] support of SDAPI v2
+* [add] availability to filter log files (thanks to [Lacho Tomov](https://github.com/ltomov))
 
 
 ### 0.9.0
 
-* Add log viewer
+* [add] log viewer
 
 ### 0.8.0
 
-* Add cartridges overview in explorer. Thanks to [Thomas Theunen](https://github.com/taurgis) Can be enabled/disabled by `extension.prophet.cartridges.view.enabled` (enabled by default)
+* [add] cartridges overview in explorer. Thanks to [Thomas Theunen](https://github.com/taurgis) Can be enabled/disabled by `extension.prophet.cartridges.view.enabled` (enabled by default)
 * improved symbol navigation
 
 
 ### 0.7.0
 
-* fix upload specified cartridges
+* [fix] upload specified cartridges
 * Advanced support of ISML syntax
 * * Hover information
 * * autocomplete tags
@@ -98,9 +110,9 @@
 
 ### 0.6.3
 
-* Add quick open for custom tags
-* Add `extension.prophet.cartridges.path` property that allows quick open don't ask a user to choose the file.
-* Add `extension.prophet.ismlServer.activateOn` property that allow activate isml server for non standard (isml) files, ex. `html`
+* [add] quick open for custom tags
+* [add] `extension.prophet.cartridges.path` property that allows quick open don't ask a user to choose the file.
+* [add] `extension.prophet.ismlServer.activateOn` property that allow activate isml server for non standard (isml) files, ex. `html`
 * small refactoring of uploader (not need reload the whole editor for applying settings from `dw.json`)
 
 

@@ -419,13 +419,14 @@ const completionsList: ((activeNode: any, offset: number, cartridgeName: string,
 			if (controllerName) {
 				const controllerPrefix = controllerName + '-';
 				const endpoints = getEndpointsMap();
+				const reqResNext = ', function (req, res, next) {\nnext();\n}';
 				return Object.keys(endpoints)
 					.filter(endpointName => endpointName.startsWith(controllerPrefix))
 					.map(endpointName => {
 						return {
 							label: endpointName.replace(controllerPrefix, ''),
 							kind: CompletionItemKind.Value,
-							value: `'${endpointName.replace(controllerPrefix, '')}'`,
+							value: `'${endpointName.replace(controllerPrefix, '')}'${reqResNext}`,
 							range: [offset, offset],
 							insertTextFormat: InsertTextFormat.PlainText
 						}
