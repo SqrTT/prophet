@@ -1,3 +1,8 @@
+### 1.3.1
+* [add] add diagnostics to prohibit use `const` and `let` (since they have non-standard implementation)
+* [add] add diagnostics to prohibit use globally required custom modules. (to avoid significantly performance degradation)
+* [fix] indexing files outside cartridge directory
+
 ### 1.3.0
 
 * [add] Override template and JS file in another cartridge (via context menu).

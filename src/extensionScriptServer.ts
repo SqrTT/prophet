@@ -1,9 +1,9 @@
 import { ExtensionContext, window, WorkspaceConfiguration, workspace, RelativePattern, Uri, commands, QuickPickItem, WorkspaceFolder } from "vscode";
 import { ServerOptions, TransportKind, LanguageClientOptions, LanguageClient } from "vscode-languageclient";
-import { join, sep, basename, dirname } from "path";
+import { join, sep, basename, dirname, normalize } from "path";
 import { findFiles, getDWConfig, readFile, getCartridgesFolder } from "./lib/FileHelper";
 import { reduce } from "rxjs/operators";
-import { promises } from "fs";
+import { promises, readFileSync } from "fs";
 
 let isOrderedCartridgesWarnShown = false;
 export async function getOrderedCartridges(workspaceFolders: readonly WorkspaceFolder[]) {
@@ -156,18 +156,55 @@ module.exports = base;
 			if (orderedCartridges && orderedCartridges.length) {
 				const orderedCartridgesWithFiles = await Promise.all(orderedCartridges.map(async cartridge => {
 					if (cartridge.fsPath) {
-						const files = await findFiles(new RelativePattern(cartridge.fsPath, '**/{scripts,controllers,models}/**/*.js'))
-							.pipe(reduce((acc, val) => {
-								return acc.concat(val);
-							}, [] as Uri[])).toPromise();
+						const files = await workspace.findFiles(
+							new RelativePattern(cartridge.fsPath, '**/*.{js,json}'),
+							new RelativePattern(cartridge.fsPath, '**/{controllers,node_modules,client,js,default,static}/**/*.{js,json}')
+						);
+
+						const filesToSend = files.map(file => ({
+							path: file.fsPath.replace(cartridge.fsPath || '', '').split(sep).join('/'),
+							fsPath: Uri.file(file.fsPath).toString()
+						}))
+
+						files.forEach(file => {
+							const fileName = basename(file.fsPath);
+							if (fileName === 'main.js') {
+								filesToSend.push({
+									path: dirname(file.fsPath).replace(cartridge.fsPath || '', '').split(sep).join('/'),
+									fsPath: Uri.file(file.fsPath).toString()
+								});
+							} else if (fileName === 'package.json') {
+								try {
+									const fileContent = readFileSync(file.fsPath);
+									const packageJsonContent = JSON.parse(fileContent.toString());
+									const main = packageJsonContent.main as string;
+									if (main && typeof main === 'string') {
+										const mainPath = main.split('/').join(sep);
+										const dir = dirname(file.fsPath);
+										const normalizedFullPath = normalize(join(dir, mainPath));
+
+										const fullPath = normalizedFullPath.endsWith('.js') ? normalizedFullPath : normalizedFullPath + '.js';
+
+										filesToSend.push({
+											path: dir.replace(cartridge.fsPath || '', '').split(sep).join('/'),
+											fsPath: Uri.file(fullPath).toString()
+										});
+										scriptLanguageClient.info(normalizedFullPath);
+									}
+								} catch (e) {
+									scriptLanguageClient.warn('package.json error: ' + e.message);
+								}
+							}
+						});
+
 
 						return {
 							name: cartridge.name,
 							fsPath: Uri.file(cartridge.fsPath).toString(),
-							files: files.map(file => ({
-								path: file.fsPath.replace(cartridge.fsPath || '', '').split(sep).join('/'),
-								fsPath: Uri.file(file.fsPath).toString()
-							}))
+							files: filesToSend.filter(file => {
+								return !file.fsPath.endsWith('package.json')
+									&& !basename(file.fsPath).startsWith('.');
+							})
 						};
 					}
 				}));
