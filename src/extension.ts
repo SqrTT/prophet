@@ -281,7 +281,6 @@ export function activate(context: ExtensionContext) {
 	if (ignoreProjects) {
 		window.showErrorMessage('Your `files.exclude` excludes `.project`. Cartridge detection may not work properly');
 	}
-	// workspace.registerSearchProvider();
 	initFS(context);
 }
 
@@ -292,15 +291,13 @@ function initFS(context: ExtensionContext) {
 	}
 	const fileWorkspaceFolders = workspace.workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
 
-	getDWConfig(fileWorkspaceFolders).then(options => {
-
-		let sandboxFS = new SandboxFS(options);
+		const sandboxFS = new SandboxFS(getDWConfig(fileWorkspaceFolders));
 		context.subscriptions.push(workspace.registerFileSystemProvider(SandboxFS.SCHEME, sandboxFS, { isCaseSensitive: true }));
 
-		if (workspace.workspaceFolders) {
-			if (!workspace.workspaceFolders.some(workspaceFolder => workspaceFolder.uri.scheme.toLowerCase() === SandboxFS.SCHEME)) {
-				const extConf = workspace.getConfiguration('extension.prophet');
-				if (extConf.get('sandbox.filesystem.enabled')) {
+		const extConf = workspace.getConfiguration('extension.prophet');
+		if (extConf.get('sandbox.filesystem.enabled')) {
+			if (workspace.workspaceFolders) {
+				if (!workspace.workspaceFolders.some(workspaceFolder => workspaceFolder.uri.scheme.toLowerCase() === SandboxFS.SCHEME)) {
 					workspace.updateWorkspaceFolders(workspace.workspaceFolders.length, 0, {
 						uri: Uri.parse(SandboxFS.SCHEME + '://current-sandbox'),
 						name: "Sandbox - FileSystem",
@@ -308,7 +305,6 @@ function initFS(context: ExtensionContext) {
 				}
 			}
 		}
-	});
 }
 
 function initDebugger() {

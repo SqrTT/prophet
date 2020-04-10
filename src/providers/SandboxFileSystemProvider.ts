@@ -79,14 +79,16 @@ function parseDirResponse(data) {
 }
 
 export class SandboxFS implements FileSystemProvider {
-	private webDav: WebDav;
-	constructor(webdavOptions: DavOptions) {
-		this.webDav = new WebDav(webdavOptions);
-		this.webDav.config.version = '';
+	private webDav: Promise<WebDav>;
+	constructor(webdavOptions: Promise<DavOptions>) {
+		this.webDav = webdavOptions.then(opt => new WebDav(opt)).then(opt => {
+			opt.config.version = '';
+			return opt;
+		});
 	}
 	static readonly SCHEME = 'ccfs';
 
-	stat(uri: Uri): FileStat | Thenable<FileStat> {
+	async stat(uri: Uri): Promise<FileStat> {
 		if (uri.path === '/') {
 			return {
 				type: FileType.Directory,
@@ -98,8 +100,8 @@ export class SandboxFS implements FileSystemProvider {
 			const rootFolder = uri.path.split('/')[1];
 
 			if (rootFolder && rootFolders.includes(rootFolder)) {
-				this.webDav.folder = rootFolder;
-				return this.webDav.dirList(uri.path, '/' + rootFolder).toPromise().then(result => {
+				(await this.webDav).folder = rootFolder;
+				return (await this.webDav).dirList(uri.path, '/' + rootFolder).toPromise().then(result => {
 					const resp = parseStatResponse(result);
 
 					if (resp) {
@@ -114,7 +116,7 @@ export class SandboxFS implements FileSystemProvider {
 		}
 	}
 
-	readDirectory(uri: Uri): [string, FileType][] | Thenable<[string, FileType][]> {
+	async readDirectory(uri: Uri): Promise<[string, FileType][]> {
 		//const entry = this._lookupAsDirectory(uri, false);
 		let result: [string, FileType][] = [];
 
@@ -126,9 +128,9 @@ export class SandboxFS implements FileSystemProvider {
 			const rootFolder = uri.path.split('/')[1];
 
 			if (rootFolder && rootFolders.includes(rootFolder)) {
-				this.webDav.folder = rootFolder;
+				(await this.webDav).folder = rootFolder;
 
-				return this.webDav.dirList(uri.path, '/' + rootFolder).toPromise().then(result => {
+				return (await this.webDav).dirList(uri.path, '/' + rootFolder).toPromise().then(result => {
 					const resp = parseDirResponse(result);
 
 					if (resp) {
@@ -148,13 +150,13 @@ export class SandboxFS implements FileSystemProvider {
 
 	// --- manage file contents
 
-	readFile(uri: Uri): Thenable<Uint8Array> {
+	async readFile(uri: Uri): Promise<Uint8Array> {
 		const rootFolder = uri.path.split('/')[1];
 
 		if (rootFolder && rootFolders.includes(rootFolder)) {
-			this.webDav.folder = rootFolder;
+			(await this.webDav).folder = rootFolder;
 
-			return this.webDav.get(uri.path, '/' + rootFolder).toPromise().then(result => {
+			return (await this.webDav).get(uri.path, '/' + rootFolder).toPromise().then(result => {
 
 				return Promise.resolve(str2ab(result));
 			});
@@ -163,13 +165,13 @@ export class SandboxFS implements FileSystemProvider {
 		}
 	}
 
-	writeFile(uri: Uri, content: Uint8Array, options: { create: boolean, overwrite: boolean }): Thenable<void> {
+	async writeFile(uri: Uri, content: Uint8Array, options: { create: boolean, overwrite: boolean }): Promise<void> {
 		const rootFolder = uri.path.split('/')[1];
 
 		if (rootFolder && rootFolders.includes(rootFolder)) {
-			this.webDav.folder = rootFolder;
+			(await this.webDav).folder = rootFolder;
 
-			return this.webDav.postBody(
+			return (await this.webDav).postBody(
 				path.relative('/' + rootFolder, uri.path),
 				ab2str(content))
 				.toPromise().then(() => Promise.resolve());
@@ -202,13 +204,13 @@ export class SandboxFS implements FileSystemProvider {
 		// );
 	}
 
-	delete(uri: Uri): Thenable<void> {
+	async delete(uri: Uri): Promise<void> {
 		const rootFolder = uri.path.split('/')[1];
 
 		if (rootFolder && rootFolders.includes(rootFolder)) {
-			this.webDav.folder = rootFolder;
+			(await this.webDav).folder = rootFolder;
 
-			return this.webDav.delete(uri.path,
+			return (await this.webDav).delete(uri.path,
 				'/' + rootFolder)
 				.toPromise().then(() => Promise.resolve());
 		} else {
@@ -216,13 +218,13 @@ export class SandboxFS implements FileSystemProvider {
 		}
 	}
 
-	createDirectory(uri: Uri): Thenable<void> {
+	async createDirectory(uri: Uri): Promise<void> {
 		const rootFolder = uri.path.split('/')[1];
 
 		if (rootFolder && rootFolders.includes(rootFolder)) {
-			this.webDav.folder = rootFolder;
+			(await this.webDav).folder = rootFolder;
 
-			return this.webDav.mkdir(uri.path,
+			return (await this.webDav).mkdir(uri.path,
 				'/' + rootFolder)
 				.toPromise().then(() => Promise.resolve());
 		} else {
