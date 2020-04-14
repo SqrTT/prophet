@@ -7,6 +7,7 @@ import { promises, readFileSync, writeFileSync, createReadStream, existsSync, un
 import * as request from 'request-promise';
 import * as unzip from 'unzip-stream';
 import {spawnSync} from 'child_process';
+import * as commandExist from 'command-exists';
 
 const apiDocsChannel = window.createOutputChannel('SOAP WebService Docs(Prophet)');
 
@@ -161,15 +162,16 @@ export function createScriptLanguageServer(context: ExtensionContext, configurat
 						// change cwd to easily run javadoc
 						process.chdir(javaAPIFilesLocation);
 						try {
-							spawnSync('javadoc', ['-d' , 'docs', '-quiet', '*.java'], {stdio: 'ignore', shell: true});
-							apiDocsChannel.appendLine('Successfully generated web-service documentation to "docs" folder under ' + javaAPIFilesLocation);
-							window.showInformationMessage('Documentation Generated');
-						} catch (error) {
-							// notification for javadoc not in path
-							if (error.message.includes('command not found')) {
-								window.showInformationMessage('Javadoc not configured in path. Check Error log');
+							const isJavaDocInPath = commandExist.sync('javadoc');
+							if (isJavaDocInPath) {
+								spawnSync('javadoc', ['-d' , 'docs', '-quiet', '*.java'], {stdio: 'ignore', shell: true});
+								apiDocsChannel.appendLine('Successfully generated web-service documentation to "docs" folder under ' + javaAPIFilesLocation);
+								window.showInformationMessage('Documentation Generated');
+							} else {
+								window.showInformationMessage('Javadoc command not found. Check Error log');
 								apiDocsChannel.appendLine('Javadoc not configured in path. Either configure it or manually run javadoc on the extracted zip');
 							}
+						} catch (error) {
 							apiDocsChannel.appendLine(error.message);
 						}
 					});
