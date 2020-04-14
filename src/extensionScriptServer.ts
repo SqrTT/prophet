@@ -6,7 +6,9 @@ import { reduce } from "rxjs/operators";
 import { promises, readFileSync, writeFileSync, createReadStream, existsSync, unlinkSync} from "fs";
 import * as request from 'request-promise';
 import * as unzip from 'unzip-stream';
-import {execSync} from 'child_process';
+import {spawnSync} from 'child_process';
+
+const apiDocsChannel = window.createOutputChannel('SOAP WebService Docs(Prophet)');
 
 let isOrderedCartridgesWarnShown = false;
 export async function getOrderedCartridges(workspaceFolders: readonly WorkspaceFolder[]) {
@@ -97,7 +99,6 @@ export function createScriptLanguageServer(context: ExtensionContext, configurat
 	};
 
 	context.subscriptions.push(commands.registerCommand('extension.prophet.command.download.webservice.api', async (fileURI?: Uri) => {
-		const apiDocsChannel = window.createOutputChannel('SOAP WebService Docs(Prophet)');
 		const folderOptions = {
 			prompt: 'Folder: ',
 			placeHolder: 'Save WebService API docs to folder...'
@@ -160,7 +161,7 @@ export function createScriptLanguageServer(context: ExtensionContext, configurat
 						// change cwd to easily run javadoc
 						process.chdir(javaAPIFilesLocation);
 						try {
-							execSync('javadoc -d docs -quiet *.java');
+							spawnSync('javadoc', ['-d' , 'docs', '-quiet', '*.java'], {stdio: 'ignore', shell: true});
 							apiDocsChannel.appendLine('Successfully generated web-service documentation to "docs" folder under ' + javaAPIFilesLocation);
 							window.showInformationMessage('Documentation Generated');
 						} catch (error) {
