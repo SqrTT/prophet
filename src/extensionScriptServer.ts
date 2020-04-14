@@ -162,6 +162,7 @@ export function createScriptLanguageServer(context: ExtensionContext, configurat
 						try {
 							execSync('javadoc -d docs -quiet *.java');
 							apiDocsChannel.appendLine('Successfully generated web-service documentation to "docs" folder under ' + javaAPIFilesLocation);
+							window.showInformationMessage('Documentation Generated');
 						} catch (error) {
 							// notification for javadoc not in path
 							if (error.message.includes('command not found')) {
