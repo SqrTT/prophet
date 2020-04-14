@@ -33,7 +33,7 @@ A VS Code extension to work with Demandware/Salesforce Cloud code on Sandbox tha
 * autocompletion and goto for `require('~/...')` & `require('*/...')` (correct resolving based on cartridge path)
 * autocompletion and goto for `res.render` & `isinclude` & `isdecorate` & `ismodule` (`template=""` attribute) (correct resolving based on cartridge path)
 * quick find controllers (via Ctrl-F7)
-* Download SOAP WebService API from Server. This feature is similar to Eclipse/UXStudio feature
+* Download SOAP WebService API from Server. This feature is similar to Eclipse/UXStudio feature to download & generate SOAP web-service documentation.
 
 > WARNING: Some users had reported that debugger completely halts sandbox. Currently, this issue is not fixed and no known steps to reproduce. If you have some info about it please share. So please, before debugger usage make sure that you have availability to restart sandbox for the case if extension halts yours.
 
