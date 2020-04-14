@@ -559,7 +559,10 @@ function loadConfigurationFile(configFile: string): any {
 		try {
 			ruleSet = JSON.parse(stripJsonComments(config));
 		}
-		catch (e) { }
+		catch (e) {
+			console.warn('The .htmlhintrc configuration file is invalid. Source: ' + configFile);
+			console.warn(e);
+		}
 	}
 	return ruleSet;
 }
