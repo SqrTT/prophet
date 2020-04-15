@@ -8,6 +8,7 @@ import {
 } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { getIndexes, activateIndexes } from './scriptServer/features/indexes';
+import { workspace } from 'vscode';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport
 const connection: IConnection = createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
@@ -43,9 +44,12 @@ connection.onInitialized(() => {
 	import('./scriptServer/features/competitions').then(competitions => {
 		competitions.activate(connection, documents);
 	});
-	import('./scriptServer/features/diagnostics').then(linting => {
-		linting.activate(connection, documents);
-	});
+	const lintingDisabled = workspace.getConfiguration('extension.prophet').get('disable.linting.back-end-js') as boolean;
+	if (!lintingDisabled) {
+		import('./scriptServer/features/diagnostics').then(linting => {
+			linting.activate(connection, documents);
+		});
+	}
 });
 
 
