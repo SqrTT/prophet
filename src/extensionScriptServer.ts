@@ -157,13 +157,13 @@ export function createScriptLanguageServer(context: ExtensionContext, configurat
 					unzipExtractor.on('close', function() {
 						apiDocsChannel.appendLine('Successfully extracted web-service api documentation archive to ' + wsdlDownloadLocation);
 						
-						// /my/path/webreferences/wsdl_name/
-						const javaAPIFilesLocation = join(outputPath, wsdlFolderType, wsdlFileName);
-						// change cwd to easily run javadoc
-						process.chdir(javaAPIFilesLocation);
 						try {
 							const isJavaDocInPath = commandExist.sync('javadoc');
 							if (isJavaDocInPath) {
+								// /my/path/webreferences/wsdl_name/
+								const javaAPIFilesLocation = join(outputPath, wsdlFolderType, wsdlFileName);
+								// change cwd to easily run javadoc
+								process.chdir(javaAPIFilesLocation);
 								spawnSync('javadoc', ['-d' , 'docs', '-quiet', '*.java'], {stdio: 'ignore', shell: true});
 								apiDocsChannel.appendLine('Successfully generated web-service documentation to "docs" folder under ' + javaAPIFilesLocation);
 								window.showInformationMessage('Documentation Generated');
