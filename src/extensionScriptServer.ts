@@ -102,7 +102,7 @@ export function createScriptLanguageServer(context: ExtensionContext, configurat
 	context.subscriptions.push(commands.registerCommand('extension.prophet.command.download.webservice.api', async (fileURI?: Uri) => {
 		const folderOptions = {
 			prompt: 'Folder: ',
-			placeHolder: 'Save WebService API docs to folder...'
+			placeHolder: 'Save SOAP Service API docs to folder...'
 		};
 
 		// local filesystem directory where docs will be downloaded & extracted
@@ -140,7 +140,6 @@ export function createScriptLanguageServer(context: ExtensionContext, configurat
 					})
 					.auth(dwConfig.username, dwConfig.password);
 				if (fileContents) {
-					
 					// delete already existing zip file
 					if (existsSync(wsdlDownloadLocation)) {
 						unlinkSync(wsdlDownloadLocation);
