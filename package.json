@@ -54,10 +54,10 @@
         "@types/node": "^12.0.0",
         "@types/request": "^2.48.4",
         "@types/yazl": "^2.4.2",
+        "@types/vscode": "^1.44.0",
         "mocha": "^7.1.1",
         "ts-loader": "^6.2.2",
         "typescript": "^3.8.3",
-        "vscode": "^1.1.36",
         "vscode-debugadapter-testsupport": "^1.40.3",
         "webpack": "^4.42.1",
         "webpack-cli": "^3.3.11"
@@ -68,8 +68,7 @@
         "compile": "webpack --mode development",
         "watch": "webpack --mode development --watch",
         "test": "npm run test-compile && node ./node_modules/mocha/bin/mocha -u tdd ./out/tests/",
-        "test-compile": "tsc -p ./src/",
-        "postinstall": "node ./node_modules/vscode/bin/install"
+        "test-compile": "tsc -p ./src/"
     },
     "main": "./dist/extension",
     "activationEvents": [
