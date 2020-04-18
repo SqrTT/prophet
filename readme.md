@@ -33,6 +33,7 @@ A VS Code extension to work with Demandware/Salesforce Cloud code on Sandbox tha
 * autocompletion and goto for `require('~/...')` & `require('*/...')` (correct resolving based on cartridge path)
 * autocompletion and goto for `res.render` & `isinclude` & `isdecorate` & `ismodule` (`template=""` attribute) (correct resolving based on cartridge path)
 * quick find controllers (via Ctrl-F7)
+* Download SOAP WebService API from Server. This feature is similar to Eclipse/UXStudio feature to download & generate SOAP web-service documentation.
 
 > WARNING: Some users had reported that debugger completely halts sandbox. Currently, this issue is not fixed and no known steps to reproduce. If you have some info about it please share. So please, before debugger usage make sure that you have availability to restart sandbox for the case if extension halts yours.
 
@@ -160,6 +161,25 @@ function doSomething(product, basket) {
 
 ```
 
+### Download SOAP WebService API from Server
+
+This feature works similarly to the UXStudio feature. One can download the SOAP API files from server & generate documentation for it.
+
+**Steps:**
+
+1. Navigate to the WSDL file in vscode file explorer.
+2. Right click file to open context menu.
+3. From context menu, select "Download SOAP Web Service API...".
+4. An input-box will prompt asking location of the directory where documentation should be downloaded.
+5. Enter an appropriate folder location & hit Enter
+6. Documentation will be generated under entered folder.
+7. Use log channel `SOAP WebService Docs(Prophet)` to check the status/progress for this operation.
+
+**Note:**
+
+UXStudio & this feature both internally uses `javadoc` to generate the relevant documentation. So, make sure `javadoc` is accessible from your shell/terminal/cmd.exe.
+
+If `javadoc` is not added to your OS path, vscode will still download the compiled `java` files from server to local file-system but while generating the documentation it will show an error message. So, one can always manually run the `javadoc` to generate the documentation.
 
 ### Reporting a bug
 
