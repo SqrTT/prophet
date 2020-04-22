@@ -73,7 +73,7 @@
             "type":"string",
             "default": "passw0rd!",
             "description": "Client secret for On-Demand Sandbox API"
-        },
+        }
     },
     "dependencies": {
         "p12": [
