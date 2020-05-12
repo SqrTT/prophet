@@ -3,13 +3,7 @@ import { ServerOptions, TransportKind, LanguageClientOptions, LanguageClient } f
 import { join, sep, basename, dirname, normalize } from "path";
 import { findFiles, getDWConfig, readFile, getCartridgesFolder } from "./lib/FileHelper";
 import { reduce } from "rxjs/operators";
-import { promises, readFileSync, writeFileSync, createReadStream, existsSync, unlinkSync} from "fs";
-import * as request from 'request-promise';
-import * as unzip from 'unzip-stream';
-import {spawnSync} from 'child_process';
-import * as commandExist from 'command-exists';
-
-const apiDocsChannel = window.createOutputChannel('SOAP WebService Docs(Prophet)');
+import { promises, readFileSync} from "fs";
 
 let isOrderedCartridgesWarnShown = false;
 export async function getOrderedCartridges(workspaceFolders: readonly WorkspaceFolder[]) {
@@ -98,99 +92,6 @@ export function createScriptLanguageServer(context: ExtensionContext, configurat
 			//fileEvents: workspace.createFileSystemWatcher('**/.htmlhintrc')
 		}
 	};
-
-	context.subscriptions.push(commands.registerCommand('extension.prophet.command.download.webservice.api', async (fileURI?: Uri) => {
-		const folderOptions = {
-			prompt: 'Folder: ',
-			placeHolder: 'Save SOAP Service API docs to folder...'
-		};
-
-		// local filesystem directory where docs will be downloaded & extracted
-		const outputPath = await window.showInputBox(folderOptions);
-
-		if(outputPath && fileURI && workspace.workspaceFolders) {
-			const dwConfig = await getDWConfig(workspace.workspaceFolders);
-
-			const SERVER_PARTIAL_PATH = '/on/demandware.servlet/WFS/StudioWS/Sites/'
-			const wsdlFullPath = fileURI.fsPath;
-			const wsdlFileName = basename(wsdlFullPath, '.wsdl');
-			const wsdlFileNameWithZipExtension = wsdlFileName + '.zip';
-
-			let wsdlFileLocationOnServer;
-			let wsdlFolderType;
-
-			if (wsdlFullPath.includes('webreferences2')) {
-				wsdlFileLocationOnServer = 'webrefgen2/' + wsdlFileName + '/' + wsdlFileName + '.api.zip';
-				wsdlFolderType = 'webreferences2';
-			} else {
-				wsdlFileLocationOnServer = 'webrefgen/webreferences/' + wsdlFileName + '/' + wsdlFileName + '.api.zip';
-				wsdlFolderType = 'webreferences';
-			}
-
-			// E.g. - https://hostname/on/demandware.servlet/WFS/StudioWS/Sites/webrefgen/webreferences/wsdl_name/wsdl_name.api.zip
-			const wsdlAPIDocUrl = 'https://' + dwConfig.hostname + SERVER_PARTIAL_PATH + wsdlFileLocationOnServer;
-			const wsdlDownloadLocation = join(outputPath, wsdlFileNameWithZipExtension);
-			apiDocsChannel.appendLine('Going to download webservice api documentation from server ' + wsdlAPIDocUrl);
-
-			try {
-				const fileContents = await request
-					.get({
-						url: wsdlAPIDocUrl,
-						encoding: 'binary'
-					})
-					.auth(dwConfig.username, dwConfig.password);
-				if (fileContents) {
-					// delete already existing zip file
-					if (existsSync(wsdlDownloadLocation)) {
-						unlinkSync(wsdlDownloadLocation);
-					}
-					writeFileSync(wsdlDownloadLocation, fileContents, 'binary');
-					apiDocsChannel.appendLine('Successfully downloaded web-service api documentation from server');
-
-					//extract zip
-					const unzipExtractor = unzip.Extract({ path: outputPath });
-					createReadStream(wsdlDownloadLocation).pipe(unzipExtractor);
-					unzipExtractor.on('error', function(error) {
-						apiDocsChannel.appendLine(error);
-					})
-					unzipExtractor.on('close', function() {
-						apiDocsChannel.appendLine('Successfully extracted web-service api documentation archive to ' + wsdlDownloadLocation);
-						
-						try {
-							const isJavaDocInPath = commandExist.sync('javadoc');
-							if (isJavaDocInPath) {
-								// /my/path/webreferences/wsdl_name/
-								const javaAPIFilesLocation = join(outputPath, wsdlFolderType, wsdlFileName);
-								// change cwd to easily run javadoc
-								process.chdir(javaAPIFilesLocation);
-								spawnSync('javadoc', ['-d' , 'docs', '-quiet', '*.java'], {stdio: 'ignore', shell: true});
-								apiDocsChannel.appendLine('Successfully generated web-service documentation to "docs" folder under ' + javaAPIFilesLocation);
-								window.showInformationMessage('Documentation Generated');
-							} else {
-								window.showInformationMessage('Javadoc command not found. Check Error log');
-								apiDocsChannel.appendLine('Javadoc not configured in path. Either configure it or manually run javadoc on the extracted zip');
-							}
-						} catch (error) {
-							apiDocsChannel.appendLine(error.message);
-						}
-					});
-				}
-			} catch (error) {
-				// handle request error
-				if (error.statusCode) {
-					if (error.statusCode === 404) {
-						apiDocsChannel.appendLine('404: SOAP web-service docs are not yet present on the server.');
-					} else if (error.statusCode === 401) {
-						apiDocsChannel.appendLine('401: Please check your credentials.');
-					}
-				} else { // generic error
-					apiDocsChannel.appendLine(error.message);
-				}
-			}
-		} else {
-			window.showInformationMessage('Folder path to save WSDL docs is mandatory');
-		}
-	}));
 
 	context.subscriptions.push(commands.registerCommand('extension.prophet.command.override.script', async (fileURI?: Uri) => {
 		if (workspace.workspaceFolders && fileURI && fileURI.scheme === 'file') {

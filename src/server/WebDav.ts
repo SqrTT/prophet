@@ -98,6 +98,7 @@ export default class WebDav {
 	config: WebDavOptions;
 	log: (...str: string[]) => any;
 	folder: string = 'Cartridges';
+	public baseUrl: string = '';
 	constructor(config: WebDavOptions, log = (() => { })) {
 		this.config = Object.assign({}, {
 			hostname: 'some.demandware.net',
@@ -123,7 +124,7 @@ export default class WebDav {
 	}
 	getOptions() {
 		return {
-			baseUrl: `https://${this.config.hostname}/on/demandware.servlet/webdav/Sites/${this.folder}/${this.config.version}`,
+			baseUrl: this.baseUrl || `https://${this.config.hostname}/on/demandware.servlet/webdav/Sites/${this.folder}/${this.config.version}`,
 			uri: '/',
 			auth: {
 				user: this.config.username,
@@ -210,6 +211,18 @@ export default class WebDav {
 		return this.makeRequest({
 			uri: '/' + uriPath,
 			method: 'GET'
+		}).pipe(tap(data => {
+			this.log('get-response', data);
+		}));
+	}
+	getBinary(filePath: string, root = this.config.root): Observable<string> {
+		const uriPath = relative(root, filePath);
+
+		this.log('getBinary', uriPath);
+		return this.makeRequest({
+			uri: '/' + uriPath,
+			method: 'GET',
+			encoding: 'binary'
 		}).pipe(tap(data => {
 			this.log('get-response', data);
 		}));

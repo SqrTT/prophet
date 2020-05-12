@@ -1,14 +1,14 @@
 
 'use strict';
-import { join, sep, dirname } from 'path';
+import { join, sep, dirname, basename, relative } from 'path';
 import { setExtensionPath } from './providers/extensionPath'
-import { workspace, ExtensionContext, commands, window, Uri, WorkspaceConfiguration, debug, WorkspaceFolder, RelativePattern } from 'vscode';
+import { workspace, ExtensionContext, commands, window, Uri, WorkspaceConfiguration, debug, WorkspaceFolder, RelativePattern, OutputChannel } from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient';
 import { CartridgesView } from './providers/CartridgesView';
 import { LogsView } from './providers/LogsView';
 import { ControllersView } from './providers/ControllersView';
 
-import { existsSync, promises } from 'fs';
+import { existsSync, promises, createReadStream } from 'fs';
 import { createServer, ServerResponse, IncomingMessage } from 'http';
 import Uploader from "./providers/Uploader";
 import { ProphetConfigurationProvider } from './providers/ConfigurationProvider';
@@ -17,7 +17,10 @@ import { map, flatMap, tap, takeUntil, filter, reduce, merge, mergeAll } from 'r
 import { findFiles, getDWConfig, getCartridgesFolder } from './lib/FileHelper';
 import { SandboxFS } from './providers/SandboxFileSystemProvider';
 import { createScriptLanguageServer, getOrderedCartridges } from './extensionScriptServer';
-
+import * as unzip from 'unzip-stream';
+import { spawnSync } from 'child_process';
+import * as commandExist from 'command-exists';
+import WebDav from './server/WebDav';
 
 
 /**
@@ -244,7 +247,6 @@ export function activate(context: ExtensionContext) {
 				subscr.unsubscribe();
 			}
 		});
-
 	}
 
 	/// open files from browser
@@ -282,6 +284,137 @@ export function activate(context: ExtensionContext) {
 		window.showErrorMessage('Your `files.exclude` excludes `.project`. Cartridge detection may not work properly');
 	}
 	initFS(context);
+
+	initSOAPDownloadAPI(context);
+}
+
+let apiDocsGlobalChannel: OutputChannel | undefined;
+function initSOAPDownloadAPI(context: ExtensionContext) {
+	context.subscriptions.push(commands.registerCommand('extension.prophet.command.download.webservice.api', async (fileURI?: Uri) => {
+
+		const apiDocsChannel = apiDocsGlobalChannel || window.createOutputChannel('SOAP WebService Docs(Prophet)');
+		apiDocsGlobalChannel = apiDocsChannel;
+
+		// local filesystem directory where docs will be downloaded & extracted
+		const outputPath = await window.showOpenDialog({
+			canSelectFiles: false,
+			canSelectFolders: true,
+			canSelectMany: false,
+			openLabel: 'Save SOAP API docs to ...'
+		});
+
+		if (outputPath && outputPath.length && fileURI && workspace.workspaceFolders) {
+			const dwConfig = await getDWConfig(workspace.workspaceFolders);
+			const webdav = new WebDav(dwConfig);
+			webdav.baseUrl = `https://${dwConfig.hostname}/on/demandware.servlet/WFS/StudioWS/Sites/`;
+
+			const saveToFolder = outputPath[0].fsPath;
+
+			const wsdlFullPath = fileURI.fsPath;
+			const wsdlFileName = basename(wsdlFullPath, '.wsdl');
+			const wsdlFileNameWithZipExtension = wsdlFileName + '.zip';
+
+			const wsdlFileLocationOnServer = getWsdlPath(wsdlFullPath, wsdlFileName);
+
+			const wsdlDownloadLocation = join(saveToFolder, wsdlFileNameWithZipExtension);
+			apiDocsChannel.appendLine(`Going to download webservice api documentation from server: https://${dwConfig.hostname}/on/demandware.servlet/WFS/StudioWS/Sites/${wsdlFileLocationOnServer}`);
+
+			try {
+				const fileContents = await webdav.getBinary(wsdlFileLocationOnServer).toPromise();
+
+				if (fileContents) {
+					// delete already existing zip file
+					if (existsSync(wsdlDownloadLocation)) {
+						await promises.unlink(wsdlDownloadLocation);
+					}
+					await promises.writeFile(wsdlDownloadLocation, fileContents, 'binary');
+					apiDocsChannel.appendLine('Successfully downloaded web-service api documentation from server');
+
+					//extract zip
+					const unzipExtractor = unzip.Extract({ path: join(saveToFolder, 'src') });
+					createReadStream(wsdlDownloadLocation).pipe(unzipExtractor);
+					unzipExtractor.on('error', function (error) {
+						apiDocsChannel.appendLine(error);
+					})
+					unzipExtractor.on('close', async () => {
+						apiDocsChannel.appendLine('Successfully extracted web-service api documentation archive to ' + wsdlDownloadLocation);
+						await promises.mkdir(join(saveToFolder, 'docs'), { recursive: true })
+
+						try {
+							apiDocsChannel.show();
+							const isJavaDocInPath = commandExist.sync('javadoc');
+							if (isJavaDocInPath) {
+
+								const files = await workspace.findFiles(new RelativePattern(join(saveToFolder, 'src'), '**/*'));
+								const uniqFolders = new Set<string>();
+
+								files.forEach(file => {
+									const name = dirname(file.fsPath);
+									const fname = relative(join(saveToFolder, 'src'), name);
+									uniqFolders.add(fname);
+								});
+
+								const javaDocArgs = [
+									//'-verbose',
+									'-J-Xmx256m',
+									'-public',
+									'-sourcepath', join(saveToFolder, 'src'),
+									'-author',
+									'-version',
+									'-d', join(saveToFolder, 'docs'),
+									Array.from(uniqFolders).map(file => file.replace(new RegExp(sep, 'ig'), '.')).join(' ')];
+
+								apiDocsChannel.appendLine('javadoc args:\n' + javaDocArgs.join('\n'));
+
+								const result = spawnSync('javadoc', javaDocArgs, {
+									cwd: saveToFolder,
+									shell: true
+								});
+								if (result.stderr) {
+									result.stdout && apiDocsChannel.appendLine(result.stdout.toString());
+									apiDocsChannel.appendLine(result.stderr.toString());
+									apiDocsChannel.appendLine('Note: the extension require JDK8. Javadoc may fail if used another version. In the same moment generated java classes are downloaded and may be useful');
+
+								} else {
+									result.stdout && apiDocsChannel.appendLine(result.stdout.toString());
+									apiDocsChannel.appendLine('Successfully generated web-service documentation to "docs" folder under ' + join(saveToFolder, 'docs'));
+
+									window.showInformationMessage('Documentation Generated');
+								}
+
+							} else {
+								window.showInformationMessage('javadoc command not found. Check Error log');
+								apiDocsChannel.appendLine('javadoc not configured in path. Either configure it or manually run javadoc on the extracted zip');
+							}
+						} catch (error) {
+							apiDocsChannel.appendLine(error.message);
+						}
+					});
+				}
+			} catch (error) {
+				// handle request error
+				if (error.statusCode) {
+					if (error.statusCode === 404) {
+						apiDocsChannel.appendLine('404: SOAP web-service API are not yet present on the server. System  creates API after/during requesting them via custom script');
+					} else if (error.statusCode === 401) {
+						apiDocsChannel.appendLine('401: Please check your credentials.');
+					}
+				} else { // generic error
+					apiDocsChannel.appendLine(error.message);
+				}
+			}
+		} else {
+			window.showInformationMessage('Folder path to save WSDL docs is mandatory');
+		}
+	}));
+
+	function getWsdlPath(wsdlFullPath: string, wsdlFileName: string) {
+		if (wsdlFullPath.includes('webreferences2')) {
+			return 'webrefgen2/' + wsdlFileName + '/' + wsdlFileName + '.api.zip';
+		} else {
+			return 'webrefgen/webreferences/' + wsdlFileName + '/' + wsdlFileName + '.api.zip';
+		}
+	}
 }
 
 function initFS(context: ExtensionContext) {
@@ -291,20 +424,20 @@ function initFS(context: ExtensionContext) {
 	}
 	const fileWorkspaceFolders = workspace.workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
 
-		const sandboxFS = new SandboxFS(getDWConfig(fileWorkspaceFolders));
-		context.subscriptions.push(workspace.registerFileSystemProvider(SandboxFS.SCHEME, sandboxFS, { isCaseSensitive: true }));
+	const sandboxFS = new SandboxFS(getDWConfig(fileWorkspaceFolders));
+	context.subscriptions.push(workspace.registerFileSystemProvider(SandboxFS.SCHEME, sandboxFS, { isCaseSensitive: true }));
 
-		const extConf = workspace.getConfiguration('extension.prophet');
-		if (extConf.get('sandbox.filesystem.enabled')) {
-			if (workspace.workspaceFolders) {
-				if (!workspace.workspaceFolders.some(workspaceFolder => workspaceFolder.uri.scheme.toLowerCase() === SandboxFS.SCHEME)) {
-					workspace.updateWorkspaceFolders(workspace.workspaceFolders.length, 0, {
-						uri: Uri.parse(SandboxFS.SCHEME + '://current-sandbox'),
-						name: "Sandbox - FileSystem",
-					});
-				}
+	const extConf = workspace.getConfiguration('extension.prophet');
+	if (extConf.get('sandbox.filesystem.enabled')) {
+		if (workspace.workspaceFolders) {
+			if (!workspace.workspaceFolders.some(workspaceFolder => workspaceFolder.uri.scheme.toLowerCase() === SandboxFS.SCHEME)) {
+				workspace.updateWorkspaceFolders(workspace.workspaceFolders.length, 0, {
+					uri: Uri.parse(SandboxFS.SCHEME + '://current-sandbox'),
+					name: "Sandbox - FileSystem",
+				});
 			}
 		}
+	}
 }
 
 function initDebugger() {

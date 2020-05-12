@@ -1,6 +1,10 @@
+### 1.3.4
+* [add] Download SOAP WebService API from Server. This feature is similar to Eclipse/UXStudio feature to download & generate SOAP web-service documentation (thanks to [Ranveer Raghuwanshi](https://github.com/ranveer5289))
+
+
 ### 1.3.1
-* [add] add diagnostics to prohibit use `const` and `let` (since they have non-standard implementation)
-* [add] add diagnostics to prohibit use globally required custom modules. (to avoid significantly performance degradation)
+* [add] diagnostics to prohibit use `const` and `let` (since they have non-standard implementation)
+* [add] diagnostics to prohibit use globally required custom modules. (to avoid significantly performance degradation)
 * [fix] indexing files outside cartridge directory
 
 ### 1.3.0
