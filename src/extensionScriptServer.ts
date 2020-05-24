@@ -1,9 +1,9 @@
 import { ExtensionContext, window, WorkspaceConfiguration, workspace, RelativePattern, Uri, commands, QuickPickItem, WorkspaceFolder } from "vscode";
-import { ServerOptions, TransportKind, LanguageClientOptions, LanguageClient } from "vscode-languageclient";
+import { ServerOptions, TransportKind, LanguageClientOptions, LanguageClient, Disposable } from "vscode-languageclient";
 import { join, sep, basename, dirname, normalize } from "path";
 import { findFiles, getDWConfig, readFile, getCartridgesFolder } from "./lib/FileHelper";
 import { reduce } from "rxjs/operators";
-import { promises, readFileSync} from "fs";
+import { promises, readFileSync } from "fs";
 
 let isOrderedCartridgesWarnShown = false;
 export async function getOrderedCartridges(workspaceFolders: readonly WorkspaceFolder[]) {
@@ -61,11 +61,13 @@ export async function getOrderedCartridges(workspaceFolders: readonly WorkspaceF
  * @param context the extension context
  * @param configuration the extension configuration
  */
-export function createScriptLanguageServer(context: ExtensionContext, configuration: WorkspaceConfiguration = workspace.getConfiguration('extension.prophet', null)) {
+export async function createScriptLanguageServer(context: ExtensionContext, configuration: WorkspaceConfiguration = workspace.getConfiguration('extension.prophet', null)) {
 	// The server is implemented in node
 	const serverModule = context.asAbsolutePath(join('dist', 'scriptServer.js'));
 	// The debug options for the server
 	const debugOptions = { execArgv: ['--nolazy', '--inspect=6040'] };
+	const disposes : Disposable[] = [];
+
 
 	// If the extension is launched in debug mode then the debug server options are used
 	// Otherwise the run options are used
@@ -76,6 +78,7 @@ export function createScriptLanguageServer(context: ExtensionContext, configurat
 
 	// Options to control the language client
 	const clientOptions: LanguageClientOptions = {
+		diagnosticCollectionName: 'prophet',
 		// Register the server for plain text documents
 		documentSelector: [{
 			scheme: 'file',
@@ -84,16 +87,19 @@ export function createScriptLanguageServer(context: ExtensionContext, configurat
 			scheme: 'file',
 			pattern: '**/cartridge/templates/default/**/*.isml'
 		}],
+		initializationOptions: {
+			disableDiagnostics: configuration.get('extension.prophet.script.server.disable.diagnostics', false)
+		},
 		synchronize: {
 			// Synchronize the setting section 'languageServerExample' to the server
-			//configurationSection: 'extension.prophet',
+			configurationSection: 'extension.prophet.script.server',
 			// Notify the server about file changes to '.clientrc files contain in the workspace
 			// fileEvents: workspace.createFileSystemWatcher('**/*.isml'),
-			//fileEvents: workspace.createFileSystemWatcher('**/.htmlhintrc')
+			//fileEvents: workspace.createFileSystemWatcher('**/.htmlhintrc'),
 		}
 	};
 
-	context.subscriptions.push(commands.registerCommand('extension.prophet.command.override.script', async (fileURI?: Uri) => {
+	disposes.push(commands.registerCommand('extension.prophet.command.override.script', async (fileURI?: Uri) => {
 		if (workspace.workspaceFolders && fileURI && fileURI.scheme === 'file') {
 			const cartridges = await getOrderedCartridges(workspace.workspaceFolders);
 
@@ -117,7 +123,7 @@ export function createScriptLanguageServer(context: ExtensionContext, configurat
 
 							if (fileContent.includes('server.exports')) {
 								await promises.writeFile(newDestPath,
-`var server = require('server');
+									`var server = require('server');
 server.extend(module.superModule);
 
 
@@ -128,7 +134,7 @@ module.exports = server.exports();
 
 							} else {
 								await promises.writeFile(newDestPath,
-`var base = module.superModule;
+									`var base = module.superModule;
 
 
 
@@ -144,16 +150,17 @@ module.exports = base;
 		}
 	}));
 
-	// Create the language client and start the client.
-	const scriptLanguageClient = new LanguageClient('dwScriptLanguageServer', 'Script Language Server', serverOptions, clientOptions);
-	//context.subscriptions.push(new SettingMonitor(ismlLanguageClient, 'extension.prophet.htmlhint.enabled').start());
+	if (workspace.workspaceFolders) {
+		const orderedCartridges = await getOrderedCartridges(workspace.workspaceFolders);
 
-	scriptLanguageClient.onReady().then(async () => {
+		if (orderedCartridges && orderedCartridges.length) {
 
-		if (workspace.workspaceFolders) {
-			const orderedCartridges = await getOrderedCartridges(workspace.workspaceFolders);
+			// Create the language client and start the client.
+			const scriptLanguageClient = new LanguageClient('dwScriptLanguageServer', 'Script Language Server', serverOptions, clientOptions);
+			//context.subscriptions.push(new SettingMonitor(ismlLanguageClient, 'extension.prophet.htmlhint.enabled').start());
 
-			if (orderedCartridges && orderedCartridges.length) {
+			scriptLanguageClient.onReady().then(async () => {
+
 				const orderedCartridgesWithFiles = await Promise.all(orderedCartridges.map(async cartridge => {
 					if (cartridge.fsPath) {
 						const files = await workspace.findFiles(
@@ -269,7 +276,7 @@ module.exports = base;
 					});
 				}
 
-				context.subscriptions.push(commands.registerCommand('extension.prophet.command.controllers.find', async () => {
+				disposes.push(commands.registerCommand('extension.prophet.command.controllers.find', async () => {
 					scriptLanguageClient.sendNotification('get.controllers.list');
 				}));
 				scriptLanguageClient.onNotification('get.controllers.list.result', ({ endpoints }) => {
@@ -301,10 +308,10 @@ module.exports = base;
 						const watcher = workspace.createFileSystemWatcher(
 							new RelativePattern(cartridge.fsPath, 'cartridge/controllers/*.js'));
 
-						context.subscriptions.push(watcher);
+						disposes.push(watcher);
 
 						['Change', 'Create', 'Delete'].forEach(action => {
-							context.subscriptions.push(watcher['onDid' + action](uri => {
+							disposes.push(watcher['onDid' + action](uri => {
 								if (uri.scheme === 'file') {
 									scriptLanguageClient.sendNotification('cartridges.controllers.modification', {
 										action,
@@ -349,10 +356,10 @@ module.exports = base;
 						const watcher = workspace.createFileSystemWatcher(
 							new RelativePattern(cartridge.fsPath, 'cartridge/templates/resources/*.properties'));
 
-						context.subscriptions.push(watcher);
+						disposes.push(watcher);
 
 						['Change', 'Create', 'Delete'].forEach(action => {
-							context.subscriptions.push(watcher['onDid' + action](uri => {
+							disposes.push(watcher['onDid' + action](uri => {
 								if (uri.scheme === 'file') {
 									scriptLanguageClient.sendNotification('cartridges.properties.modification', {
 										action,
@@ -366,11 +373,20 @@ module.exports = base;
 
 					}
 				});
+
+			}).catch(err => {
+				window.showErrorMessage(JSON.stringify(err));
+				return Promise.reject(err);
+			});
+			return {
+				start() {
+					const clientDispose = scriptLanguageClient.start();
+					return Disposable.create(() => {
+						disposes.forEach(d =>  d.dispose());
+						clientDispose.dispose();
+					});
+				}
 			}
 		}
-	}).catch(err => {
-		window.showErrorMessage(JSON.stringify(err));
-	});
-
-	return scriptLanguageClient;
+	}
 }

@@ -1,3 +1,7 @@
+### 1.3.5
+* [add] make diagnostics manageable via config
+* [fix] attempt to fix suggestions
+
 ### 1.3.4
 * [add] Download SOAP WebService API from Server. This feature is similar to Eclipse/UXStudio feature to download & generate SOAP web-service documentation (thanks to [Ranveer Raghuwanshi](https://github.com/ranveer5289))
 

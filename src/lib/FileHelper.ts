@@ -107,7 +107,7 @@ export function findFiles(include: RelativePattern, maxResults?: number, errIfNo
 
 		workspace.findFiles(
 			include,
-			undefined,
+			new RelativePattern(include.base, 'node_modules,.git'),
 			maxResults,
 			tokenSource.token
 		).then(files => {
@@ -138,6 +138,8 @@ export function getCartridgesFolder(workspaceFolder: WorkspaceFolder) {
 		.pipe(map<Uri, string>(project => dirname(project.fsPath)));
 };
 
+let showQuickPickPromise: undefined | Promise<string | undefined>
+
 export function getDWConfig(workspaceFolders?: readonly WorkspaceFolder[]): Promise<DavOptions> {
 	if (workspaceFolders) {
 		const filesWorkspaceFolders = workspaceFolders.filter(workspaceFolder => workspaceFolder.uri.scheme === 'file');
@@ -153,7 +155,13 @@ export function getDWConfig(workspaceFolders?: readonly WorkspaceFolder[]): Prom
 				} else if (configFiles.length === 1) {
 					return configFiles[0].fsPath;
 				} else {
-					return window.showQuickPick(configFiles.map(config => config.fsPath), { placeHolder: 'Select configuration' });
+					if (!showQuickPickPromise) {
+						showQuickPickPromise = Promise.resolve(passwordInputPromise)
+							.then(() =>
+								window.showQuickPick(configFiles.map(config => config.fsPath), { placeHolder: 'Select configuration' })
+							);
+					}
+					return showQuickPickPromise;
 				}
 
 			} else {
@@ -167,10 +175,10 @@ export function getDWConfig(workspaceFolders?: readonly WorkspaceFolder[]): Prom
 
 /**
  * Get config for a file path, complete the config via user input when required
- *
+ * internal usage only
  * @param filePath
  */
-export function getConfig(filePath?: string) {
+function getConfig(filePath?: string) {
 	if (filePath) {
 		return readConfigFile(filePath).toPromise().then(config => {
 			if (config.password) {

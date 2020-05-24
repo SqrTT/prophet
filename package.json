@@ -494,6 +494,12 @@
                     "default": false,
                     "description": "Enable Sandbox File System workspace",
                     "scope": "window"
+                },
+                "extension.prophet.script.server.disable.diagnostics": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Disable diagnostics/script linting (not recommended)",
+                    "scope": "window"
                 }
             }
         }

@@ -94,7 +94,6 @@ const uploadCartridges = (
 				retryWhen(function (errors) {
 					// retry for some errors, end the stream with an error for others
 					return errors.pipe(
-						delay(500),
 						tap(function (e) {
 							if (e instanceof WebDav.WebDavError && e.statusCode === 401) {
 								throw e;
@@ -105,7 +104,7 @@ const uploadCartridges = (
 							} else {
 								throw e;
 							}
-						}));
+						}), delay(2000 * (retryCounter + 1)));
 				}),
 				tap(
 					(data) => { },
@@ -254,11 +253,31 @@ function uploadAndWatch(
 						// folder creation is handles in serial manner before gets parallelized
 
 						outputChannel.appendLine(`[C ${date}] ${cleanPath(fileData.rootDir, fileData.fileName)}`);
+						let retryCounter = 0;
 
 						return webdav.mkdir(fileData.fileName, fileData.rootDir)
-							.pipe(flatMap(() => {
+						.pipe(
+							retryWhen(function (errors) {
+								// retry for some errors, end the stream with an error for others
+								return errors.pipe(tap(function (e) {
+									if (e instanceof WebDav.WebDavError && e.statusCode === 401) {
+										throw e;
+									} else if (retryCounter < 3) {
+										outputChannel.appendLine(`Error: ${e}`);
+										outputChannel.appendLine(`Trying to re-upload file`);
+										retryCounter++;
+									} else {
+										throw e;
+									}
+								}), delay(2000 * (retryCounter + 1)));
+							}),
+							tap(() => {
+								retryCounter = 0;
+							}),
+							flatMap(() => {
 								return of(fileData)
-							}));
+							})
+						);
 					} else if (fileData.stats || fileData.action === 'delete') {
 						return of(fileData);
 					} else {
@@ -280,7 +299,6 @@ function uploadAndWatch(
 							outputChannel.appendLine(`[U ${date}] ${cleanPath(rootDir, fileName)}`);
 							return webdav.post(fileName, rootDir)
 								.pipe(
-									delay(500),
 									retryWhen(function (errors) {
 										// retry for some errors, end the stream with an error for others
 										return errors.pipe(tap(function (e) {
@@ -293,7 +311,7 @@ function uploadAndWatch(
 											} else {
 												throw e;
 											}
-										}));
+										}), delay(2000 * (retryCounter + 1)));
 									})).pipe(tap(() => {
 										retryCounter = 0;
 									}));
@@ -313,7 +331,7 @@ function uploadAndWatch(
 								} else {
 									throw e;
 								}
-							}));
+							}), delay(2000 * (retryCounter + 1)));
 						})).pipe(tap(() => {
 							retryCounter = 0;
 						}));
@@ -345,7 +363,7 @@ export function init(dwConfig: DavOptions, outputChannel: OutputChannel, config:
 						} else {
 							throw e;
 						}
-					}));
+					}), delay(2000 * (retryCounter + 1)));
 				})).pipe(tap(() => {
 					retryCounter = 0;
 				}));

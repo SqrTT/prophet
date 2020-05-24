@@ -1,4 +1,4 @@
-import { IConnection, TextDocuments, Diagnostic, Range, Position, DiagnosticSeverity } from "vscode-languageserver";
+import { IConnection, TextDocuments, Diagnostic, Range, Position, DiagnosticSeverity, Disposable } from "vscode-languageserver";
 import * as acorn from 'acorn';
 import * as acornWalk from 'acorn-walk';
 import { URI } from "vscode-uri";
@@ -22,6 +22,8 @@ function hasGlobalScope(parent) {
 	}
 	return true;
 }
+
+const diagnosticsFilesList = new Set<string>();
 
 function doValidate(connection: IConnection, document: TextDocument): void {
 	const diagnostics: Diagnostic[] = [];
@@ -104,17 +106,35 @@ function doValidate(connection: IConnection, document: TextDocument): void {
 			));
 		}
 	}
+	diagnosticsFilesList.add(document.uri);
 	connection.sendDiagnostics({ uri: document.uri, diagnostics, version: document.version });
 }
 
 export function activate(connection: IConnection, documents: TextDocuments<TextDocument>) {
 	// A text document has changed. Validate the document.
-	documents.onDidChangeContent((event) => {
+	const changeContentDisposable = documents.onDidChangeContent((event) => {
 		const document = event.document;
 		const fsPath = URI.parse(document.uri).fsPath;
 
 		if (isBackEndFile(fsPath)) {
 			doValidate(connection, document);
 		}
+	});
+
+	documents.all().forEach(document => {
+		const fsPath = URI.parse(document.uri).fsPath;
+
+		if (isBackEndFile(fsPath)) {
+			doValidate(connection, document);
+		}
+	});
+
+	return Disposable.create(() => {
+		changeContentDisposable.dispose();
+		// clean up files
+		Array.from(diagnosticsFilesList).forEach(fileUri => {
+			connection.sendDiagnostics({ uri: fileUri, diagnostics: [] });
+		});
+		diagnosticsFilesList.clear();
 	});
 }

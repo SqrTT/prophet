@@ -21,10 +21,10 @@ import { getExtensionPath } from './extensionPath'
 import { join, basename } from 'path';
 import { default as WebDav, DavOptions } from '../server/WebDav';
 import { DOMParser } from 'xmldom';
-import { Observable, Subject, empty, from } from 'rxjs';
-import { tap, map, flatMap, takeUntil, merge, reduce } from 'rxjs/operators';
+import { Observable, empty, from } from 'rxjs';
+import { map, flatMap, merge, reduce } from 'rxjs/operators';
 import * as timeago from 'timeago.js';
-import { getCartridgesFolder, getConfig, getDWConfig } from '../lib/FileHelper';
+import { getCartridgesFolder, getDWConfig } from '../lib/FileHelper';
 
 
 const domParser = new DOMParser();
@@ -75,20 +75,17 @@ function observable2promise<T>(observable: Observable<T>): Promise<T> {
 }
 
 function syncClientWithDwJson(dwConfig: DavOptions, webdavClients: Map<string, WebDav>): Map<string, WebDav> {
-	Object.keys(dwConfig).forEach((key) => {
-		let existingClient = webdavClients.get(dwConfig.hostname);
-		// only update necessary values
-		if (existingClient && key === 'password' || existingClient && key === 'hostname') {
-			existingClient.config[key] = dwConfig[key];
-			webdavClients.set(dwConfig.hostname, existingClient);
-		}
-	});
+	webdavClients.clear();
+	const webdav = new WebDav(dwConfig);
+	webdav.config.version = '';
+	webdav.folder = 'Logs';
+	webdavClients.set(dwConfig.hostname, webdav);
 	return webdavClients
 }
 export class LogsView implements TreeDataProvider<LogItem> {
 	private webdavClients: Map<string, WebDav> = new Map();
 
-	static initialize(commands, context: ExtensionContext, dwConfig$$: Observable<Observable<Uri>>) {
+	static initialize(commands, context: ExtensionContext) {
 		const subscriptions: Disposable[] = [];
 		const logsView = new LogsView();
 
@@ -111,35 +108,13 @@ export class LogsView implements TreeDataProvider<LogItem> {
 			logsView.cleanLog(logItem);
 		}));
 
+		setTimeout(() => {
+			logsView.refresh();
+		}, 2000);
+
 		//subscriptions.forEach(subscription => subscription.dispose());
 
-		return dwConfig$$.pipe(map(dwConfig$ => {
-			const end$ = new Subject();
-			return dwConfig$
-				.pipe(tap(() => { }, undefined, () => { end$.next(); end$.complete() }))
-				.pipe(flatMap((dwConfig) => {
-					return getConfig(dwConfig.fsPath);
-				}))
-				.pipe(flatMap((davOptins) => {
-					return new Observable((observer) => {
-						if (!logsView.webdavClients.has(davOptins.hostname)) {
-							const webdav = new WebDav(davOptins);
-							webdav.config.version = '';
-							webdav.folder = 'Logs';
-							logsView.webdavClients.set(davOptins.hostname, webdav);
-							logsView.refresh();
-						}
-
-						return () => {
-							if (logsView.webdavClients.has(davOptins.hostname)) {
-								logsView.webdavClients.delete(davOptins.hostname);
-								logsView.refresh();
-							}
-						}
-					});
-				}))
-				.pipe(takeUntil(end$));
-		}));
+		return subscriptions;
 	}
 	constructor() { }
 	private _onDidChangeTreeData: EventEmitter<LogItem | undefined> = new EventEmitter<LogItem | undefined>();

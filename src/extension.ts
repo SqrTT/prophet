@@ -12,9 +12,9 @@ import { existsSync, promises, createReadStream } from 'fs';
 import { createServer, ServerResponse, IncomingMessage } from 'http';
 import Uploader from "./providers/Uploader";
 import { ProphetConfigurationProvider } from './providers/ConfigurationProvider';
-import { Subject, Observable, of, empty } from 'rxjs';
-import { map, flatMap, tap, takeUntil, filter, reduce, merge, mergeAll } from 'rxjs/operators';
-import { findFiles, getDWConfig, getCartridgesFolder } from './lib/FileHelper';
+import { Observable, of, empty } from 'rxjs';
+import { flatMap, takeUntil, filter, reduce, merge } from 'rxjs/operators';
+import { getDWConfig, getCartridgesFolder } from './lib/FileHelper';
 import { SandboxFS } from './providers/SandboxFileSystemProvider';
 import { createScriptLanguageServer, getOrderedCartridges } from './extensionScriptServer';
 import * as unzip from 'unzip-stream';
@@ -259,21 +259,15 @@ export function activate(context: ExtensionContext) {
 	CartridgesView.initialize(context);
 	ControllersView.initialize(context);
 
-	const dwConfig$$ = workspaceFolders$$.pipe(map(workspaceFolder$ => {
-		const end$ = new Subject();
-		return workspaceFolder$
-			.pipe(tap(() => { }, undefined, () => { end$.next(); end$.complete() }))
-			.pipe(flatMap(workspaceFolder => {
-				return findFiles(new RelativePattern(workspaceFolder, '**/dw.{json,js}'), 1)
-			}))
-			.pipe(takeUntil(end$));
-	}));
-
-	subscribe2disposable(LogsView.initialize(commands, context, dwConfig$$).pipe(mergeAll()));
+	context.subscriptions.push(...LogsView.initialize(commands, context));
 
 	context.subscriptions.push(createIsmlLanguageServer(context).start());
 
-	context.subscriptions.push(createScriptLanguageServer(context).start());
+	createScriptLanguageServer(context).then(SLS => {
+		if (SLS) {
+			context.subscriptions.push(SLS.start());
+		}
+	});
 
 	const excludedMasks: { [key: string]: boolean } = workspace.getConfiguration('files', null).get<{}>('exclude') || {};
 
