@@ -396,6 +396,9 @@ module.exports = base;
 					});
 				}
 			}
+		} else if (!isOrderedCartridgesWarnShown) {
+			isOrderedCartridgesWarnShown = true;
+			window.showInformationMessage('Prophet: Cartridges not detected, related features will be disabled. Consider specifying in cartridge path (copy-paste from BM) in your dw.json as \'cartridgesPath\' property, please.');
 		}
 	}
 }
