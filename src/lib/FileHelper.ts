@@ -107,7 +107,7 @@ export function findFiles(include: RelativePattern, maxResults?: number, errIfNo
 
 		workspace.findFiles(
 			include,
-			new RelativePattern(include.base, 'node_modules,.git'),
+			new RelativePattern(include.base, '{node_modules,.git}'),
 			maxResults,
 			tokenSource.token
 		).then(files => {

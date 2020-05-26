@@ -151,15 +151,18 @@ module.exports = base;
 	}));
 
 	if (workspace.workspaceFolders) {
-		const orderedCartridges = await getOrderedCartridges(workspace.workspaceFolders);
+		const orderedCartridges = (await getOrderedCartridges(workspace.workspaceFolders))?.filter(cartridge => cartridge.fsPath);
 
 		if (orderedCartridges && orderedCartridges.length) {
-
 			// Create the language client and start the client.
 			const scriptLanguageClient = new LanguageClient('dwScriptLanguageServer', 'Script Language Server', serverOptions, clientOptions);
+			scriptLanguageClient.info('Client created');
+			scriptLanguageClient.info('Actual cartridges: ' + JSON.stringify(orderedCartridges));
+
 			//context.subscriptions.push(new SettingMonitor(ismlLanguageClient, 'extension.prophet.htmlhint.enabled').start());
 
 			scriptLanguageClient.onReady().then(async () => {
+			scriptLanguageClient.info('Server Ready');
 
 				const orderedCartridgesWithFiles = await Promise.all(orderedCartridges.map(async cartridge => {
 					if (cartridge.fsPath) {
@@ -215,6 +218,7 @@ module.exports = base;
 						};
 					}
 				}));
+				scriptLanguageClient.info('Files list =>');
 
 				const orderedCartridgesWithFilesFiltered = orderedCartridgesWithFiles.filter(Boolean);
 
@@ -241,6 +245,7 @@ module.exports = base;
 						}
 					}
 				}));
+				scriptLanguageClient.info('Templates list =>');
 
 				const orderedCartridgesWithTemplatesFiltered = orderedCartridgesWithTemplates.filter(Boolean);
 
@@ -267,6 +272,7 @@ module.exports = base;
 						}
 					}
 				}));
+				scriptLanguageClient.info('Controllers list =>');
 
 				const orderedCartridgesWithControllersFiltered = orderedCartridgesWithControllers.filter(Boolean);
 
@@ -344,7 +350,7 @@ module.exports = base;
 						}
 					}
 				}));
-
+				scriptLanguageClient.info('Properties list =>');
 				const orderedCartridgesWithPropertiesFiltered = orderedCartridgesWithProperties.filter(Boolean);
 
 				if (orderedCartridgesWithPropertiesFiltered.length) {
@@ -374,12 +380,15 @@ module.exports = base;
 					}
 				});
 
+				scriptLanguageClient.info('Configuration done');
 			}).catch(err => {
 				window.showErrorMessage(JSON.stringify(err));
+				scriptLanguageClient.error('init error:' + JSON.stringify(err));
 				return Promise.reject(err);
 			});
 			return {
 				start() {
+					scriptLanguageClient.info('Starting client...');
 					const clientDispose = scriptLanguageClient.start();
 					return Disposable.create(() => {
 						disposes.forEach(d =>  d.dispose());
