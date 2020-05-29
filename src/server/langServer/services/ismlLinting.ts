@@ -142,6 +142,7 @@ const defaultLinterConfig = {
 	"no-div-without-class": true,
 	"aria-attr-exists": true,
 	"aria-attr-has-proper-value": true,
+	"sfcc-custom-tags": true,
 	"tags-check": {
 		"isslot": {
 			"selfclosing": true,

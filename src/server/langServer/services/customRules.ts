@@ -171,9 +171,44 @@ const ariaAttributes = {
 	"aria-keyshortcuts": { type: ariaType.STRING }
 }
 
+const builtInTagsList = [
+	"isprint", "isset", "isif", "isloop", "iscomment", "isreplace", "isdecorate", "isscript", "isinclude", "iscontent", "iscache", "iselse", "iselseif", "isredirect", "iscontinue", "ismodule", "isbreak", "isslot"
+];
 
 
 export const customRules: IRules[] = [{
+	id: 'sfcc-custom-tags',
+	description: 'Checks if "util/modules" template is require or missing',
+	init(parser, reporter, options) {
+		const self = this;
+		const customTags = new Set<IParserEvent>();
+		let hasModulesInclude: IParserEvent | undefined;
+		parser.addListener('tagstart', function (event) {
+			if (event.tagName.toLowerCase().startsWith('is') && !builtInTagsList.includes(event.tagName)) {
+				customTags.add(event);
+			} else if (event.tagName.toLowerCase() === 'isinclude') {
+				event.attrs.some(attr => {
+					if (
+						attr.name.toLowerCase() === 'template'
+						&& (attr.value.includes('components/modules')
+							|| attr.value.includes('util/modules'))
+						) {
+						hasModulesInclude = event;
+					}
+				});
+			}
+		});
+		parser.addListener('end', function (event) {
+			if (hasModulesInclude && !customTags.size) {
+				reporter.error(`'util/modules' or 'components/modules' was included but custom tags are not used`, hasModulesInclude.line, hasModulesInclude.col, self, hasModulesInclude.raw);
+			} else if (!hasModulesInclude && customTags.size) {
+				Array.from(customTags).forEach(customTag => {
+					reporter.error(`Custom tag '${customTag.tagName}' is used but 'util/modules' or 'components/modules' was not included`, customTag.line, customTag.col, self, customTag.raw);
+				});
+			}
+		});
+	}
+}, {
 	id: 'aria-attr-exists',
 	description: 'Checks aria attr existance',
 	init(parser, reporter, options) {
