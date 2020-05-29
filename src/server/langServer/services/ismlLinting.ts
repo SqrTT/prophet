@@ -19,16 +19,8 @@ import fs = require('fs');
 
 import * as htmlhint from '../htmlhint';
 import { replaceIsPrintAttr } from "../utils/strings";
-import { positionAt } from "../../getLineOffsets";
+import { customRules } from "./customRules";
 
-function attributePos(event: IParserEvent, attrOffset: number, attrContent: string) {
-	const spaces = attrContent.length - attrContent.trimLeft().length + event.tagName.length + 1;
-	const position = positionAt(attrOffset + spaces, event.raw)
-	return {
-		line: position.line + event.line,
-		col: position.line === 0 ? attrOffset + event.col + spaces : position.character + 1
-	}
-}
 
 var htmlHintClient: any = null;
 let htmlhintrcOptions: any = {};
@@ -52,7 +44,7 @@ interface ITagType {
 }
 
 
-const tagsTypings: { [key: string]: ITagType } = {
+export const tagsTypings: { [key: string]: ITagType } = {
 	br: {
 		denyTag: 'error',
 	},
@@ -126,6 +118,7 @@ const tagsTypings: { [key: string]: ITagType } = {
 	}
 };
 
+
 const defaultLinterConfig = {
 	"tagname-lowercase": true,
 	"attr-lowercase": true,
@@ -147,6 +140,8 @@ const defaultLinterConfig = {
 	"unsafe-external-link": true,
 	"no-html-comment": true,
 	"no-div-without-class": true,
+	"aria-attr-exists": true,
+	"aria-attr-has-proper-value": true,
 	"tags-check": {
 		"isslot": {
 			"selfclosing": true,
@@ -238,306 +233,7 @@ const defaultLinterConfig = {
 	}
 };
 
-const encodingValues = ["on", "htmlcontent", "htmlsinglequote", "htmldoublequote", "htmlunquote", "jshtml", "jsattribute", "jsblock", "jssource", "jsonvalue", "uricomponent", "uristrict", "xmlcontent", "xmlsinglequote", "xmldoublequote", "xmlcomment"];
-
-interface IParserEvent {
-	tagName: string;
-	col: number;
-	line: number;
-	raw: string;
-	attrs: {
-		name: string,
-		value: string,
-		index: number;
-		raw: string;
-	}[];
-	close: boolean;
-	lastEvent?: IParserEvent
-}
-interface IParser {
-	addListener: (eventName: string, handler: (event: IParserEvent) => void) => void
-}
-
-interface IReporter {
-	warn: (msg: string, line: number, col: number, self: any, raw: string) => void;
-	error: (msg: string, line: number, col: number, self: any, raw: string) => void;
-	report: (tag: string, msg: string, line: number, col: number, self: any, raw: string) => void;
-}
-
-interface IOptions {
-
-}
-
-interface IRules {
-	id: string;
-	description: string;
-	init: (parser: IParser, reporter: IReporter, options: IOptions) => void
-}
-
-const customRules: IRules[] = [{
-	id: 'tags-check',
-	description: 'Checks html tags.',
-	init(parser, reporter, options) {
-		var self = this;
-
-		if (typeof options !== 'boolean') {
-			Object.assign(tagsTypings, options);
-		}
-
-		parser.addListener('tagstart', function (event) {
-			var attrs = event.attrs;
-			var col = event.col + event.tagName.length + 1;
-
-			const tagName = event.tagName.toLowerCase();
-
-			if (tagsTypings[tagName]) {
-				const currentTagType = tagsTypings[tagName];
-
-				if (currentTagType.selfclosing === true && !event.close) {
-					reporter.warn(`The <${tagName}> tag must be self closed.`, event.line, event.col, self, event.raw);
-				} else if (currentTagType.selfclosing === false && event.close) {
-					reporter.warn(`The <${tagName}> tag must not be self closed.`, event.line, event.col, self, event.raw);
-				}
-
-				if (currentTagType.attrsRequired) {
-					currentTagType.attrsRequired.forEach(id => {
-						if (Array.isArray(id)) {
-							const copyOfId = id.map(a => a);
-							const realID = copyOfId.shift();
-							const values = copyOfId;
-
-							if (attrs.some(attr => attr.name === realID)) {
-								attrs.forEach(attr => {
-									if (attr.name === realID && !values.includes(attr.value)) {
-										reporter.error(`The <${tagName}> tag must have attr '${realID}' with one value of '${values.join('\' or \'')}'.`, event.line, col, self, event.raw);
-									}
-								});
-							} else {
-								reporter.error(`The <${tagName}> tag must have attr '${realID}'.`, event.line, col, self, event.raw);
-							}
-						} else if (!attrs.some(attr => id.split('|').includes(attr.name))) {
-							reporter.error(`The <${tagName}> tag must have attr '${id}'.`, event.line, col, self, event.raw);
-						}
-					});
-				}
-				if (currentTagType.attrsOptional) {
-					currentTagType.attrsOptional.forEach(id => {
-						if (Array.isArray(id)) {
-							const copyOfId = id.map(a => a);
-							const realID = copyOfId.shift();
-							const values = copyOfId;
-
-							if (attrs.some(attr => attr.name === realID)) {
-								attrs.forEach(attr => {
-									if (attr.name === realID && !values.includes(attr.value)) {
-										const { line, col } = attributePos(event, attr.index, attr.raw);
-
-										reporter.error(`The <${tagName}> tag must have optional attr '${realID}' with one value of '${values.join('\' or \'')}'.`, line, col, self, event.raw);
-									}
-								});
-							}
-						}
-					});
-				}
-
-				if (currentTagType.redundantAttrs) {
-					currentTagType.redundantAttrs.forEach((attrName: string) => {
-						if (attrName.includes('=')) {
-							const [nameOfAttr, attrValues] = attrName.split('=');
-							const valuesOfAttr = attrValues.split(',');
-
-							const found = attrs.find((attr: { name: string; value: string; }) =>
-								attr.name === nameOfAttr && valuesOfAttr.includes((attr.value || '').toLowerCase()))
-
-							if (found) {
-								const { line, col } = attributePos(event, found.index, found.raw);
-
-								reporter.error(`The attr '${found.name}' with  '${found.value}' is redundant for <${tagName}> and should be omitted.`, line, col, self, event.raw);
-							}
-						} else {
-							const found = attrs.find(attr => attr.name === attrName);
-
-							if (found) {
-								const { line, col } = attributePos(event, found.index, found.raw);
-
-								reporter.error(`The attr '${found.name}' is redundant for <${tagName}> and should be omitted.`, line, col, self, event.raw);
-							}
-						}
-					});
-				}
-				if (currentTagType.denyTag) {
-					reporter.report(currentTagType.denyTag, `The <${tagName}> tag ${currentTagType.denyTag === 'error' ? 'must' : 'should'} not be used.`, event.line, event.col, self, event.raw);
-				}
-			}
-		});
-	}
-}, {
-	id: 'attr-no-duplication',
-	description: 'Elements cannot have duplicate attributes.',
-	init: function (parser, reporter) {
-		var self = this;
-
-		parser.addListener('tagstart', function (event) {
-			var attrs = event.attrs;
-			var attr;
-			var attrName;
-
-			if (event.tagName.toLowerCase() === 'ismodule') {
-				return;
-			}
-
-			var mapAttrName: { [key: string]: boolean } = {};
-			for (var i = 0, l = attrs.length; i < l; i++) {
-				attr = attrs[i];
-				attrName = attr.name;
-				if (mapAttrName[attrName] === true) {
-					const { line, col: attrCol } = attributePos(event, attr.index, attr.raw);
-					reporter.error('Duplicate of attribute name [ ' + attr.name + ' ] was found.',
-						line, attrCol, self, attr.raw);
-				}
-				mapAttrName[attrName] = true;
-			}
-		});
-	}
-}, {
-	id: 'unsafe-external-link',
-	description: 'Links to cross-origin destinations are unsafe',
-	init: function (parser, reporter) {
-		var self = this;
-
-		parser.addListener('tagstart', function (event) {
-			if (event.tagName.toLowerCase() === 'a') {
-				const attrs = event.attrs || [];
-				const targetAttr = attrs.find(attr => attr.name === 'target' && attr.value === '_blank');
-
-				if (targetAttr) {
-					const relAttr = attrs.find(attr => attr.name === 'rel');
-
-					if (
-						!relAttr
-						|| (!(relAttr.value || '').includes('noopener')
-							&& !(relAttr.value || '').includes('noreferrer'))
-					) {
-						const { line, col } = relAttr ? attributePos(event, relAttr.index, relAttr.raw) : event;
-
-						reporter.warn(`Links to cross-origin destinations are unsafe. Add 'rel = "noopener"' or 'rel = "noreferrer"' to any external links to improve performance and prevent security vulnerabilities.`, line, col, self, targetAttr.raw);
-					}
-				}
-			}
-		});
-	}
-}, {
-	id: 'encoding-off-warn',
-	description: 'Omit usage of encoding off.',
-	init: function (parser, reporter) {
-		var self = this;
-
-		parser.addListener('tagstart', function (event) {
-			if (event.tagName.toLowerCase() === 'isprint') {
-				const attrs = event.attrs || [];
-				attrs.forEach(attr => {
-					if (attr.name === 'encoding' && attr.value === 'off') {
-						const { line, col } = attributePos(event, attr.index, attr.raw);
-
-						reporter.warn(`Try to omit usage of encoding="off". Use encoding="off" only if you understand consequences and this is really required. "${encodingValues.join(', ')}" may fit better your needs.`,
-							line, col, self, attr.raw);
-					}
-				});
-			}
-		});
-	}
-}, {
-	id: 'max-length',
-	description: 'Lines limitation.',
-	init(parser, reporter, option) {
-		var self = this;
-
-		if (option) {
-			const checkLength = (event: IParserEvent) => {
-				if (event.col > option) {
-					reporter.error(
-						`Line must be at most ${option} characters`,
-						event.line - 1,
-						event.col,
-						self,
-						event.raw
-					);
-				}
-			};
-
-			parser.addListener('tagstart', checkLength);
-			parser.addListener('text', checkLength);
-			parser.addListener('cdata', checkLength);
-			parser.addListener('tagend', checkLength);
-			parser.addListener('comment', checkLength);
-		}
-	},
-}, {
-	id: 'no-html-comment',
-	description: 'avoid usage of html comments. Use  <iscomment/> instead.',
-	init(parser, reporter, option) {
-		const self = this;
-		parser.addListener('comment', event => {
-			if (!event.raw.includes('dwMarker') && !event.raw.includes('DOCTYPE')) {
-				reporter.warn(
-					`avoid usage of html comments. Use  <iscomment/> instead.`,
-					event.line,
-					event.col,
-					self,
-					event.raw
-				);
-			}
-		});
-	}
-}, {
-	id: 'no-div-without-class',
-	description: 'avoid usage div without attribute class',
-	init(parser, reporter, option) {
-		const self = this;
-
-		parser.addListener('tagstart', function (event) {
-			if (event.tagName.toLowerCase() === 'div') {
-				const attrs = event.attrs || [];
-				const classAttr = attrs.find(attr => attr.name === 'class');
-
-				if (!classAttr || !classAttr.value) {
-					reporter.warn('Please avoid usage div tag without class. Most likely this block is redundant',
-						event.line,
-						event.col,
-						self,
-						event.raw
-					);
-				}
-			}
-		});
-	}
-},
-{
-	id: 'localize-strings',
-	description: 'Localizable string is only allowed.',
-	init(parser, reporter, option) {
-		var self = this;
-
-		parser.addListener('text', event => {
-			const str: string = event.raw.trimLeft();
-			if (str.length && (!str.startsWith('${') && !str.startsWith('___') && !str.startsWith('{{'))) {// non empty text
-				if (event.lastEvent && ['isscript', 'iscomment'].includes(event.lastEvent.tagName)) {
-					return;
-				}
-
-				const spaces = event.raw.length - event.raw.trimLeft().length;
-
-				reporter.error(
-					`Use localization for strings (Resource.msg)`,
-					event.line,
-					event.col + spaces,
-					self,
-					event.raw
-				);
-			};
-		});
-	},
-}];
+export const encodingValues = ["on", "htmlcontent", "htmlsinglequote", "htmldoublequote", "htmlunquote", "jshtml", "jsattribute", "jsblock", "jssource", "jsonvalue", "uricomponent", "uristrict", "xmlcontent", "xmlsinglequote", "xmldoublequote", "xmlcomment"];
 
 function getErrorMessage(err: any, document: TextDocument): string {
 	let result: string;
