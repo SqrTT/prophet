@@ -20,9 +20,9 @@ import fs = require('fs');
 import * as htmlhint from '../htmlhint';
 import { replaceIsPrintAttr } from "../utils/strings";
 import { customRules } from "./customRules";
+import { HTMLHint } from 'htmlhint';
 
-
-var htmlHintClient: any = null;
+let islintingEnabled = true;
 let htmlhintrcOptions: any = {};
 
 interface Settings {
@@ -394,7 +394,7 @@ function replaceSystemPlaceholders(str: string) {
 
 function doValidate(connection: IConnection, document: TextDocument): void {
 	const uri = document.uri;
-	if (htmlHintClient) {
+	if (islintingEnabled) {
 		try {
 			const fsPath = URI.parse(document.uri).fsPath;
 			const contents = replaceSystemPlaceholders(replaceIsPrintAttr(document.getText()));
@@ -402,7 +402,7 @@ function doValidate(connection: IConnection, document: TextDocument): void {
 
 			const config = Object.assign({}, defaultLinterConfig, getConfiguration(fsPath)); //;
 
-			const errors: htmlhint.Error[] = htmlHintClient.verify(contents, config);
+			const errors: htmlhint.Error[] = HTMLHint.verify(contents, config);
 
 			const diagnostics: Diagnostic[] = [];
 			if (errors.length > 0) {
@@ -434,7 +434,7 @@ function validateAllTextDocuments(connection: IConnection, documents: TextDocume
 	tracker.sendErrors(connection);
 }
 export function disableLinting(connection: IConnection, documents: TextDocuments<TextDocument>) {
-	htmlHintClient = null;
+	islintingEnabled = false;
 	let tracker = new ErrorMessageTracker();
 	documents.all().forEach(document => {
 		try {
@@ -448,9 +448,9 @@ export function disableLinting(connection: IConnection, documents: TextDocuments
 }
 
 export function enableLinting(connection: IConnection, documents: TextDocuments<TextDocument>) {
-	htmlHintClient = require('htmlhint/dist/htmlhint').default;
+	islintingEnabled = true;
 
-	customRules.forEach(rule => htmlHintClient.addRule(rule));
+	customRules.forEach(rule => HTMLHint.addRule(rule));
 
 	// The watched .htmlhintrc has changed. Clear out the last loaded config, and revalidate all documents.
 	connection.onDidChangeWatchedFiles((params) => {
@@ -470,7 +470,7 @@ export function onDidChangeConfiguration(connection: IConnection, documents: Tex
 		settings.extension.prophet &&
 		settings.extension.prophet.htmlhint &&
 		settings.extension.prophet.htmlhint.enabled &&
-		!htmlHintClient
+		!islintingEnabled
 	) {
 		enableLinting(connection, documents);
 		connection.console.log('htmlhint enabled');
@@ -479,7 +479,7 @@ export function onDidChangeConfiguration(connection: IConnection, documents: Tex
 		settings.extension &&
 		settings.extension.prophet &&
 		settings.extension.prophet.htmlhint &&
-		!settings.extension.prophet.htmlhint.enabled && htmlHintClient
+		!settings.extension.prophet.htmlhint.enabled && islintingEnabled
 	) {
 		connection.console.log('htmlhint disabled');
 		disableLinting(connection, documents);
