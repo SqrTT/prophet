@@ -78,8 +78,8 @@ const ariaType = {
 	},
 	STRING: {
 		values: ['Unconstrained value type'],
-		check: (val: string) => {
-			return typeof val === 'string';
+		check: (val: string, hasEq) => {
+			return hasEq && typeof val === 'string';
 		}
 	},
 	LIVETOKEN: {
@@ -202,11 +202,11 @@ export const customRules: IRules[] = [{
 				if (
 					attrName.toLowerCase().startsWith('aria-')
 					&& ariaAttributes[attrName]
-					&& !ariaAttributes[attrName].type.check(attr.value)
+					&& !ariaAttributes[attrName].type.check(attr.value, attr.raw.includes('='))
 				) {
 
 					const { line, col: attrCol } = attributePos(event, attr.index, attr.raw);
-					reporter.error(`Aria attribute "${attr.name}" doesn't have valid value. Valid values are '${ariaAttributes[attrName].type.values.join('\', \'')}'`, line, attrCol, self, attr.raw);
+					reporter.error(`Aria attribute "${attr.name}" have invalid value. Valid values are '${ariaAttributes[attrName].type.values.join('\', \'')}'`, line, attrCol, self, attr.raw);
 				}
 			});
 		});
