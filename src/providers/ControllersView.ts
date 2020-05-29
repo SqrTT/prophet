@@ -96,7 +96,7 @@ export class ControllersView implements TreeDataProvider<ControllerItem> {
 		);
 
 		context.subscriptions.push(commands.registerCommand('extension.prophet.command.controllers.refresh', (cartridgeDirectoryItem) => {
-			controllersView._onDidChangeTreeData.fire();
+			controllersView._onDidChangeTreeData.fire(undefined);
 		}));
 
 	}

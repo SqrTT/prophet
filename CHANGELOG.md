@@ -1,3 +1,6 @@
+### 1.3.9
+* [add] add isml validation rules: sfcc-custom-tags, aria-attr-exists and aria-attr-has-proper-value
+
 ### 1.3.5
 * [add] make diagnostics manageable via config
 * [fix] attempt to fix suggestions

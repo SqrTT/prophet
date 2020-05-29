@@ -170,7 +170,7 @@ export class CartridgesView implements TreeDataProvider<GenericTreeItem> {
 			cartridgeViewOutputChannel.appendLine('\nRefreshing workspace with active file: ' + file);
 			this.activeFile = file;
 		}
-		this._onDidChangeTreeData.fire();
+		this._onDidChangeTreeData.fire(undefined);
 	}
 
 	getTreeItem(element: GenericTreeItem): TreeItem {

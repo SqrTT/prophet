@@ -124,7 +124,7 @@ export class LogsView implements TreeDataProvider<LogItem> {
 	async refresh(): Promise<void> {
 		const dwConfig: DavOptions = await getDWConfig(workspace.workspaceFolders);
 		this.webdavClients = syncClientWithDwJson(dwConfig, this.webdavClients);
-		this._onDidChangeTreeData.fire();
+		this._onDidChangeTreeData.fire(undefined);
 	}
 	getTreeItem(element: LogItem): TreeItem {
 		return element;
