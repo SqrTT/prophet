@@ -30,6 +30,7 @@ interface IParser {
 
 interface IReporter {
 	warn: (msg: string, line: number, col: number, self: any, raw: string) => void;
+	info: (msg: string, line: number, col: number, self: any, raw: string) => void;
 	error: (msg: string, line: number, col: number, self: any, raw: string) => void;
 	report: (tag: string, msg: string, line: number, col: number, self: any, raw: string) => void;
 }
@@ -177,7 +178,7 @@ const ariaAttributes = {
 }
 
 const builtInTagsList = [
-	"isprint", "isset", "isif", "isloop", "iscomment", "isreplace", "isdecorate", "isscript", "isinclude", "iscontent", "iscache", "iselse", "iselseif", "isredirect", "iscontinue", "ismodule", "isbreak", "isslot"
+	"isprint", "isset", "isif", "isloop", "iscomment", "isreplace", "isdecorate", "isscript", "isinclude", "iscontent", "iscache", "iselse", "iselseif", "isredirect", "iscontinue", "ismodule", "isbreak", "isslot", "iscomponent", "isobject"
 ];
 
 
@@ -214,17 +215,49 @@ export const customRules: IRules[] = [{
 		});
 	}
 }, {
-	id: 'aria-attr-exists',
-	description: 'Checks aria attr existance',
+	id: 'no-aria-hidden-with-hidden-attr',
+	description: 'Attribute "aria-hidden" is unnecessary for elements that have attribute "hidden"',
 	init(parser, reporter, options) {
 		var self = this;
 		parser.addListener('tagstart', function (event) {
 			var attrs = event.attrs;
 			attrs.forEach(attr => {
 				const attrName = attr.name.toLowerCase();
-				if (attrName.toLowerCase().startsWith('aria-') && !ariaAttributes[attrName]) {
+				if (attrName.toLowerCase() === 'aria-hidden' && attrs.some(a => a.name.toLowerCase() === 'hidden')) {
 					const { line, col: attrCol } = attributePos(event, attr.index, attr.raw);
-					reporter.error(`Aria attribute "${attr.name}" doesn't exists. Please double check spelling`, line, attrCol, self, attr.raw);
+					reporter.warn(`Attribute "aria-hidden" is unnecessary for elements that have attribute "hidden"`, line, attrCol, self, attr.raw);
+				}
+			});
+		});
+	}
+}, {
+	id: 'no-whitespace-in-id-attr',
+	description: 'Attribute "for" is allowed only for "label" and "output" tag',
+	init(parser, reporter, options) {
+		var self = this;
+		parser.addListener('tagstart', function (event) {
+			var attrs = event.attrs;
+			attrs.forEach(attr => {
+				const attrName = attr.name.toLowerCase();
+				if (attrName.toLowerCase() === 'id' && (attr.value).replace(/\$\{.+?\}/, '').includes(' ')) {
+					const { line, col: attrCol } = attributePos(event, attr.index, attr.raw);
+					reporter.error(`Bad value "${attr.value}" for attribute id on element "${event.tagName}": An ID must not contain whitespace.`, line, attrCol, self, attr.raw);
+				}
+			});
+		});
+	}
+}, {
+	id: 'for-attr-is-allowed-for-label-and-output',
+	description: 'Attribute "for" is allowed only for "label" and "output" tag',
+	init(parser, reporter, options) {
+		var self = this;
+		parser.addListener('tagstart', function (event) {
+			var attrs = event.attrs;
+			attrs.forEach(attr => {
+				const attrName = attr.name.toLowerCase();
+				if (attrName.toLowerCase() === 'for' && !['label', 'output'].includes(event.tagName.toLowerCase())) {
+					const { line, col: attrCol } = attributePos(event, attr.index, attr.raw);
+					reporter.warn(`Attribute "for" not allowed on element "${event.tagName}" at this point.`, line, attrCol, self, attr.raw);
 				}
 			});
 		});

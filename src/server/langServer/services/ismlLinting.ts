@@ -143,6 +143,9 @@ const defaultLinterConfig = {
 	"aria-attr-exists": true,
 	"aria-attr-has-proper-value": true,
 	"sfcc-custom-tags": true,
+	"no-aria-hidden-with-hidden-attr" : true,
+	"for-attr-is-allowed-for-label-and-output": true,
+	"no-whitespace-in-id-attr": true,
 	"tags-check": {
 		"isslot": {
 			"selfclosing": true,
@@ -360,6 +363,7 @@ function getRange(error: htmlhint.Error, lines: string[]): any {
 }
 
 const evidenceMap = {
+	'warning': DiagnosticSeverity.Warning,
 	'warn': DiagnosticSeverity.Warning,
 	'error': DiagnosticSeverity.Error,
 	'info': DiagnosticSeverity.Information,
