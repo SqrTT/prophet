@@ -43,14 +43,19 @@ interface IRules {
 	description: string;
 	init: (parser: IParser, reporter: IReporter, options: IOptions) => void
 }
+
+function hasDynamicValue(str: string) {
+	return str.includes('${');
+}
+
 const ariaType = {
 	BOOLEAN: {
 		values: ['true', 'false'],
-		check: (val: string) => ariaType.BOOLEAN.values.some(v => v === val)
+		check: (val: string) => hasDynamicValue(val) || ariaType.BOOLEAN.values.some(v => v === val)
 	},
 	BOOLEANUNDEFINED: {
 		values: ['true', 'false', 'undefined'],
-		check: (val: string) => ariaType.BOOLEAN.values.some(v => v === val)
+		check: (val: string) => hasDynamicValue(val) || ariaType.BOOLEAN.values.some(v => v === val)
 	},
 	ANY: {
 		values: [],
@@ -62,58 +67,58 @@ const ariaType = {
 	},
 	TRISTATE: {
 		values: ['true', 'false', 'mixed'],
-		check: (val: string) => ariaType.TRISTATE.values.some(v => v === val)
+		check: (val: string) => hasDynamicValue(val) || ariaType.TRISTATE.values.some(v => v === val)
 	},
 	NUMBER: {
 		values: ['Any real numerical value.'],
 		check: (val: string) => {
-			return parseFloat(val).toString() === val;
+			return hasDynamicValue(val) || parseFloat(val).toString() === val;
 		}
 	},
 	INTEGER: {
 		values: ['A numerical value without a fractional component'],
 		check: (val: string) => {
-			return parseInt(val, 10).toString() === val;
+			return hasDynamicValue(val) || parseInt(val, 10).toString() === val;
 		}
 	},
 	STRING: {
 		values: ['Unconstrained value type'],
 		check: (val: string, hasEq) => {
-			return hasEq && typeof val === 'string';
+			return hasDynamicValue(val) || (hasEq && typeof val === 'string');
 		}
 	},
 	LIVETOKEN: {
 		values: ['assertive', 'off', 'polite'],
-		check: (val: string) => ariaType.LIVETOKEN.values.some(v => v === val)
+		check: (val: string) => hasDynamicValue(val) || ariaType.LIVETOKEN.values.some(v => v === val)
 	},
 	INVALIDTOKEN: {
 		values: ['grammar', 'false', 'spelling', 'true'],
-		check: (val: string) => ariaType.INVALIDTOKEN.values.some(v => v === val)
+		check: (val: string) => hasDynamicValue(val) || ariaType.INVALIDTOKEN.values.some(v => v === val)
 	},
 	RELEVANTTOKEN: {
 		values: ['additions', 'additions text', 'all', 'removals', 'text'],
-		check: (val: string) => ariaType.RELEVANTTOKEN.values.some(v => v === val)
+		check: (val: string) => hasDynamicValue(val) || ariaType.RELEVANTTOKEN.values.some(v => v === val)
 	},
 	AUTOCOMPLETETOKEN: {
 		values: ['both', 'inline', 'list', 'none'],
-		check: (val: string) => ariaType.AUTOCOMPLETETOKEN.values.some(v => v === val)
+		check: (val: string) => hasDynamicValue(val) || ariaType.AUTOCOMPLETETOKEN.values.some(v => v === val)
 	},
 	ORIENTATIONTOKEN: {
 		values: ['horizontal', 'vertical'],
-		check: (val: string) => ariaType.ORIENTATIONTOKEN.values.some(v => v === val)
+		check: (val: string) => hasDynamicValue(val) || ariaType.ORIENTATIONTOKEN.values.some(v => v === val)
 	},
 	SORTTOKEN: {
 		values: ['ascending', 'descending', 'none', 'other'],
-		check: (val: string) => ariaType.SORTTOKEN.values.some(v => v === val)
+		check: (val: string) => hasDynamicValue(val) || ariaType.SORTTOKEN.values.some(v => v === val)
 	},
 	CURRENTTOKEN: {
 		values: ['page', 'step', 'location', 'date', 'time', 'true', 'false'],
-		check: (val: string) => ariaType.CURRENTTOKEN.values.some(v => v === val)
+		check: (val: string) => hasDynamicValue(val) || ariaType.CURRENTTOKEN.values.some(v => v === val)
 	},
 	URI: {
 		values: ['A Uniform Resource Identifier as defined by RFC 3986. It may reference a separate document, or a content fragment identifier in a separate document, or a content fragment identifier within the same document.'],
 		check: (value: string) => {
-			return /^(https?|ftp):\/\/(((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:)*@)?(((\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5]))|((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.?)(:\d*)?)(\/((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)+(\/(([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)*)*)?)?(\?((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)|[\uE000-\uF8FF]|\/|\?)*)?(\#((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)|\/|\?)*)?$/i.test(value);;
+			return hasDynamicValue(value) || /^(https?|ftp):\/\/(((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:)*@)?(((\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5]))|((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.?)(:\d*)?)(\/((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)+(\/(([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)*)*)?)?(\?((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)|[\uE000-\uF8FF]|\/|\?)*)?(\#((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)|\/|\?)*)?$/i.test(value);;
 		}
 	}
 }
@@ -200,10 +205,10 @@ export const customRules: IRules[] = [{
 		});
 		parser.addListener('end', function (event) {
 			if (hasModulesInclude && !customTags.size) {
-				reporter.error(`'util/modules' or 'components/modules' was included but custom tags are not used`, hasModulesInclude.line, hasModulesInclude.col, self, hasModulesInclude.raw);
+				reporter.warn(`'util/modules' or 'components/modules' was included but custom tags are not used`, hasModulesInclude.line, hasModulesInclude.col, self, hasModulesInclude.raw);
 			} else if (!hasModulesInclude && customTags.size) {
 				Array.from(customTags).forEach(customTag => {
-					reporter.error(`Custom tag '${customTag.tagName}' is used but 'util/modules' or 'components/modules' was not included`, customTag.line, customTag.col, self, customTag.raw);
+					reporter.warn(`Custom tag '${customTag.tagName}' is used but 'util/modules' or 'components/modules' was not included`, customTag.line, customTag.col, self, customTag.raw);
 				});
 			}
 		});
@@ -241,7 +246,7 @@ export const customRules: IRules[] = [{
 				) {
 
 					const { line, col: attrCol } = attributePos(event, attr.index, attr.raw);
-					reporter.error(`Aria attribute "${attr.name}" have invalid value. Valid values are '${ariaAttributes[attrName].type.values.join('\', \'')}'`, line, attrCol, self, attr.raw);
+					reporter.warn(`Aria attribute "${attr.name}" have invalid value. Valid values are '${ariaAttributes[attrName].type.values.join('\', \'')}'`, line, attrCol, self, attr.raw);
 				}
 			});
 		});
