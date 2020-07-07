@@ -142,7 +142,7 @@ export function registerImportExportCSV(context: ExtensionContext) {
 							};
 						});
 					});
-					return Array.from(keys).sort();
+					return Array.from(keys);
 				}
 				function getValueForKeyInLocale(file: string, key: string, locale: string) {
 					const loc = locale ? file + '_' + locale : file;
