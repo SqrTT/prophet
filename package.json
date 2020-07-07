@@ -57,7 +57,7 @@
         "@types/request": "^2.48.4",
         "@types/yazl": "^2.4.2",
         "@types/vscode": "^1.46.0",
-        "mocha": "^8.0.1",
+        "mocha": "^7.0.0",
         "ts-loader": "^7.0.5",
         "typescript": "^3.9.5",
         "vscode-debugadapter-testsupport": "^1.41.0",
