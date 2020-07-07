@@ -406,7 +406,7 @@ function doValidate(connection: IConnection, document: TextDocument): void {
 
 			const config = Object.assign({}, defaultLinterConfig, getConfiguration(fsPath)); //;
 
-			const errors: htmlhint.Error[] = HTMLHint.verify(contents, config);
+			const errors: htmlhint.Error[] = HTMLHint && HTMLHint.verify(contents, config);
 
 			const diagnostics: Diagnostic[] = [];
 			if (errors.length > 0) {
@@ -454,7 +454,7 @@ export function disableLinting(connection: IConnection, documents: TextDocuments
 export function enableLinting(connection: IConnection, documents: TextDocuments<TextDocument>) {
 	islintingEnabled = true;
 
-	customRules.forEach(rule => HTMLHint.addRule(rule));
+	HTMLHint && customRules.forEach(rule => HTMLHint && HTMLHint.addRule(rule));
 
 	// The watched .htmlhintrc has changed. Clear out the last loaded config, and revalidate all documents.
 	connection.onDidChangeWatchedFiles((params) => {

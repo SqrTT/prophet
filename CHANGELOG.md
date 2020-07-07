@@ -1,3 +1,6 @@
+### 1.3.14
+* [add] import/export properties files to/from csv
+
 ### 1.3.9
 * [add] add isml validation rules: sfcc-custom-tags, aria-attr-exists and aria-attr-has-proper-value
 

@@ -198,7 +198,7 @@ export const customRules: IRules[] = [{
 						attr.name.toLowerCase() === 'template'
 						&& (attr.value.includes('components/modules')
 							|| attr.value.includes('util/modules'))
-						) {
+					) {
 						hasModulesInclude = event;
 					}
 				});
@@ -210,6 +210,23 @@ export const customRules: IRules[] = [{
 			} else if (!hasModulesInclude && customTags.size) {
 				Array.from(customTags).forEach(customTag => {
 					reporter.warn(`Custom tag '${customTag.tagName}' is used but 'util/modules' or 'components/modules' was not included`, customTag.line, customTag.col, self, customTag.raw);
+				});
+			}
+		});
+	}
+}, {
+	id: 'no-deprecated-sfcc-iscache-status',
+	description: 'Disallows deprecated attributes or attribute values.',
+	init(parser, reporter, options) {
+		var self = this;
+		parser.addListener('tagstart', function (event) {
+			if (event.tagName.toLowerCase() === 'iscache') {
+				event.attrs.some(attr => {
+					if (attr.name.toLowerCase() === 'status' && (attr.value || '').toLowerCase() === 'off') {
+						const { line, col: attrCol } = attributePos(event, attr.index, attr.raw);
+						reporter.warn(`Attribute "status" is deprecated for iscache tag`, line, attrCol, self, attr.raw);
+					}
+					return false;
 				});
 			}
 		});

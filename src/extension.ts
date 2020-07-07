@@ -21,6 +21,7 @@ import * as unzip from 'unzip-stream';
 import { spawnSync } from 'child_process';
 import * as commandExist from 'command-exists';
 import WebDav from './server/WebDav';
+import { registerImportExportCSV } from './registerImportExportCSV';
 
 
 /**
@@ -280,6 +281,8 @@ export function activate(context: ExtensionContext) {
 	initFS(context);
 
 	initSOAPDownloadAPI(context);
+
+	registerImportExportCSV(context);
 }
 
 let apiDocsGlobalChannel: OutputChannel | undefined;
@@ -551,7 +554,6 @@ function convertDebuggerPathToClient(this: void, debuggerPath: string, cartridge
 		window.showErrorMessage("Unable match cartridge");
 		return '';
 	}
-
 }
 
 export function deactivate() {
