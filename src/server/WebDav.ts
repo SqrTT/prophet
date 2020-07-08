@@ -5,8 +5,8 @@ import { tap, map, flatMap, catchError, reduce, filter } from 'rxjs/operators';
 import { createReadStream, unlink, ReadStream } from 'fs';
 import { finished } from 'stream';
 import { workspace, CancellationTokenSource, RelativePattern, window } from 'vscode';
-//fixme: refactor to use https module
-import * as request from 'request';
+import { request } from 'https';
+
 import * as yazl from 'yazl';
 
 class WebDavError extends Error {
@@ -17,43 +17,94 @@ class WebDavError extends Error {
 	}
 }
 
-function request$(options: request.Options) {
+function request$(options: {
+	hostname: string;
+	//uriBase: string;
+	stream?: ReadStream;
+	form?: object | string;
+	baseUrl: string;
+	uri: string;
+	method: string;
+	username: string;
+	password: string;
+}) {
 	return new Observable<string>(observer => {
-		var req: request.Request | undefined;
 
-		const body = options.body;
-		if (body && body instanceof ReadStream) {
-			body.once('error', (err) => {
+		const req = request(options.baseUrl + options.uri, {
+			auth: [options.username, options.password].join(':'),
+			method: options.method,
+			timeout: 20000
+		}, response => {
+			const dt: string[] = [];
+			response.on('data', data => {
+				dt.push(data && data.toString());
+			});
+
+			response.once('error', err => {
+				observer.error(err);
+				req.destroy();
+			});
+			response.once('abort', err => {
+				observer.error(err);
+				req.destroy();
+			});
+			response.once('end', () => {
+				if (response.statusCode && response.statusCode >= 400) {
+					const err = new WebDavError([
+						response.statusCode,
+						dt.join(''),
+						JSON.stringify({ options })].join('\n')
+					);
+					err.statusCode = response.statusCode;
+
+					observer.error(err);
+				} else {
+					observer.next(dt.join(''));
+					observer.complete();
+				}
+			});
+
+		});
+
+		req.once('error', (err) => {
+			observer.error(err);
+			req.destroy();
+		});
+		req.once('timeout', function (err) {
+			observer.error(err);
+			req.destroy();
+		});
+		req.once('uncaughtException', function (err) {
+			observer.error(err);
+			req.destroy();
+		});
+
+		const stream = options.stream;
+		if (stream) {
+			stream.once('error', (err) => {
 				observer.error(err);
 				if (req) {
 					req.destroy();
 				}
 			});
+			stream.pipe(req);
+
+		} else if (options.form) {
+			const postData = typeof options.form === 'string'
+				? options.form
+				: Object.keys(options.form).map(key =>
+					key + '=' + (options.form && options.form[key] ? encodeURIComponent(options.form[key]) : '')).join('&')
+
+			req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
+			req.setHeader('Content-Length', Buffer.byteLength(postData));
+
+			req.end(postData);
+		} else {
+			req.end();
 		}
 
-		req = request(options, (err, res, body) => {
-			if (err) {
-				observer.error(err);
-			} else if (res.statusCode >= 400) {
-				const { pool, ...optionsCopy } = options;
-				const err = new WebDavError([
-					res.statusMessage,
-					body,
-					JSON.stringify({ response: res, request: optionsCopy })].join('\n')
-				);
-				err.statusCode = res.statusCode;
-
-				observer.error(err);
-			} else {
-				observer.next(body);
-				observer.complete();
-			}
-		});
-
 		return () => {
-			if (req) {
-				req.destroy();
-			}
+			req.destroy();
 		};
 	});
 }
@@ -89,10 +140,6 @@ function getMatches(string: string, regex: RegExp, index = 1) {
 	return matches;
 }
 
-const globalPool = {
-	maxSockets: 100
-};
-
 export default class WebDav {
 	static WebDavError = WebDavError;
 	config: WebDavOptions;
@@ -124,22 +171,15 @@ export default class WebDav {
 	}
 	getOptions() {
 		return {
+			hostname: this.config.hostname,
+			uriBase: `/on/demandware.servlet/webdav/Sites/${this.folder}/${this.config.version}`,
 			baseUrl: this.baseUrl || `https://${this.config.hostname}/on/demandware.servlet/webdav/Sites/${this.folder}/${this.config.version}`,
 			uri: '/',
-			auth: {
-				user: this.config.username,
-				password: this.config.password
-			},
-			strictSSL: false,
-			timeout: 15000,
-			pool: globalPool
+			username: this.config.username,
+			password: this.config.password
 		};
 	}
 	makeRequest(options): Observable<string> {
-		const { pool: _pool, ...optionsCopy } = options;
-		const { pool: _pool2, ...defaultOptions } = this.getOptions();
-
-		this.log('request', JSON.stringify(optionsCopy), JSON.stringify(defaultOptions));
 		return request$(Object.assign(this.getOptions(), options));
 	}
 	postBody(uriPath: string, bodyOfFile: string): Observable<string> {
@@ -161,22 +201,22 @@ export default class WebDav {
 		return request$(Object.assign(this.getOptions(), {
 			uri: '/' + uriPath,
 			method: 'PUT',
-			body: createReadStream(filePath)
+			stream: createReadStream(filePath)
 		})).pipe(tap(body => {
 			this.log('post-response', uriPath, body);
 		}));
 	}
-	postStream(filePath: string, stream: NodeJS.ReadableStream, root: string = this.config.root): Observable<string> {
+	postStream(filePath: string, stream: ReadStream, root: string = this.config.root): Observable<string> {
 		const uriPath = relative(root, filePath);
 
-		this.log('post', uriPath);
+		this.log('post-stream', uriPath);
 
 		return request$(Object.assign(this.getOptions(), {
 			uri: '/' + uriPath,
 			method: 'PUT',
-			body: stream
+			stream: stream
 		})).pipe(tap(body => {
-			this.log('post-response-stream', uriPath, body);
+			this.log('post-stream-response', uriPath, body);
 		}));
 	}
 	mkdir(filePath: string, root: string = this.config.root): Observable<string> {
@@ -187,7 +227,7 @@ export default class WebDav {
 			uri: '/' + uriPath,
 			method: 'MKCOL'
 		})).pipe(tap(body => {
-			this.log('mkcol-response', uriPath, body);
+			this.log('mkdir-response', uriPath, body);
 		}));
 	}
 	unzip(filePath: string, root = this.config.root): Observable<string> {
@@ -224,7 +264,7 @@ export default class WebDav {
 			method: 'GET',
 			encoding: 'binary'
 		}).pipe(tap(data => {
-			this.log('get-response', data);
+			this.log('getBinary-response', data);
 		}));
 	}
 	getActiveCodeVersion(): Observable<string> {
@@ -362,13 +402,13 @@ export default class WebDav {
 				return zipFile;
 			}, new yazl.ZipFile()))
 			.pipe(flatMap(
-				zipFile => new Observable<NodeJS.ReadableStream>(observer => {
+				zipFile => new Observable<ReadStream>(observer => {
 					const zp = zipFile as any;
 					if (typeof zp.once === 'function') {
 						zp.once('error', (err: Error) => observer.error(err));
 					}
 
-					observer.next(zipFile.outputStream);
+					observer.next(zipFile.outputStream as any);
 
 					finished(zipFile.outputStream, (err) => {
 						if (err) {
@@ -405,7 +445,7 @@ export default class WebDav {
 				notify(`[${processingFolder}] Zipping`);
 				return this.zipFiles(pathToCartridgesDir, { ignoreList })
 			}))
-			.pipe(flatMap((stream) => {
+			.pipe(flatMap(stream => {
 				notify(`[${processingFolder}] Sending zip to remote`);
 				return this.postStream(cartridgesZipFileName, stream, pathToCartridgesDir)
 			}))

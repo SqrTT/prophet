@@ -1,9 +1,91 @@
 
-import request = require('request');
+import { request } from 'https';
+import { OutgoingHttpHeaders } from 'http';
 
 import { logger } from 'vscode-debugadapter';
 
 const justResolve = (resolve, reject, body) => { resolve(body) };
+
+
+
+function httpRequest(options: {
+	hostname: string;
+	form?: object | string;
+	json?: object | string;
+	baseUrl: string;
+	uri: string;
+	method: string;
+	headers: OutgoingHttpHeaders | undefined,
+	username: string;
+	password: string;
+}) {
+	return new Promise<string>((resolve, reject) => {
+
+		const req = request({
+			hostname: options.hostname,
+			path: options.baseUrl + options.uri,
+			auth: [options.username, options.password].join(':'),
+			method: options.method,
+			headers: options.headers,
+			timeout: 20000
+		}, response => {
+			const dt: string[] = [];
+			response.on('data', data => {
+				dt.push(data && data.toString());
+			});
+
+			response.once('error', err => {
+				reject(err);
+				req.destroy();
+			});
+			response.once('abort', err => {
+				reject(err);
+				req.destroy();
+			});
+			response.once('end', () => {
+				if (response.statusCode && response.statusCode >= 400) {
+					reject(response.statusMessage || response.statusCode);
+				} else {
+					resolve(dt.join(''));
+				}
+			});
+
+		});
+
+		const handleError = (err) => {
+			reject(err);
+			req.destroy();
+		}
+
+		req.once('error', handleError);
+
+		req.once('timeout', handleError);
+		req.once('uncaughtException', handleError);
+
+		if (options.json) {
+			const postData = typeof options.form === 'string'
+				? options.form
+				: JSON.stringify(options.json)
+
+			req.setHeader('Content-Type', 'application/json');
+			req.setHeader('Content-Length', Buffer.byteLength(postData));
+
+			req.end(postData);
+		} else if (options.form) {
+			const postData = typeof options.form === 'string'
+				? options.form
+				: Object.keys(options.form).map(key =>
+					key + '=' + (options.form && options.form[key] ? encodeURIComponent(options.form[key]) : '')).join('&')
+
+			req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
+			req.setHeader('Content-Length', Buffer.byteLength(postData));
+
+			req.end(postData);
+		} else {
+			req.end();
+		}
+	});
+}
 
 export interface IThread {
 	id: number;
@@ -62,89 +144,48 @@ export default class Connection {
 		return {
 			baseUrl: 'https://' + this.options.hostname + '/s/-/dw/debugger/v2_0/',
 			uri: '/',
-			auth: {
-				user: this.options.username,
-				password: this.options.password
-			},
+			username: this.options.username,
+			password: this.options.password,
+			hostname: this.options.hostname,
 			headers: {
 				'x-dw-client-id': this.options.clientId,
 				'Content-Type': 'application/json'
-			},
-			strictSSL: false,
-			timeout: 10000
+			}
 		};
 	}
 	makeRequest<T>(options, cb: (resolve, reject, body) => void): Promise<T> {
 		if (this.verbose) {
 			logger.verbose('req -> ' + JSON.stringify(options));
 		}
-		return new Promise((resolve, reject) => {
-			if (!this.established) {
-				reject(Error('Connection is not established'));
-				return;
-			}
-			if (typeof options.json === 'undefined') {
-				options.json = true;
+		if (!this.established) {
+			return Promise.reject(Error('Connection is not established'));
+		}
+
+		return httpRequest({ ...this.getOptions(), ...options }).then(body => {
+			if (this.verbose) {
+				logger.verbose('req: ' + JSON.stringify(options));
+				logger.verbose('res: ' + JSON.stringify(body));
 			}
 
-			request(Object.assign(this.getOptions(), options), (err, res, body) => {
-				if (err) {
-					return reject(err);
-				}
-				if (this.verbose) {
-					logger.verbose('req: ' + JSON.stringify(options));
-					logger.verbose('res: ' + JSON.stringify(body));
-				}
-
-				if (res.statusCode >= 400) {
-					if (res.body) {
-						try {
-							const content = JSON.parse(res.body);
-							if (content) {
-								return reject(new Error(JSON.stringify(content, null, '    ')));
-							}
-						} catch (e) {
-							return reject(new Error(`establish error: ${res.statusCode} ${res.statusMessage} ${res.body} :  ${e}`));
-						}
-					}
-					return reject(new Error(res.statusMessage));
-				}
-				cb(resolve, reject, body);
-			});
+			return new Promise((resolve, reject) => {
+				cb(resolve, reject, body && JSON.parse(body))
+			})
 		});
 	}
 	establish() {
-		return new Promise((resolve, reject) => {
-			request(Object.assign(this.getOptions(), {
-				uri: '/client',
-				method: 'POST'
-			}), (err, res, body) => {
-				if (err) {
-					return reject(err);
-				}
-				if (this.verbose) {
-					logger.verbose('req: ' + JSON.stringify(Object.assign(this.getOptions())));
-					logger.verbose('res: ' + JSON.stringify(body));
-				}
-				if (res.statusCode >= 400) {
-					if (res.body) {
-						try {
-							const content = JSON.parse(res.body);
-							if (content) {
-								return reject(new Error(JSON.stringify(content, null, '    ')));
-							}
-						} catch (e) {
-							return reject(new Error('establish error: ' + e));
-						}
-					}
-					return reject(new Error(res.statusMessage));
-				}
-				this.established = true
-				resolve();
-			});
-		});
+		return httpRequest({
+			...this.getOptions(),
+			uri: '/client',
+			method: 'POST'
+		}).then(body => {
+			if (this.verbose) {
+				logger.verbose('req: ' + JSON.stringify(Object.assign(this.getOptions())));
+				logger.verbose('res: ' + JSON.stringify(body));
+			}
+			this.established = true
+		})
 	}
-	getStackTrace(threadID : number): Promise<IStackFrame[]> {
+	getStackTrace(threadID: number): Promise<IStackFrame[]> {
 		return this.makeRequest({
 			uri: '/threads/' + threadID,
 			method: 'get'
@@ -156,7 +197,7 @@ export default class Connection {
 			}
 		});
 	}
-	getMembers(threadID: number, frame_index: number, path? : string, start = 0, count = 100): Promise<IMember[]> {
+	getMembers(threadID: number, frame_index: number, path?: string, start = 0, count = 100): Promise<IMember[]> {
 		//get all variables
 
 		return this.makeRequest({
@@ -179,23 +220,15 @@ export default class Connection {
 	}
 	disconnect() {
 		this.established = false;
-		return new Promise((resolve, reject) => {
-			request(Object.assign(this.getOptions(), {
-				uri: '/client',
-				method: 'DELETE'
-			}), (err, res) => {
-				if (err) {
-					return reject(err);
-				}
-				if (res.statusCode >= 400) {
-					return reject(new Error(res.statusMessage));
-				}
-				resolve();
-			});
+
+		return httpRequest({
+			...this.getOptions(),
+			uri: '/client',
+			method: 'DELETE'
 		});
 	}
 
-	createBreakpoints(breakpoints): Promise<{ id : string, file: string, line: string }[]> {
+	createBreakpoints(breakpoints): Promise<{ id: string, file: string, line: string }[]> {
 		return this.makeRequest({
 			uri: '/breakpoints',
 			method: 'POST',
@@ -213,7 +246,7 @@ export default class Connection {
 			})));
 		});
 	}
-	getBreakpoints(id? : string): Promise<{ id:string, file: string, line: string }[]> {
+	getBreakpoints(id?: string): Promise<{ id: string, file: string, line: string }[]> {
 		return this.makeRequest({
 			uri: '/breakpoints' + (id ? '/' + id : ''),
 			method: 'get'
@@ -308,7 +341,7 @@ export default class Connection {
 			method: 'POST'
 		}, justResolve);
 	}
-	stop(threadID : number) {
+	stop(threadID: number) {
 		//threads/{thread_id}/stop
 		return this.makeRequest({
 			uri: '/threads/' + threadID + '/stop',

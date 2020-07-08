@@ -108,7 +108,7 @@ const uploadCartridges = (
 				}),
 				tap(
 					(data) => { },
-					(error) => { },
+					(error) => { outputChannel.appendLine(`Error!?: ${error}`); },
 					() => {
 						retryCounter = 0;
 						count++;

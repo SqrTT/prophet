@@ -301,6 +301,7 @@ export function registerImportExportCSV(context: ExtensionContext) {
 					const selectedCartridge = cartridges.find(cartridge => cartridge.name === selected);
 					const selectedCartridgePath = selectedCartridge?.fsPath;
 					if (!selectedCartridgePath) {
+						window.showInformationMessage('Not found cartridge path ');
 						return;
 					}
 
@@ -325,7 +326,7 @@ export function registerImportExportCSV(context: ExtensionContext) {
 					}
 
 					for (const uniqProperty of uniqProperties) {
-						['', ...sitesLocalesUniq].forEach((uniqLocale, idx) => {
+						['', ...sitesLocalesUniq].forEach(async (uniqLocale, idx) => {
 							const filename = uniqLocale ? uniqProperty + '_' + uniqLocale : uniqProperty;
 
 							const localeRows = getRows(uniqProperty, idx + 2);
@@ -337,11 +338,13 @@ export function registerImportExportCSV(context: ExtensionContext) {
 
 								const contentToWrite = localeRowsWithValue.map(r => r.join('=')).join('\n');
 								var enc = new TextEncoder();
-
-								workspace.fs.writeFile(Uri.parse(fullFilePath), enc.encode(contentToWrite));
+								await workspace.fs.createDirectory(Uri.file(join(selectedCartridgePath, 'cartridge', 'templates', 'resources')));
+								await workspace.fs.writeFile(Uri.file(fullFilePath), enc.encode(contentToWrite));
 							}
 						});
 					}
+				} else {
+					window.showInformationMessage('No cartridge selected');
 				}
 			}
 		}
