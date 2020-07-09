@@ -186,6 +186,7 @@ export function registerImportExportCSV(context: ExtensionContext) {
 						return needsQuote(col) ? quoteField(col) : col;
 					}).join(',');
 				}).join('\n')));
+				window.showInformationMessage('Data successfully exported to csv');
 			}
 		}
 	}));
@@ -270,14 +271,10 @@ export function registerImportExportCSV(context: ExtensionContext) {
 						"\""
 					);
 
-				}
-				else {
-
+				} else {
 					// We found a non-quoted value.
 					strMatchedValue = arrMatches[3];
-
 				}
-
 
 				// Now that we have our value string, let's add
 				// it to the data array.
@@ -289,7 +286,6 @@ export function registerImportExportCSV(context: ExtensionContext) {
 		}
 
 		if (inputPath && inputPath.length && workspace.workspaceFolders && workspace.workspaceFolders.length) {
-
 			const cartridges = await getOrderedCartridges(workspace.workspaceFolders);
 
 			if (cartridges && cartridges.length) {
@@ -338,8 +334,8 @@ export function registerImportExportCSV(context: ExtensionContext) {
 
 								const contentToWrite = localeRowsWithValue.map(r => r.join('=')).join('\n');
 								var enc = new TextEncoder();
-								await workspace.fs.createDirectory(Uri.file(join(selectedCartridgePath, 'cartridge', 'templates', 'resources')));
-								await workspace.fs.writeFile(Uri.file(fullFilePath), enc.encode(contentToWrite));
+								await workspace.fs.createDirectory(Uri.parse(join(selectedCartridgePath, 'cartridge', 'templates', 'resources')));
+								await workspace.fs.writeFile(Uri.parse(fullFilePath), enc.encode(contentToWrite));
 							}
 						});
 					}
