@@ -145,7 +145,7 @@ connection.onInitialize((params): InitializeResult => {
 			hoverProvider: true,
 			foldingRangeProvider: true,
 			selectionRangeProvider: true,
-			workspaceSymbolProvider: true,
+			// workspaceSymbolProvider: true,
 			renameProvider: true,
 			completionProvider: {
 				resolveProvider: false
