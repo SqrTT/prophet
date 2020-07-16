@@ -26,6 +26,8 @@ function httpRequest(options: {
 			path: options.baseUrl + options.uri,
 			auth: [options.username, options.password].join(':'),
 			method: options.method,
+			rejectUnauthorized: false,
+			servername: options.hostname,
 			headers: options.headers,
 			timeout: 20000
 		}, response => {

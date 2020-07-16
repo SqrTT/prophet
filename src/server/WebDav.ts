@@ -33,6 +33,8 @@ function request$(options: {
 		const req = request(options.baseUrl + options.uri, {
 			auth: [options.username, options.password].join(':'),
 			method: options.method,
+			rejectUnauthorized: false,
+			servername: options.hostname,
 			timeout: 20000
 		}, response => {
 			const dt: string[] = [];
