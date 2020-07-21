@@ -6,6 +6,25 @@ import { logger } from 'vscode-debugadapter';
 
 const justResolve = (resolve, reject, body) => { resolve(body) };
 
+function retryPromise<T>(fn: () => Promise<T>, retriesLeft = 3, interval = 400, log = (msg: string) => { }): Promise<T> {
+	return new Promise((resolve, reject) => {
+		return fn()
+			.then(resolve)
+			.catch((error) => {
+				if (retriesLeft === 1) {
+					// reject('maximum retries exceeded');
+					reject(error)
+					return
+				}
+
+				setTimeout(() => {
+					log('retriesLeft: ' + retriesLeft)
+					// Passing on "reject" is the important part
+					retryPromise(fn, retriesLeft - 1, interval, log).then(resolve, reject)
+				}, interval)
+			})
+	})
+}
 
 
 function httpRequest(options: {
@@ -20,6 +39,10 @@ function httpRequest(options: {
 	password: string;
 }) {
 	return new Promise<string>((resolve, reject) => {
+		const handleError = (err) => {
+			reject(err);
+			req.destroy();
+		}
 
 		const req = request({
 			hostname: options.hostname,
@@ -29,7 +52,7 @@ function httpRequest(options: {
 			rejectUnauthorized: false,
 			servername: options.hostname,
 			headers: options.headers,
-			timeout: 20000
+			timeout: 10000
 		}, response => {
 			const dt: string[] = [];
 			response.on('data', data => {
@@ -54,13 +77,7 @@ function httpRequest(options: {
 
 		});
 
-		const handleError = (err) => {
-			reject(err);
-			req.destroy();
-		}
-
 		req.once('error', handleError);
-
 		req.once('timeout', handleError);
 		req.once('uncaughtException', handleError);
 
@@ -127,6 +144,7 @@ export default class Connection {
 	protected options: any;
 	protected established: boolean;
 	protected verbose = false;
+	protected log: (msg: string) => void;
 	//protected logger : Logger;
 
 	constructor(params) {
@@ -138,7 +156,10 @@ export default class Connection {
 		}, params);
 		this.established = false;
 
+		this.log = () => { };
+
 		if (params.verbose) {
+			this.log = (msg) => { logger.verbose('log -> ' + msg); };
 			this.verbose = true;
 		}
 	}
@@ -175,20 +196,21 @@ export default class Connection {
 		});
 	}
 	establish() {
-		return httpRequest({
-			...this.getOptions(),
-			uri: '/client',
-			method: 'POST'
-		}).then(body => {
-			if (this.verbose) {
-				logger.verbose('req: ' + JSON.stringify(Object.assign(this.getOptions())));
-				logger.verbose('res: ' + JSON.stringify(body));
-			}
-			this.established = true
-		})
+		return retryPromise(() =>
+			httpRequest({
+				...this.getOptions(),
+				uri: '/client',
+				method: 'POST'
+			}).then(body => {
+				if (this.verbose) {
+					logger.verbose('req: ' + JSON.stringify(Object.assign(this.getOptions())));
+					logger.verbose('res: ' + JSON.stringify(body));
+				}
+				this.established = true
+			}), 3, 500, this.log);
 	}
 	getStackTrace(threadID: number): Promise<IStackFrame[]> {
-		return this.makeRequest({
+		return retryPromise(() => this.makeRequest({
 			uri: '/threads/' + threadID,
 			method: 'get'
 		}, (resolve, reject, body) => {
@@ -197,12 +219,12 @@ export default class Connection {
 			} else {
 				resolve([]);
 			}
-		});
+		}), 3, 500, this.log);
 	}
 	getMembers(threadID: number, frame_index: number, path?: string, start = 0, count = 100): Promise<IMember[]> {
 		//get all variables
 
-		return this.makeRequest({
+		return retryPromise(() => this.makeRequest({
 			uri: `/threads/${threadID}/frames/${frame_index}/members` + (path ? '?object_path=' + escape(path) : '') + `${path ? '&' : '?'}start=${start}&count=${count}`,
 			method: 'get'
 		}, (resolve, reject, body) => {
@@ -218,20 +240,20 @@ export default class Connection {
 				}
 			}
 
-		});
+		}), 3, 500, this.log);
 	}
 	disconnect() {
 		this.established = false;
 
-		return httpRequest({
+		return retryPromise(() => httpRequest({
 			...this.getOptions(),
 			uri: '/client',
 			method: 'DELETE'
-		});
+		}), 3, 500, this.log);
 	}
 
 	createBreakpoints(breakpoints): Promise<{ id: string, file: string, line: string }[]> {
-		return this.makeRequest({
+		return retryPromise(() => this.makeRequest({
 			uri: '/breakpoints',
 			method: 'POST',
 			json: {
@@ -246,10 +268,10 @@ export default class Connection {
 				file: breakpoint.script_path,
 				line: breakpoint.line_number
 			})));
-		});
+		}));
 	}
 	getBreakpoints(id?: string): Promise<{ id: string, file: string, line: string }[]> {
-		return this.makeRequest({
+		return retryPromise(() => this.makeRequest({
 			uri: '/breakpoints' + (id ? '/' + id : ''),
 			method: 'get'
 		}, (resolve, reject, body) => {
@@ -263,22 +285,22 @@ export default class Connection {
 			} else {
 				resolve([]);
 			}
-		});
+		}), 3, 500, this.log);
 	}
 	removeBreakpoints(id?: number) {
-		return this.makeRequest({
+		return retryPromise(() => this.makeRequest({
 			uri: '/breakpoints' + (id ? '/' + id : ''),
 			method: 'DELETE'
-		}, justResolve);
+		}, justResolve), 3, 500, this.log);
 	}
 	resetThreads() {
-		return this.makeRequest({
+		return retryPromise(() => this.makeRequest({
 			uri: '/threads/reset',
 			method: 'POST'
-		}, justResolve)
+		}, justResolve), 3, 500, this.log);
 	}
 	getThreads(): Promise<IThread[]> {
-		return this.makeRequest({
+		return retryPromise(() => this.makeRequest({
 			uri: '/threads',
 			method: 'GET'
 		}, (resolve, reject, body) => {
@@ -287,11 +309,11 @@ export default class Connection {
 			} else {
 				resolve([]);
 			}
-		})
+		}), 3, 500, this.log)
 	}
 	getVariables(threadID: number, frame_index: number, start = 0, count = 100): Promise<IVariable[]> {
 		//threads/{thread_id}/variables
-		return this.makeRequest({
+		return retryPromise(() => this.makeRequest({
 			uri: `/threads/${threadID}/frames/${frame_index}/variables?start=${start}&count=${count}`,
 			method: 'GET'
 		}, (resolve, reject, body) => {
@@ -312,8 +334,7 @@ export default class Connection {
 			} else {
 				resolve([]);
 			}
-
-		});
+		}), 3, 500, this.log);
 	}
 	stepInto(threadID: number): Promise<IThread> {
 		//threads/{thread_id}/into
