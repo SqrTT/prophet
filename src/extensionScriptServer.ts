@@ -88,7 +88,7 @@ export async function createScriptLanguageServer(context: ExtensionContext, conf
 			pattern: '**/cartridge/templates/default/**/*.isml'
 		}],
 		initializationOptions: {
-			disableDiagnostics: configuration.get('extension.prophet.script.server.disable.diagnostics', false)
+			disableDiagnostics: configuration.get('script.server.disable.diagnostics', false)
 		},
 		synchronize: {
 			// Synchronize the setting section 'languageServerExample' to the server
