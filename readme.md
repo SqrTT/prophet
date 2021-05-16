@@ -162,6 +162,10 @@ function doSomething(product, basket) {
 
 ```
 
+### Enable Cartridges/Logs View
+
+To see the Cartridges or Logs view, open the command palette and run `Prophet: Focus on Catrdiges View` or `Prophet: Focus on Logs View`.
+
 ### Download SOAP WebService API from Server
 
 This feature works similarly to the UXStudio feature. One can download the SOAP API files from server & generate documentation for it.
