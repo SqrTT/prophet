@@ -212,12 +212,12 @@ export function activate(context: ExtensionContext) {
 
 	context.subscriptions.push(
 		commands.registerCommand('extension.prophet.command.open.documentation', () => {
-			commands.executeCommand('vscode.open', Uri.parse('https://documentation.demandware.com'));
+			commands.executeCommand('vscode.open', Uri.parse('https://documentation.b2c.commercecloud.salesforce.com/'));
 		})
 	);
 	context.subscriptions.push(
 		commands.registerCommand('extension.prophet.command.open.xchange', () => {
-			commands.executeCommand('vscode.open', Uri.parse('https://xchange.demandware.com'));
+			commands.executeCommand('vscode.open', Uri.parse('https://developer.commercecloud.com/s/discussion-groups'));
 		})
 	);
 
