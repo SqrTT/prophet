@@ -317,8 +317,8 @@
             },
             {
                 "command": "extension.prophet.command.open.xchange",
-                "title": "Prophet: Open Xchange",
-                "description": "Open Xchange"
+                "title": "Prophet: Open Dev Center Discussion Groups",
+                "description": "Open Dev Center Discussion Groups"
             }
         ],
         "jsonValidation": [
