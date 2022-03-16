@@ -2,7 +2,7 @@
 import { relative, sep, resolve, join } from 'path';
 import { Observable, of, from, forkJoin, throwError } from 'rxjs';
 import { tap, map, flatMap, catchError, reduce, filter } from 'rxjs/operators';
-import { createReadStream, unlink, ReadStream } from 'fs';
+import { createReadStream, unlink, ReadStream, readFileSync } from 'fs';
 import { finished } from 'stream';
 import { workspace, CancellationTokenSource, RelativePattern, window } from 'vscode';
 import { request } from 'https';
@@ -27,16 +27,32 @@ function request$(options: {
 	method: string;
 	username: string;
 	password: string;
+	enableCertificate: boolean;
+	p12: string;
+	passphrase: string;
 }) {
 	return new Observable<string>(observer => {
-
-		const req = request(options.baseUrl + options.uri, {
-			auth: [options.username, options.password].join(':'),
-			method: options.method,
-			rejectUnauthorized: false,
-			servername: options.hostname,
-			timeout: 20000
-		}, response => {
+		var reqOptions = {};
+		if (options.enableCertificate) {
+			reqOptions = {
+				auth: [options.username, options.password].join(':'),
+				method: options.method,
+				rejectUnauthorized: false,
+				servername: options.hostname,
+				timeout: 20000,
+				pfx: readFileSync(options.p12),
+				passphrase: options.passphrase
+			};
+		} else {
+			reqOptions = {
+				auth: [options.username, options.password].join(':'),
+				method: options.method,
+				rejectUnauthorized: false,
+				servername: options.hostname,
+				timeout: 20000
+			};
+		}			
+		const req = request(options.baseUrl + options.uri, reqOptions, response => {
 			const dt: string[] = [];
 			response.on('data', data => {
 				dt.push(data && data.toString());
@@ -122,7 +138,10 @@ export interface DavOptions {
 	root: string,
 	debug?: boolean,
 	cartridgeResolution?: 'ask' | 'leave' | 'remove',
-	cartridgesPath?: string
+	cartridgesPath?: string,
+	enableCertificate: boolean,
+	p12: string,
+	passphrase: string
 }
 
 interface WebDavOptions {
@@ -130,7 +149,10 @@ interface WebDavOptions {
 	username: string,
 	password: string,
 	version: string,
-	root: string
+	root: string,
+	enableCertificate: boolean,
+	p12: string,
+	passphrase: string
 }
 
 function getMatches(string: string, regex: RegExp, index = 1) {
@@ -178,7 +200,10 @@ export default class WebDav {
 			baseUrl: this.baseUrl || `https://${this.config.hostname}/on/demandware.servlet/webdav/Sites/${this.folder}/${this.config.version}`,
 			uri: '/',
 			username: this.config.username,
-			password: this.config.password
+			password: this.config.password,
+			enableCertificate: this.config.enableCertificate,
+			p12: this.config.p12,
+			passphrase: this.config.passphrase
 		};
 	}
 	makeRequest(options): Observable<string> {

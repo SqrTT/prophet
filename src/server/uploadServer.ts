@@ -17,7 +17,10 @@ export function getWebDavClient(config: DavOptions, outputChannel: OutputChannel
 			username: config.username,
 			password: config.password,
 			version: config['code-version'] || config.version,
-			root: rootDir
+			root: rootDir,
+			enableCertificate: config.enableCertificate,
+			p12: config.p12,
+			passphrase: config.passphrase
 		}, config.debug ?
 			(...msgs: string[]) => { outputChannel.appendLine(`${msgs.join(' ')}`); } :
 			() => {

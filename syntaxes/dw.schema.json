@@ -41,13 +41,18 @@
             "type": "string",
             "description": "List of cartridges, which is in the site cartridges path separated by ':', example: \"app_site:plugin_newsletter:plugin_sitemap:plugin_wishlists:app_storefront_base\""
         },
+        "enableCertificate": {
+            "type":"boolean",
+            "default": false,
+            "description": "Enable certificate connection"
+        },
         "p12": {
             "type": "string",
-            "description": "Absolute path certificate file [Currently not supported]"
+            "description": "Absolute path certificate file"
         },
         "passphrase": {
             "type": "string",
-            "description": "Passphrase for certificate file [Currently not supported]"
+            "description": "Passphrase for certificate file"
         },
         "verbose": {
             "type": "boolean",
