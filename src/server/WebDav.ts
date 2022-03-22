@@ -2,7 +2,7 @@
 import { relative, sep, resolve, join } from 'path';
 import { Observable, of, from, forkJoin, throwError } from 'rxjs';
 import { tap, map, flatMap, catchError, reduce, filter } from 'rxjs/operators';
-import { createReadStream, unlink, ReadStream, readFileSync } from 'fs';
+import { createReadStream, unlink, ReadStream } from 'fs';
 import { finished } from 'stream';
 import { workspace, CancellationTokenSource, RelativePattern, window } from 'vscode';
 import { request } from 'https';
@@ -40,7 +40,7 @@ function request$(options: {
 				rejectUnauthorized: false,
 				servername: options.hostname,
 				timeout: 20000,
-				pfx: readFileSync(options.p12),
+				pfx: options.p12,
 				passphrase: options.passphrase
 			};
 		} else {
@@ -525,7 +525,7 @@ export function readConfigFile(configFilename: string) {
 			stream.close();
 		};
 	})).pipe(flatMap(({ fileContent, configFilename }) => {
-		return new Observable<DavOptions>(observer => {
+		return new Observable<{ config: any, configFilename: string }>(observer => {
 			if (configFilename.match(/\.js$/)) {
 				const moduleIn = {
 					exports: {}
@@ -537,8 +537,8 @@ export function readConfigFile(configFilename: string) {
 					fn(moduleIn, moduleIn.exports, window, workspace);
 
 					if (moduleIn.exports) {
-						Promise.resolve(moduleIn.exports as any).then((config: DavOptions) => {
-							observer.next({ ...config, configFilename: configFilename });
+						Promise.resolve(moduleIn.exports as any).then((config: any) => {
+							observer.next({ config, configFilename });
 							observer.complete();
 						}).catch((error: Error) => {
 							observer.error('dw.js error:' + error);
@@ -551,13 +551,54 @@ export function readConfigFile(configFilename: string) {
 				}
 			} else {
 				try {
-					const conf = JSON.parse(fileContent);
-					observer.next({ ...conf, configFilename });
+					var config = JSON.parse(fileContent);
+					observer.next({ config, configFilename });
 					observer.complete();
 				} catch (err) {
 					observer.error(err);
 				}
 			}
 		})
+	})).pipe(flatMap(({ config, configFilename }) => {
+		return new Observable<DavOptions>(observer => {
+			try {
+				if (config.enableCertificate) {
+					const stream = createReadStream(config.p12);
+					let chunks: Buffer[] = [];
+			
+					// Listen for data
+					stream.on('data', chunk => {
+						chunks.push(chunk);
+					});
+			
+					stream.on('error', err => {
+						observer.error(err);
+					}); // Handle the error
+			
+					// File is done being read
+					stream.on('close', () => {
+						try {
+							config.p12 = chunks;
+							observer.next({ ...config, configFilename });
+							observer.complete();
+							chunks = <any>null;
+						} catch (err) {
+							observer.error(err);
+						}
+					});
+			
+					return () => {
+						chunks = <any>null;
+						stream.close();
+					};
+				} else {
+					observer.next({ ...config, configFilename });
+					observer.complete();
+				}
+			} catch (err) {
+				observer.error(err);
+			}
+		})
 	}));
 }
+
