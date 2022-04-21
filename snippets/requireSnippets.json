@@ -2392,5 +2392,96 @@
             "var WSUtil = require('dw/ws/WSUtil');"
         ],
         "description": "Require Class WSUtil"
+    },
+    "Require Class Component": {
+        "prefix": "reqComponent",
+        "body": [
+            "var Component = require('dw/experience/Component');"
+        ],
+        "description": "Require Class Component"
+    },
+    "Require Class ComponentRenderSettings": {
+        "prefix": "reqComponentRenderSettings",
+        "body": [
+            "var ComponentRenderSettings = require('dw/experience/ComponentRenderSettings');"
+        ],
+        "description": "Require Class ComponentRenderSettings"
+    },
+    "Require Class ComponentScriptContext": {
+        "prefix": "reqComponentScriptContext",
+        "body": [
+            "var ComponentScriptContext = require('dw/experience/ComponentScriptContext');"
+        ],
+        "description": "Require Class ComponentScriptContext"
+    },
+    "Require Class CustomEditor": {
+        "prefix": "reqCustomEditor",
+        "body": [
+            "var CustomEditor = require('dw/experience/CustomEditor');"
+        ],
+        "description": "Require Class CustomEditor"
+    },
+    "Require Class CustomEditorResources": {
+        "prefix": "reqCustomEditorResources",
+        "body": [
+            "var CustomEditorResources = require('dw/experience/CustomEditorResources');"
+        ],
+        "description": "Require Class CustomEditorResources"
+    },
+    "Require Class FocalPoint": {
+        "prefix": "reqFocalPoint",
+        "body": [
+            "var FocalPoint = require('dw/experience/image/FocalPoint');"
+        ],
+        "description": "Require Class FocalPoint"
+    },
+    "Require Class Image": {
+        "prefix": "reqImage",
+        "body": [
+            "var Image = require('dw/experience/image/Image');"
+        ],
+        "description": "Require Class Image"
+    },
+    "Require Class ImageMetaData": {
+        "prefix": "reqImageMetaData",
+        "body": [
+            "var ImageMetaData = require('dw/experience/image/ImageMetaData');"
+        ],
+        "description": "Require Class ImageMetaData"
+    },
+    "Require Class Page": {
+        "prefix": "reqPage",
+        "body": [
+            "var Page = require('dw/experience/Page');"
+        ],
+        "description": "Require Class Page"
+    },
+    "Require Class PageMgr": {
+        "prefix": "reqPageMgr",
+        "body": [
+            "var PageMgr = require('dw/experience/PageMgr');"
+        ],
+        "description": "Require Class PageMgr"
+    },
+    "Require Class PageScriptContext": {
+        "prefix": "reqPageScriptContext",
+        "body": [
+            "var PageScriptContext = require('dw/experience/PageScriptContext');"
+        ],
+        "description": "Require Class PageScriptContext"
+    },
+    "Require Class Region": {
+        "prefix": "reqRegion",
+        "body": [
+            "var Region = require('dw/experience/Region');"
+        ],
+        "description": "Require Class Region"
+    },
+    "Require Class RegionRenderSettings": {
+        "prefix": "reqRegionRenderSettings",
+        "body": [
+            "var RegionRenderSettings = require('dw/experience/RegionRenderSettings');"
+        ],
+        "description": "Require Class RegionRenderSettings"
     }
 }
