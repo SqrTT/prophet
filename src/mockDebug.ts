@@ -242,18 +242,6 @@ class ProphetDebugSession extends LoggingDebugSession {
 			this._breakPoints.set(path, []);
 		}
 
-		if (scriptPath.includes('/default/js/') || scriptPath.includes('/cartridge/js/')) {
-			response.body = {
-				breakpoints: []
-			};
-			response.success = false;
-			response.message = "Unable to set breakpoint to non backend file";
-
-			this.logError(response.message);
-
-			return this.sendResponse(response);
-		}
-
 		const scriptBrks = this._breakPoints.get(path) || [];
 
 		// remove if unexist
