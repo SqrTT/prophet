@@ -1,6 +1,6 @@
 
-import { request } from 'https';
-import { OutgoingHttpHeaders } from 'http';
+import { request, Agent } from 'https';
+import { OutgoingHttpHeaders, request as requestOfHttp } from 'http';
 
 import { logger } from 'vscode-debugadapter';
 
@@ -27,6 +27,52 @@ function retryPromise<T>(fn: () => Promise<T>, retriesLeft = 3, interval = 400, 
 }
 
 
+function proxyAgent(destHostname : string) : Promise<Agent | null> {
+	return new Promise((resolve, reject) => {
+		const proxyURL = process.env.HTTPS_PROXY || process.env.https_proxy || null;
+		if (!proxyURL) {
+			resolve(null);
+			return;
+		}
+		const proxyEndpoint = new URL(proxyURL);
+		if (!/^http:$/.test(proxyEndpoint.protocol || '')) {
+			resolve(null);
+			return;
+		}
+		const path = `${destHostname}:443`;
+		const req = ((proxyEndpoint, path) => {
+			const requestOptionsForProxy = {
+				method: 'CONNECT',
+				host: proxyEndpoint.hostname,
+				port: proxyEndpoint.port,
+				path,
+				timeout: 10000
+			};
+			if (0 < proxyEndpoint.username.length && 0 < proxyEndpoint.password.length) {
+				requestOptionsForProxy['headers'] = {
+					'Proxy-Authorization': `Basic ${Buffer.from(`${proxyEndpoint.username}:${proxyEndpoint.password}`).toString('base64')}`
+				};
+			}
+			return requestOfHttp(requestOptionsForProxy);
+		})(proxyEndpoint, path);
+		const handleError = (err) => {
+			reject(err);
+			req.destroy();
+		};
+		req.once('connect', (response, socket) => {
+			if (response.statusCode === 200) {
+				resolve(new Agent({ socket }));
+				return;
+			}
+			handleError(new Error(`An error occurred while connecting. statusCode=${response.statusCode}, statusMessage=${response.statusMessage}`));
+		});
+		req.once('error', handleError);
+		req.once('timeout', handleError);
+		req.end();
+	});
+}
+
+
 function httpRequest(options: {
 	hostname: string;
 	form?: object | string;
@@ -39,70 +85,77 @@ function httpRequest(options: {
 	password: string;
 }) {
 	return new Promise<string>((resolve, reject) => {
-		const handleError = (err) => {
+		proxyAgent(options.hostname).then((agent) => {
+			const handleError = (err) => {
+				reject(err);
+				req.destroy();
+			}
+			const requestOptions = {
+				hostname: options.hostname,
+				path: options.baseUrl + options.uri,
+				auth: [options.username, options.password].join(':'),
+				method: options.method,
+				rejectUnauthorized: false,
+				servername: options.hostname,
+				headers: options.headers,
+				timeout: 10000
+			};
+			if (agent) {
+				requestOptions['agent'] = agent;
+			}
+			const req = request(requestOptions, response => {
+				const dt: string[] = [];
+				response.on('data', data => {
+					dt.push(data && data.toString());
+				});
+	
+				response.once('error', err => {
+					reject(err);
+					req.destroy();
+				});
+				response.once('abort', err => {
+					reject(err);
+					req.destroy();
+				});
+				response.once('end', () => {
+					if (response.statusCode && response.statusCode >= 400) {
+						reject(response.statusMessage || response.statusCode);
+					} else {
+						resolve(dt.join(''));
+					}
+				});
+	
+			});
+	
+			req.once('error', handleError);
+			req.once('timeout', handleError);
+			req.once('uncaughtException', handleError);
+	
+			if (options.json) {
+				const postData = typeof options.form === 'string'
+					? options.form
+					: JSON.stringify(options.json)
+	
+				req.setHeader('Content-Type', 'application/json');
+				req.setHeader('Content-Length', Buffer.byteLength(postData));
+	
+				req.end(postData);
+			} else if (options.form) {
+				const postData = typeof options.form === 'string'
+					? options.form
+					: Object.keys(options.form).map(key =>
+						key + '=' + (options.form && options.form[key] ? encodeURIComponent(options.form[key]) : '')).join('&')
+	
+				req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
+				req.setHeader('Content-Length', Buffer.byteLength(postData));
+	
+				req.end(postData);
+			} else {
+				req.end();
+			}
+		}).catch((err) => {
 			reject(err);
-			req.destroy();
-		}
-
-		const req = request({
-			hostname: options.hostname,
-			path: options.baseUrl + options.uri,
-			auth: [options.username, options.password].join(':'),
-			method: options.method,
-			rejectUnauthorized: false,
-			servername: options.hostname,
-			headers: options.headers,
-			timeout: 10000
-		}, response => {
-			const dt: string[] = [];
-			response.on('data', data => {
-				dt.push(data && data.toString());
-			});
-
-			response.once('error', err => {
-				reject(err);
-				req.destroy();
-			});
-			response.once('abort', err => {
-				reject(err);
-				req.destroy();
-			});
-			response.once('end', () => {
-				if (response.statusCode && response.statusCode >= 400) {
-					reject(response.statusMessage || response.statusCode);
-				} else {
-					resolve(dt.join(''));
-				}
-			});
-
 		});
-
-		req.once('error', handleError);
-		req.once('timeout', handleError);
-		req.once('uncaughtException', handleError);
-
-		if (options.json) {
-			const postData = typeof options.form === 'string'
-				? options.form
-				: JSON.stringify(options.json)
-
-			req.setHeader('Content-Type', 'application/json');
-			req.setHeader('Content-Length', Buffer.byteLength(postData));
-
-			req.end(postData);
-		} else if (options.form) {
-			const postData = typeof options.form === 'string'
-				? options.form
-				: Object.keys(options.form).map(key =>
-					key + '=' + (options.form && options.form[key] ? encodeURIComponent(options.form[key]) : '')).join('&')
-
-			req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
-			req.setHeader('Content-Length', Buffer.byteLength(postData));
-
-			req.end(postData);
-		} else {
-			req.end();
-		}
 	});
 }
 
