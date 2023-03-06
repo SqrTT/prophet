@@ -90,7 +90,7 @@
 	"iselse condition": {
         "prefix": "iselse",
         "body": [
-            "<iselse/>",
+            "<iselse>",
             "    ${0}"
         ],
         "description": "iselse condition"
@@ -98,7 +98,7 @@
 	"iselseif condition": {
         "prefix": "iselseif",
         "body": [
-            "<iselseif condition=\"${1}\" />",
+            "<iselseif condition=\"${1}\">",
             "    ${0}"
         ],
         "description": "iselseif condition"
@@ -107,7 +107,7 @@
         "prefix": "isif",
         "body": [
             "<isif condition=\"${1}\">",
-            "${2:    ${3}\n<iselse/>\n    ${4}}",
+            "${2:    ${3}\n<iselse>\n    ${4}}",
             "</isif>"
         ],
         "description": "isif condition"
