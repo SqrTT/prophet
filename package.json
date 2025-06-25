@@ -328,11 +328,11 @@
             },
             {
                 "fileMatch": "*/cartridge/experience/pages/*.json",
-                "url": "https://documentation.b2c.commercecloud.salesforce.com/DOC3/topic/com.demandware.dochelp/DWAPI/content/pagetype.json"
+                "url": "https://salesforcecommercecloud.github.io/b2c-dev-doc/docs/current/content/pagetype.json"
             },
             {
                 "fileMatch": "*/cartridge/experience/components/*.json",
-                "url": "https://documentation.b2c.commercecloud.salesforce.com/DOC3/topic/com.demandware.dochelp/DWAPI/content/componenttype.json"
+                "url": "https://salesforcecommercecloud.github.io/b2c-dev-doc/docs/current/content/componenttype.json"
             }
         ],
         "snippets": [
